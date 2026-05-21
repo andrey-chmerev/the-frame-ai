@@ -40,7 +40,7 @@ export async function update(target, flags = {}) {
     }
     if (config.copilot || flags.copilot) {
       const files = readdirSync(join(TEMPLATES_DIR, 'commands')).filter((f) => f.endsWith('.md'));
-      files.forEach((f) => log(`  ~ .vscode/${f.replace(/\.md$/, '.prompt.md')}`));
+      files.forEach((f) => log(`  ~ .github/prompts/${f.replace(/\.md$/, '.prompt.md')}`));
       total += files.length;
     }
     log(`\n  Note: project files (STATE.md, MAP.md, memory/, etc.) are never updated`);
@@ -84,11 +84,13 @@ export async function update(target, flags = {}) {
 
   // 4. Update Copilot prompts
   if (config.copilot || flags.copilot) {
+    const promptsDest = join(target, '.github', 'prompts');
+    ensureDir(promptsDest);
+    for (const f of readdirSync(commandsDest).filter((f) => f.endsWith('.md'))) {
+      writeFile(join(promptsDest, f.replace(/\.md$/, '.prompt.md')), readFileSync(join(commandsDest, f), 'utf-8'));
+    }
     const vscodeDest = join(target, '.vscode');
     ensureDir(vscodeDest);
-    for (const f of readdirSync(commandsDest).filter((f) => f.endsWith('.md'))) {
-      writeFile(join(vscodeDest, f.replace(/\.md$/, '.prompt.md')), readFileSync(join(commandsDest, f), 'utf-8'));
-    }
     mergeVscodeSettings(join(vscodeDest, 'settings.json'));
     updated += readdirSync(commandsDest).filter((f) => f.endsWith('.md')).length;
     if (flags.copilot && !config.copilot) {

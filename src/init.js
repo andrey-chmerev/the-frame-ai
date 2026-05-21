@@ -88,13 +88,15 @@ export async function init(target, flags = {}) {
   // 2b. Copilot Chat support
   const copilot = await promptCopilot(flags.yes);
   if (copilot) {
+    const promptsDest = join(target, '.github', 'prompts');
+    ensureDir(promptsDest);
+    for (const f of readdirSync(commandsDest).filter((f) => f.endsWith('.md'))) {
+      writeFile(join(promptsDest, f.replace(/\.md$/, '.prompt.md')), readFileSync(join(commandsDest, f), 'utf-8'));
+    }
     const vscodeDest = join(target, '.vscode');
     ensureDir(vscodeDest);
-    for (const f of readdirSync(commandsDest).filter((f) => f.endsWith('.md'))) {
-      writeFile(join(vscodeDest, f.replace(/\.md$/, '.prompt.md')), readFileSync(join(commandsDest, f), 'utf-8'));
-    }
     mergeVscodeSettings(join(vscodeDest, 'settings.json'));
-    logSuccess(`${commandCount} Copilot prompts → .vscode/`);
+    logSuccess(`${commandCount} Copilot prompts → .github/prompts/`);
   }
 
   // 3. Copy agents and apply quality.commands substitution
