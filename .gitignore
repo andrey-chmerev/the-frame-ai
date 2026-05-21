@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+
+# Build artifacts
+*.tgz
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+npm-debug.log*
+
+# Frame-generated files (не коммитить артефакты init)
+# .claude/  # раскомментировать если нужно исключить
+
+# Claude Code local config
+CLAUDE.md
+docs/

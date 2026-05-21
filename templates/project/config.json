@@ -1,0 +1,74 @@
+{
+  "version": "1.0",
+  "project": "{{PROJECT_NAME}}",
+
+  "_solo_comment": "=== SOLO SETTINGS — review and adjust these ===",
+
+  "quality": {
+    "commands": {
+      "typecheck": "npx tsc --noEmit",
+      "test": "npx vitest run",
+      "lint": "npx eslint .",
+      "build": "npm run build",
+      "audit": "npm audit",
+      "outdated": "npm outdated"
+    },
+    "typescript": "strict",
+    "eslint": true,
+    "tests": "required",
+    "build": "required"
+  },
+
+  "soloMode": {
+    "autoContextPruning": true,
+    "timeBoxing": { "defaultMinutes": 30 }
+  },
+
+  "devilsAdvocate": {
+    "enabled": true,
+    "categories": ["input", "error", "edge", "security", "performance"]
+  },
+
+  "_advanced_comment": "=== ADVANCED — safe to leave as-is ===",
+
+  "workflow": {
+    "tdd": true,
+    "autoCommit": false,
+    "checkpoints": true,
+    "autoCheckpoint": true,
+    "checkpointBefore": ["research", "plan", "build", "review"],
+    "maxCheckpoints": 10,
+    "cleanupAfterShip": true,
+    "pauseResume": true,
+    "worktrees": true
+  },
+
+  "phases": {
+    "research": { "type": "plan", "freshContext": true },
+    "plan": { "freshContext": true },
+    "build": { "type": "tdd" },
+    "review": { "freshContext": true },
+    "ship": {}
+  },
+
+  "memory": {
+    "autoUpdate": true,
+    "trigger": "per-task",
+    "maxPatterns": 50,
+    "maxAntiPatterns": 20,
+    "maxDecisions": 30,
+    "confidenceArchiveDays": 60,
+    "retrospectiveRequired": true
+  },
+
+  "checkDeps": {
+    "runBeforeShip": true,
+    "auditAgeDaysWarning": 7
+  },
+
+  "archive": {
+    "enabled": true,
+    "thresholdDays": 90,
+    "archivePath": "docs/specs/archive"
+  }
+}
