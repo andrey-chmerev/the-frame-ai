@@ -1,0 +1,335 @@
+# THE Frame
+
+FRAME — Framework für KI-gestützte Solo-Entwicklung
+
+[🇺🇸 English](README.md) | [🇨🇳 中文](README.zh.md) | [🇮🇳 हिंदी](README.hi.md) | [🇯🇵 日本語](README.ja.md) | [🇩🇪 Deutsch](README.de.md) | [🇪🇸 Español](README.es.md) | [🇷🇺 Русский](README.ru.md)
+
+## Was ist FRAME?
+
+**FRAME (Framework for AI-Assisted Solo Development)** ist ein Framework für Solo-Entwickler, die Produkte mit Claude Code erstellen. Es verwandelt chaotische KI-gestützte Entwicklung in einen vorhersehbaren Prozess — von der Idee bis zum Deploy — mit Gedächtnis, Struktur und Schutz vor Fehlern.
+
+Wenn du alleine mit Claude Code ein Produkt baust und wie ein Team arbeiten möchtest — FRAME ist für dich.
+
+## Welche Probleme löst FRAME?
+
+| Problem | Was FRAME bietet |
+|---------|-----------------|
+| Kontextverlust zwischen Sitzungen | Projektgedächtnis und automatischer Statusdump beim Sitzungsstart |
+| Chaos bei Aufgaben und Prioritäten | 6-Phasen-Workflow: Recherche → Plan → Build → Review → Ship → Reflect |
+| Angst, etwas Wichtiges zu zerstören | Safety-Hooks blockieren destruktive Befehle vor der Ausführung |
+| Sich wiederholende Routineaufgaben | 34 fertige Befehle für den vollständigen Entwicklungszyklus |
+| Komplexe Features mit Abhängigkeiten | Parallele Subagenten für unabhängige Aufgaben |
+| Keine Struktur für Solo-Arbeit | Roadmap, STATE.md, MAP.md — immer wissen, wo du bist und was als nächstes kommt |
+
+## Wie man mit FRAME arbeitet
+
+```
+Recherche → Plan → Build → Review → Ship → Reflect
+```
+
+Jede Sitzung ist ein Zyklus. Beginne mit `/frame:daily`, ende mit `/frame:ship`.
+
+**Recherche** — verstehen, bevor du baust
+Führe `/frame:research <Thema>` aus — Claude erkundet die Codebasis, externe Quellen und baut Kontext für den nächsten Schritt auf.
+
+**Plan** — in Aufgaben aufteilen
+`/frame:plan <Feature>` verwandelt Recherche in eine konkrete Aufgabenliste mit Schätzungen.
+
+**Build** — implementieren
+`/frame:build` führt Aufgaben sequenziell aus (1–3 auf einmal) mit TDD. Für viele unabhängige Aufgaben — `/frame:wave` führt sie in parallelen Batches aus. Feststeckend — `/frame:unstuck`. Bug gefunden — `/frame:debug`.
+
+**Review** — vor dem Deployment prüfen
+`/frame:review` führt automatisierte Prüfungen durch und gibt eine Checkliste: Tests, Typen, Sicherheit, Performance.
+
+**Ship** — deployen und aufzeichnen
+`/frame:ship` committet, optionaler Push/PR und aktualisiert das Projektgedächtnis.
+
+**Reflect** — lernen und verbessern
+`/frame:retrospective` nach dem Deploy aktualisiert Metriken und erfasst Muster für zukünftige Sitzungen.
+
+## Beispiele
+
+### Neues Feature: Google-Authentifizierung hinzufügen
+
+```
+/frame:daily
+# → aktuellen Projektstatus und Geplantes sehen
+
+/frame:research "Google OAuth"
+# → Claude untersucht die Codebasis: wie aktuelle Auth funktioniert,
+#   welche Muster bereits verwendet werden, was hinzugefügt werden muss
+
+/frame:plan "Google OAuth"
+# → konkrete Aufgabenliste erhalten:
+#   1. Google OAuth-Credentials konfigurieren
+#   2. Callback-Route hinzufügen
+#   3. Mit Sessions verbinden
+#   4. Button zur UI hinzufügen
+
+/frame:checkpoint
+# → Wiederherstellungspunkt speichern — falls etwas schiefgeht, kann man zurückrollen
+
+/frame:wave
+# → Aufgaben 1–4 sind unabhängig, Claude führt sie parallel aus
+
+/frame:review
+# → automatisierte Prüfungen: Tests, Typen, Sicherheit
+
+/frame:ship
+# → commit, optionaler Push/PR, Projektgedächtnis aktualisiert
+```
+
+### Bug: Benutzer können sich nach dem Passwort-Reset nicht einloggen
+
+```
+/frame:daily
+# → Kontext wiederherstellen, prüfen ob der Bug bereits im Plan ist oder hinzufügen
+
+/frame:debug "login after reset"
+# → Claude prüft systematisch: Logs, Reset-Flow, Sessions, Tokens
+# → du erhältst eine Hypothese mit einer konkreten Stelle im Code
+
+# Wenn die Ursache sofort gefunden wird:
+/frame:checkpoint                        # Wiederherstellungspunkt vor dem Fix
+/frame:fast "fix: invalidate old session after password reset"
+# → Claude macht einen gezielten Fix, schreibt einen Regressionstest
+
+# Wenn die Ursache unklar ist — tiefer gehen:
+/frame:forensics
+# → analysiert die Git-Historie der Änderungen in diesem Bereich,
+#   findet den Commit, der das Verhalten gebrochen hat
+
+/frame:checkpoint
+/frame:fast "fix: ..."                   # gefundene Ursache beheben
+
+/frame:review
+# → bestätigen, dass der Fix keine anderen Login-Szenarien gebrochen hat
+
+/frame:ship
+```
+
+### Verbesserung: Dashboard-Laden beschleunigen
+
+```
+/frame:daily
+
+/frame:performance
+# → Baseline ermitteln: Bundle-Größe, Ladezeit, Lighthouse-Score
+#   Zahlen merken — am Ende für den Vergleich benötigt
+
+/frame:research "dashboard performance"
+# → Claude analysiert Dashboard-Code: schwere Komponenten,
+#   redundante Anfragen, was gecacht oder lazy-geladen werden kann
+
+/frame:plan "dashboard optimization"
+# → Aufgabenliste mit Impact-Schätzungen:
+#   1. schwere Charts lazy laden
+#   2. API-Anfragen cachen
+#   3. doppelte Anfragen beim Mount entfernen
+
+/frame:build
+# → sequenziell, jede Aufgabe mit einem Test
+
+/frame:performance
+# → mit Baseline vergleichen: echte Verbesserung sehen
+
+/frame:ship
+```
+
+## Was drin ist
+
+FRAME bietet:
+
+- **6-Phasen-Workflow**: Recherche → Plan → Build → Review → Ship → Reflect
+- **34 Befehle**: von schnellen Aufgaben bis zum vollständigen Feature-Entwicklungszyklus
+- **5 KI-Agenten**: Researcher, Planner, Builder, Reviewer, Devil's Advocate
+- **Safety-Hooks**: blockieren destruktive Operationen, erzwingen Quality-Gates
+- **Git-Sicherheit**: Checkpoints, Rollback, Worktrees, Pause/Resume
+
+## Voraussetzungen
+
+- Node.js >= 18
+- Git (Projekt muss ein Git-Repository sein)
+
+## Schnellstart
+
+```bash
+# Git-Repo initialisieren falls nötig
+git init && git commit --allow-empty -m "init"
+
+# FRAME installieren
+npx the-frame-ai init
+
+# Claude Code in diesem Projekt öffnen und ausführen:
+/frame:init    # Codebasis scannen, MAP.md befüllen
+/frame:daily   # dein täglicher Einstiegspunkt
+```
+
+## Befehle
+
+### Kern — hier anfangen
+
+Diese 7 Befehle decken 90% der Solo-Dev-Arbeit ab:
+
+| Befehl | Wann verwenden |
+|--------|---------------|
+| `/frame:daily` | **Hier anfangen** nach jeder Pause — was wurde gemacht, was kommt als nächstes |
+| `/frame:research <Thema>` | Vor der Planung eines neuen Features |
+| `/frame:plan <Feature>` | Recherche in eine umsetzbare Aufgabenliste umwandeln |
+| `/frame:build` | 1–3 Aufgaben mit TDD implementieren (sequenziell) |
+| `/frame:wave` | 4+ unabhängige Aufgaben implementieren (parallele Subagenten) |
+| `/frame:review` | Vor dem Deployment — automatisierte Prüfungen + Checkliste |
+| `/frame:ship` | Commit, optionaler Push/PR, Gedächtnis aktualisieren |
+
+### Alle Befehle nach Phase
+
+<details>
+<summary>Recherche</summary>
+
+| Befehl | Wann verwenden |
+|--------|---------------|
+| `/frame:research <Thema>` | Vor der Planung eines neuen Features |
+| `/frame:explain <Datei>` | Warum sieht dieser Code so aus? |
+| `/frame:why <Thema>` | Entscheidungshistorie durchsuchen |
+</details>
+
+<details>
+<summary>Plan</summary>
+
+| Befehl | Wann verwenden |
+|--------|---------------|
+| `/frame:plan <Feature>` | Recherche in eine umsetzbare Aufgabenliste umwandeln |
+| `/frame:add-task` | Aufgabe zum Plan hinzufügen ohne die Arbeit zu unterbrechen |
+</details>
+
+<details>
+<summary>Build</summary>
+
+| Befehl | Wann verwenden |
+|--------|---------------|
+| `/frame:build` | Plan mit TDD implementieren (1–3 Aufgaben, sequenziell) |
+| `/frame:wave` | 4+ unabhängige Aufgaben in parallelen Batches implementieren |
+| `/frame:fast <Aufgabe>` | Schnelle Aufgabe unter 30 Minuten |
+| `/frame:debug <Problem>` | Systematische Bug-Untersuchung |
+| `/frame:forensics` | Tiefenanalyse warum etwas kaputt gegangen ist |
+| `/frame:refactor` | Refactoring mit TDD-Sicherheitsnetz |
+| `/frame:migrate` | DB/API/Deps-Migration mit Rollback-Plan |
+</details>
+
+<details>
+<summary>Review</summary>
+
+| Befehl | Wann verwenden |
+|--------|---------------|
+| `/frame:review` | Vor dem Deployment — automatisierte Prüfungen + Checkliste |
+| `/frame:health` | Vollständiger Projekt-Gesundheitscheck |
+| `/frame:check-deps` | Sicherheitsaudit + veraltete Pakete |
+| `/frame:performance` | Bundle-Größe und Lighthouse-Audit |
+</details>
+
+<details>
+<summary>Ship</summary>
+
+| Befehl | Wann verwenden |
+|--------|---------------|
+| `/frame:ship` | Commit, optionaler Push/PR, Gedächtnis aktualisieren |
+| `/frame:checkpoint` | Git-Tag vor einer riskanten Änderung speichern |
+| `/frame:rollback` | Zu einem Checkpoint zurückrollen |
+</details>
+
+<details>
+<summary>Reflect</summary>
+
+| Befehl | Wann verwenden |
+|--------|---------------|
+| `/frame:retrospective` | Nach dem Deploy — Gedächtnis und Metriken aktualisieren |
+| `/frame:sprint-check` | Wöchentlicher Fortschritt vs. Roadmap |
+| `/frame:cleanup-memory` | Veraltetes Gedächtnis kürzen und archivieren |
+</details>
+
+<details>
+<summary>Täglich & Hilfsprogramme</summary>
+
+| Befehl | Wann verwenden |
+|--------|---------------|
+| `/frame:daily` | Tagesbeginn — was wurde gemacht, was kommt als nächstes |
+| `/frame:status` | Vollständiger Statusdump (Git, Gedächtnis, Blocker) |
+| `/frame:note` | Muster, Entscheidung oder Anti-Pattern festhalten |
+| `/frame:unstuck` | Feststeckend? 3 konkrete Optionen zum Entsperren erhalten |
+| `/frame:context` | Aktuellen Arbeitskontext anzeigen |
+| `/frame:init` | Erster Start — Codebasis scannen, MAP.md befüllen |
+| `/frame:doctor` | FRAME-Installation überprüfen |
+| `/frame:pause` / `/frame:resume` | Zustand mitten in einer Aufgabe speichern und wiederherstellen |
+</details>
+
+<details>
+<summary>Erweitert</summary>
+
+| Befehl | Wann verwenden |
+|--------|---------------|
+| `/frame:worktree` | Isolierter Git-Worktree für parallele Experimente |
+| `/frame:headless` | Autonomer CI-Modus (keine Interaktion) |
+| `/frame:estimate <Aufgabe>` | Umfang- und Zeitschätzung vor dem Start |
+</details>
+
+## Hooks
+
+FRAME installiert 4 Hooks in `.claude/hooks/`. Sie laufen automatisch.
+
+| Hook | Auslöser | Was er tut | Zum Deaktivieren |
+|------|---------|------------|-----------------|
+| `safety-net.sh` | Vor Bash | Blockiert `rm -rf` und `DROP TABLE/DATABASE` | Aus `.claude/settings.local.json` entfernen |
+| `git-safety.sh` | Vor Bash | Blockiert Force-Push, `reset --hard`, warnt bei `git add -A` | Aus `.claude/settings.local.json` entfernen |
+| `quality-gate.sh` | Nach Datei-Schreiben | Führt Typecheck + Lint auf geänderter Datei aus | Aus `.claude/settings.local.json` entfernen |
+| `session-init.sh` | Sitzungsstart | Zeigt aktuelle Phase/Aufgabe; vollständiger Kontextdump bei > 24h Abwesenheit | Aus `.claude/settings.local.json` entfernen |
+
+## Konfiguration
+
+FRAME wird über `.frame/config.json` konfiguriert. Wichtige Einstellungen:
+
+```json
+{
+  "quality": {
+    "commands": {
+      "typecheck": "npx tsc --noEmit",
+      "test": "npx vitest run",
+      "lint": "npx eslint .",
+      "build": "npm run build"
+    }
+  }
+}
+```
+
+## CLI
+
+```bash
+npx the-frame-ai init [target-dir]     # FRAME installieren
+npx the-frame-ai update [target-dir]   # Befehle, Agenten, Hooks aktualisieren
+npx the-frame-ai doctor [target-dir]   # Installationsgesundheit prüfen
+npx the-frame-ai version               # CLI-Version anzeigen
+```
+
+`update` aktualisiert nur Befehle, Agenten und Hooks. Projektdateien (STATE.md, MAP.md, memory/ usw.) werden nie überschrieben.
+
+## Projektstruktur (nach der Installation)
+
+```
+.claude/
+  commands/          # 34 FRAME-Befehle
+  agents/            # 5 KI-Agenten
+  hooks/             # 4 Safety-Hooks
+.frame/
+  config.json        # FRAME-Konfiguration
+.planning/
+  STATE.md           # Aktuelle Position
+  MAP.md             # Projektkarte
+  ROADMAP.md         # Roadmap
+  memory/            # Projektgedächtnis
+  specs/             # Feature-Spezifikationen
+  reviews/           # Review-Ergebnisse
+  reports/           # Berichte (täglich, Deps, Qualität, Sprint)
+```
+
+## Lizenz
+
+MIT

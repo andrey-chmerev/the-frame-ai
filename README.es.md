@@ -1,0 +1,335 @@
+# THE Frame
+
+FRAME — Framework para el Desarrollo en Solitario Asistido por IA
+
+[🇺🇸 English](README.md) | [🇨🇳 中文](README.zh.md) | [🇮🇳 हिंदी](README.hi.md) | [🇯🇵 日本語](README.ja.md) | [🇩🇪 Deutsch](README.de.md) | [🇪🇸 Español](README.es.md) | [🇷🇺 Русский](README.ru.md)
+
+## ¿Qué es FRAME?
+
+**FRAME (Framework for AI-Assisted Solo Development)** es un framework para desarrolladores en solitario que construyen productos con Claude Code. Convierte el caótico desarrollo asistido por IA en un proceso predecible — desde la idea hasta el despliegue — con memoria, estructura y protección contra errores.
+
+Si estás construyendo un producto solo con Claude Code y quieres trabajar como un equipo — FRAME es para ti.
+
+## ¿Qué problemas resuelve FRAME?
+
+| Problema | Lo que FRAME proporciona |
+|----------|------------------------|
+| Perder contexto entre sesiones | Memoria del proyecto y volcado automático de estado al inicio de sesión |
+| Caos en tareas y prioridades | Flujo de trabajo de 6 fases: Investigar → Planificar → Construir → Revisar → Publicar → Reflexionar |
+| Miedo a romper algo importante | Los safety hooks bloquean comandos destructivos antes de ejecutarse |
+| Tareas rutinarias repetitivas | 34 comandos listos para usar para el ciclo completo de desarrollo |
+| Funcionalidades complejas con dependencias | Subagentes paralelos para tareas independientes |
+| Sin estructura para el trabajo en solitario | Roadmap, STATE.md, MAP.md — siempre saber dónde estás y qué sigue |
+
+## Cómo trabajar con FRAME
+
+```
+Investigar → Planificar → Construir → Revisar → Publicar → Reflexionar
+```
+
+Cada sesión es un ciclo. Empieza con `/frame:daily`, termina con `/frame:ship`.
+
+**Investigar** — entender antes de construir
+Ejecuta `/frame:research <tema>` — Claude explora la base de código, fuentes externas y construye contexto para el siguiente paso.
+
+**Planificar** — dividir en tareas
+`/frame:plan <funcionalidad>` convierte la investigación en una lista de tareas concreta con estimaciones.
+
+**Construir** — implementar
+`/frame:build` ejecuta tareas secuencialmente (1–3 a la vez) con TDD. Para muchas tareas independientes — `/frame:wave` las ejecuta en lotes paralelos. Atascado — `/frame:unstuck`. Encontraste un bug — `/frame:debug`.
+
+**Revisar** — verificar antes de desplegar
+`/frame:review` ejecuta verificaciones automatizadas y proporciona una lista de comprobación: pruebas, tipos, seguridad, rendimiento.
+
+**Publicar** — desplegar y registrar
+`/frame:ship` hace commit, push/PR opcional y actualiza la memoria del proyecto.
+
+**Reflexionar** — aprender y mejorar
+`/frame:retrospective` después del despliegue actualiza métricas y captura patrones para sesiones futuras.
+
+## Ejemplos
+
+### Nueva funcionalidad: añadir autenticación con Google
+
+```
+/frame:daily
+# → ver el estado actual del proyecto y lo que está planificado
+
+/frame:research "Google OAuth"
+# → Claude estudia la base de código: cómo funciona la auth actual,
+#   qué patrones ya se usan, qué hay que añadir
+
+/frame:plan "Google OAuth"
+# → obtener una lista de tareas concreta:
+#   1. configurar credenciales de Google OAuth
+#   2. añadir ruta de callback
+#   3. conectar a sesiones
+#   4. añadir botón a la UI
+
+/frame:checkpoint
+# → guardar un punto de restauración — si algo sale mal, puedes hacer rollback
+
+/frame:wave
+# → las tareas 1–4 son independientes, Claude las ejecuta en paralelo
+
+/frame:review
+# → verificaciones automatizadas: pruebas, tipos, seguridad
+
+/frame:ship
+# → commit, push/PR opcional, memoria del proyecto actualizada
+```
+
+### Bug: los usuarios no pueden iniciar sesión después de restablecer la contraseña
+
+```
+/frame:daily
+# → restaurar contexto, ver si el bug ya está en el plan o añadirlo
+
+/frame:debug "login after reset"
+# → Claude verifica sistemáticamente: logs, flujo de reset, sesiones, tokens
+# → obtienes una hipótesis con una ubicación concreta en el código
+
+# Si la causa se encuentra de inmediato:
+/frame:checkpoint                        # punto de restauración antes del fix
+/frame:fast "fix: invalidate old session after password reset"
+# → Claude hace un fix dirigido, escribe una prueba de regresión
+
+# Si la causa no está clara — profundizar:
+/frame:forensics
+# → analiza el historial de git de cambios en esta área,
+#   encuentra el commit que rompió el comportamiento
+
+/frame:checkpoint
+/frame:fast "fix: ..."                   # corregir la causa encontrada
+
+/frame:review
+# → confirmar que el fix no rompió otros escenarios de inicio de sesión
+
+/frame:ship
+```
+
+### Mejora: acelerar la carga del dashboard
+
+```
+/frame:daily
+
+/frame:performance
+# → obtener línea base: tamaño del bundle, tiempo de carga, puntuación Lighthouse
+#   recordar los números — los necesitarás para comparar al final
+
+/frame:research "dashboard performance"
+# → Claude analiza el código del dashboard: componentes pesados,
+#   solicitudes redundantes, qué se puede cachear o cargar de forma diferida
+
+/frame:plan "dashboard optimization"
+# → lista de tareas con estimaciones de impacto:
+#   1. carga diferida de gráficos pesados
+#   2. cachear solicitudes de API
+#   3. eliminar solicitudes duplicadas al montar
+
+/frame:build
+# → secuencial, cada tarea con una prueba
+
+/frame:performance
+# → comparar con la línea base: ver la mejora real
+
+/frame:ship
+```
+
+## Qué incluye
+
+FRAME proporciona:
+
+- **Flujo de trabajo de 6 fases**: Investigar → Planificar → Construir → Revisar → Publicar → Reflexionar
+- **34 comandos**: desde tareas rápidas hasta el ciclo completo de desarrollo de funcionalidades
+- **5 agentes de IA**: Investigador, Planificador, Constructor, Revisor, Abogado del Diablo
+- **Safety Hooks**: bloquean operaciones destructivas, aplican quality gates
+- **Git Safety**: checkpoints, rollback, worktrees, pausa/reanudación
+
+## Requisitos previos
+
+- Node.js >= 18
+- Git (el proyecto debe ser un repositorio git)
+
+## Inicio rápido
+
+```bash
+# Inicializar repositorio git si es necesario
+git init && git commit --allow-empty -m "init"
+
+# Instalar FRAME
+npx the-frame-ai init
+
+# Abrir Claude Code en este proyecto y ejecutar:
+/frame:init    # escanea la base de código, rellena MAP.md
+/frame:daily   # tu punto de entrada cada día
+```
+
+## Comandos
+
+### Núcleo — empieza aquí
+
+Estos 7 comandos cubren el 90% del trabajo de desarrollo en solitario:
+
+| Comando | Cuándo usarlo |
+|---------|--------------|
+| `/frame:daily` | **Empieza aquí** después de cualquier pausa — qué se hizo, qué sigue |
+| `/frame:research <tema>` | Antes de planificar una nueva funcionalidad |
+| `/frame:plan <funcionalidad>` | Convertir la investigación en una lista de tareas accionable |
+| `/frame:build` | Implementar 1–3 tareas con TDD (secuencial) |
+| `/frame:wave` | Implementar 4+ tareas independientes (subagentes paralelos) |
+| `/frame:review` | Antes de desplegar — verificaciones automatizadas + lista de comprobación |
+| `/frame:ship` | Commit, push/PR opcional, actualizar memoria |
+
+### Todos los comandos por fase
+
+<details>
+<summary>Investigar</summary>
+
+| Comando | Cuándo usarlo |
+|---------|--------------|
+| `/frame:research <tema>` | Antes de planificar una nueva funcionalidad |
+| `/frame:explain <archivo>` | ¿Por qué este código tiene este aspecto? |
+| `/frame:why <tema>` | Buscar historial de decisiones |
+</details>
+
+<details>
+<summary>Planificar</summary>
+
+| Comando | Cuándo usarlo |
+|---------|--------------|
+| `/frame:plan <funcionalidad>` | Convertir la investigación en una lista de tareas accionable |
+| `/frame:add-task` | Añadir una tarea al plan sin interrumpir el trabajo |
+</details>
+
+<details>
+<summary>Construir</summary>
+
+| Comando | Cuándo usarlo |
+|---------|--------------|
+| `/frame:build` | Implementar el plan con TDD (1–3 tareas, secuencial) |
+| `/frame:wave` | Implementar 4+ tareas independientes en lotes paralelos |
+| `/frame:fast <tarea>` | Tarea rápida de menos de 30 minutos |
+| `/frame:debug <problema>` | Investigación sistemática de bugs |
+| `/frame:forensics` | Análisis profundo de por qué algo se rompió |
+| `/frame:refactor` | Refactorizar con red de seguridad TDD |
+| `/frame:migrate` | Migración de DB/API/deps con plan de rollback |
+</details>
+
+<details>
+<summary>Revisar</summary>
+
+| Comando | Cuándo usarlo |
+|---------|--------------|
+| `/frame:review` | Antes de desplegar — verificaciones automatizadas + lista de comprobación |
+| `/frame:health` | Verificación completa del estado del proyecto |
+| `/frame:check-deps` | Auditoría de seguridad + paquetes desactualizados |
+| `/frame:performance` | Auditoría de tamaño de bundle y Lighthouse |
+</details>
+
+<details>
+<summary>Publicar</summary>
+
+| Comando | Cuándo usarlo |
+|---------|--------------|
+| `/frame:ship` | Commit, push/PR opcional, actualizar memoria |
+| `/frame:checkpoint` | Guardar una etiqueta git antes de un cambio arriesgado |
+| `/frame:rollback` | Volver a un checkpoint |
+</details>
+
+<details>
+<summary>Reflexionar</summary>
+
+| Comando | Cuándo usarlo |
+|---------|--------------|
+| `/frame:retrospective` | Después del despliegue — actualizar memoria y métricas |
+| `/frame:sprint-check` | Progreso semanal vs. roadmap |
+| `/frame:cleanup-memory` | Recortar y archivar memoria obsoleta |
+</details>
+
+<details>
+<summary>Diario y Utilidades</summary>
+
+| Comando | Cuándo usarlo |
+|---------|--------------|
+| `/frame:daily` | Inicio del día — qué se hizo, qué sigue |
+| `/frame:status` | Volcado completo de estado (git, memoria, bloqueadores) |
+| `/frame:note` | Capturar un patrón, decisión o anti-patrón |
+| `/frame:unstuck` | ¿Atascado? Obtener 3 opciones concretas para desbloquear |
+| `/frame:context` | Mostrar el contexto de trabajo actual |
+| `/frame:init` | Primera ejecución — escanear base de código, rellenar MAP.md |
+| `/frame:doctor` | Verificar la instalación de FRAME |
+| `/frame:pause` / `/frame:resume` | Guardar y restaurar el estado a mitad de tarea |
+</details>
+
+<details>
+<summary>Avanzado</summary>
+
+| Comando | Cuándo usarlo |
+|---------|--------------|
+| `/frame:worktree` | Worktree git aislado para experimentos paralelos |
+| `/frame:headless` | Modo CI autónomo (sin interacción) |
+| `/frame:estimate <tarea>` | Estimación de alcance y tiempo antes de empezar |
+</details>
+
+## Hooks
+
+FRAME instala 4 hooks en `.claude/hooks/`. Se ejecutan automáticamente.
+
+| Hook | Disparador | Qué hace | Para desactivar |
+|------|-----------|----------|----------------|
+| `safety-net.sh` | Antes de Bash | Bloquea `rm -rf` y `DROP TABLE/DATABASE` | Eliminar de `.claude/settings.local.json` |
+| `git-safety.sh` | Antes de Bash | Bloquea force push, `reset --hard`, advierte sobre `git add -A` | Eliminar de `.claude/settings.local.json` |
+| `quality-gate.sh` | Después de escribir archivo | Ejecuta typecheck + lint en el archivo modificado | Eliminar de `.claude/settings.local.json` |
+| `session-init.sh` | Inicio de sesión | Muestra la fase/tarea actual; volcado completo de contexto si ausente > 24h | Eliminar de `.claude/settings.local.json` |
+
+## Configuración
+
+FRAME se configura mediante `.frame/config.json`. Configuraciones clave:
+
+```json
+{
+  "quality": {
+    "commands": {
+      "typecheck": "npx tsc --noEmit",
+      "test": "npx vitest run",
+      "lint": "npx eslint .",
+      "build": "npm run build"
+    }
+  }
+}
+```
+
+## CLI
+
+```bash
+npx the-frame-ai init [target-dir]     # Instalar FRAME
+npx the-frame-ai update [target-dir]   # Actualizar comandos, agentes, hooks
+npx the-frame-ai doctor [target-dir]   # Verificar el estado de la instalación
+npx the-frame-ai version               # Mostrar versión del CLI
+```
+
+`update` solo actualiza comandos, agentes y hooks. Los archivos del proyecto (STATE.md, MAP.md, memory/, etc.) nunca se sobreescriben.
+
+## Estructura del proyecto (después de la instalación)
+
+```
+.claude/
+  commands/          # 34 comandos FRAME
+  agents/            # 5 agentes de IA
+  hooks/             # 4 safety hooks
+.frame/
+  config.json        # Configuración de FRAME
+.planning/
+  STATE.md           # Posición actual
+  MAP.md             # Mapa del proyecto
+  ROADMAP.md         # Hoja de ruta
+  memory/            # Memoria del proyecto
+  specs/             # Especificaciones de funcionalidades
+  reviews/           # Resultados de revisiones
+  reports/           # Informes (diario, deps, calidad, sprint)
+```
+
+## Licencia
+
+MIT
