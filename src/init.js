@@ -173,6 +173,9 @@ export async function init(target, flags = {}) {
   log('\n--- Проверка установки ---');
   await doctor(target);
 
-  log('  Next step: open Claude Code and run `/frame:daily`');
+  log('  Next steps:');
+  log('    1. Open Claude Code in this project');
+  log('    2. Run `/frame:init`  — scans codebase, fills MAP.md');
+  log('    3. Run `/frame:daily` — your entry point every day');
   log('');
 }

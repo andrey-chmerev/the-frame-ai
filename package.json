@@ -1,10 +1,10 @@
 {
   "name": "the-frame-ai",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "FRAME — Framework for AI-Assisted Solo Development",
   "type": "module",
   "bin": {
-    "the-frame-ai": "./bin/the-frame-ai"
+    "the-frame-ai": "bin/the-frame-ai"
   },
   "files": [
     "bin/",
@@ -20,6 +20,11 @@
     "tdd"
   ],
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/andrey-chmerev/the-frame-ai.git"
+  },
+  "homepage": "https://github.com/andrey-chmerev/the-frame-ai#readme",
   "engines": {
     "node": ">=18.0.0"
   },
