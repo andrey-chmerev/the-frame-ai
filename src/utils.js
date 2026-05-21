@@ -7,6 +7,7 @@ import {
   writeFileSync,
   chmodSync,
 } from 'node:fs';
+
 import { join } from 'node:path';
 
 export function ensureDir(dir) {
@@ -52,4 +53,13 @@ export function listFilesRecursive(dir) {
 
 export function fileExists(path) {
   return existsSync(path);
+}
+
+export function mergeVscodeSettings(settingsPath) {
+  let settings = {};
+  if (existsSync(settingsPath)) {
+    try { settings = JSON.parse(readFileSync(settingsPath, 'utf-8')); } catch {}
+  }
+  settings['chat.promptFiles'] = true;
+  writeFileSync(settingsPath, JSON.stringify(settings, null, 2), 'utf-8');
 }

@@ -139,3 +139,14 @@ export async function promptConfig(defaultConfig, yes = false) {
   rl.close();
   return config;
 }
+
+export async function promptCopilot(yes = false) {
+  if (!process.stdin.isTTY || yes) return false;
+  const rl = createInterface({ input: process.stdin, output: process.stdout });
+  return new Promise((resolve) => {
+    rl.question('\n? Add GitHub Copilot Chat support? (y/N): ', (answer) => {
+      rl.close();
+      resolve(answer.trim().toLowerCase() === 'y');
+    });
+  });
+}

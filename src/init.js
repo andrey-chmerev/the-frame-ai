@@ -9,8 +9,9 @@ import {
   listFilesRecursive,
   writeFile,
   applyVars,
+  mergeVscodeSettings,
 } from './utils.js';
-import { LANGUAGES, getLanguageInstruction, promptLanguage, promptConfig } from './languages.js';
+import { LANGUAGES, getLanguageInstruction, promptLanguage, promptConfig, promptCopilot } from './languages.js';
 import { doctor } from './doctor.js';
 
 const PLANNING_DIRS = [
@@ -84,6 +85,18 @@ export async function init(target, flags = {}) {
   const commandCount = readdirSync(commandsSrc).filter((f) => f.endsWith('.md')).length;
   logSuccess(`${commandCount} commands → .claude/commands/`);
 
+  // 2b. Copilot Chat support
+  const copilot = await promptCopilot(flags.yes);
+  if (copilot) {
+    const vscodeDest = join(target, '.vscode');
+    ensureDir(vscodeDest);
+    for (const f of readdirSync(commandsDest).filter((f) => f.endsWith('.md'))) {
+      writeFile(join(vscodeDest, f.replace(/\.md$/, '.prompt.md')), readFileSync(join(commandsDest, f), 'utf-8'));
+    }
+    mergeVscodeSettings(join(vscodeDest, 'settings.json'));
+    logSuccess(`${commandCount} Copilot prompts → .vscode/`);
+  }
+
   // 3. Copy agents and apply quality.commands substitution
   const agentsSrc = join(TEMPLATES_DIR, 'agents');
   const agentsDest = join(target, '.claude', 'agents');
@@ -147,6 +160,7 @@ export async function init(target, flags = {}) {
   const configPath = join(target, '.frame', 'config.json');
   if (fileExists(configPath)) {
     resolvedConfig.language = language;
+    resolvedConfig.copilot = copilot;
     writeFile(configPath, JSON.stringify(resolvedConfig, null, 2));
   }
 
@@ -167,6 +181,7 @@ export async function init(target, flags = {}) {
   log(`  Hooks:     ${hookFiles.length} in .claude/hooks/`);
   log(`  Planning:  files in .planning/`);
   log(`  Config:    .frame/config.json`);
+  if (copilot) log(`  Copilot:   ${commandCount} prompts in .vscode/`);
   log('');
 
   // 11. Auto-run doctor

@@ -1,7 +1,7 @@
 import { join } from 'node:path';
 import { readdirSync, writeFileSync, readFileSync } from 'node:fs';
 import { TEMPLATES_DIR, VERSION, log, logSuccess } from './manifest.js';
-import { copyDir, makeExecutable, fileExists, applyVars, writeFile } from './utils.js';
+import { copyDir, makeExecutable, fileExists, applyVars, writeFile, ensureDir, mergeVscodeSettings } from './utils.js';
 
 
 export async function update(target, flags = {}) {
@@ -16,6 +16,12 @@ export async function update(target, flags = {}) {
   if (fileExists(versionPath)) {
     installedVersion = readFileSync(versionPath, 'utf-8').trim();
   }
+
+  const config = JSON.parse(readFileSync(join(target, '.frame', 'config.json'), 'utf-8'));
+  const vars = { PROJECT_NAME: config.project ?? '', LANGUAGE: config.language ?? '' };
+  const qualityVars = Object.fromEntries(
+    Object.entries(config.quality?.commands ?? {}).map(([k, v]) => [`quality.commands.${k}`, v])
+  );
 
   if (flags.dryRun) {
     log(`\nFRAME dry-run: ${installedVersion} → ${VERSION}\n`);
@@ -32,19 +38,17 @@ export async function update(target, flags = {}) {
       files.forEach((f) => log(`  ~ ${label}${f}`));
       total += files.length;
     }
+    if (config.copilot || flags.copilot) {
+      const files = readdirSync(join(TEMPLATES_DIR, 'commands')).filter((f) => f.endsWith('.md'));
+      files.forEach((f) => log(`  ~ .vscode/${f.replace(/\.md$/, '.prompt.md')}`));
+      total += files.length;
+    }
     log(`\n  Note: project files (STATE.md, MAP.md, memory/, etc.) are never updated`);
     log(`\nTotal: ${total} files would be updated. Run without --dry-run to apply.\n`);
     return;
   }
 
   log(`\nFRAME update: ${installedVersion} → ${VERSION}\n`);
-
-  // Read project config for variable substitution
-  const config = JSON.parse(readFileSync(join(target, '.frame', 'config.json'), 'utf-8'));
-  const vars = { PROJECT_NAME: config.project ?? '', LANGUAGE: config.language ?? '' };
-  const qualityVars = Object.fromEntries(
-    Object.entries(config.quality?.commands ?? {}).map(([k, v]) => [`quality.commands.${k}`, v])
-  );
 
   let updated = 0;
 
@@ -78,7 +82,22 @@ export async function update(target, flags = {}) {
   }
   updated += hookFiles.length;
 
-  // 4. Write new version
+  // 4. Update Copilot prompts
+  if (config.copilot || flags.copilot) {
+    const vscodeDest = join(target, '.vscode');
+    ensureDir(vscodeDest);
+    for (const f of readdirSync(commandsDest).filter((f) => f.endsWith('.md'))) {
+      writeFile(join(vscodeDest, f.replace(/\.md$/, '.prompt.md')), readFileSync(join(commandsDest, f), 'utf-8'));
+    }
+    mergeVscodeSettings(join(vscodeDest, 'settings.json'));
+    updated += readdirSync(commandsDest).filter((f) => f.endsWith('.md')).length;
+    if (flags.copilot && !config.copilot) {
+      config.copilot = true;
+      writeFileSync(join(target, '.frame', 'config.json'), JSON.stringify(config, null, 2), 'utf-8');
+    }
+  }
+
+  // 5. Write new version
   writeFileSync(join(target, '.frame', '.frame-version'), VERSION, 'utf-8');
 
   logSuccess(`Updated: ${updated} framework files`);
