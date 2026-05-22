@@ -223,6 +223,7 @@ npx the-frame-ai init
 | `/frame:research <トピック>` | 新機能の計画前 |
 | `/frame:explain <ファイル>` | このコードがこうなっている理由は？ |
 | `/frame:why <トピック>` | 意思決定の履歴を検索 |
+| `/frame:arch <モジュール>` | モジュールのアーキテクチャを `docs/arch/{モジュール}.md` に記録 |
 </details>
 
 <details>

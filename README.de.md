@@ -223,6 +223,7 @@ Diese 7 Befehle decken 90% der Solo-Dev-Arbeit ab:
 | `/frame:research <Thema>` | Vor der Planung eines neuen Features |
 | `/frame:explain <Datei>` | Warum sieht dieser Code so aus? |
 | `/frame:why <Thema>` | Entscheidungshistorie durchsuchen |
+| `/frame:arch <Modul>` | Modularchitektur in `docs/arch/{Modul}.md` dokumentieren |
 </details>
 
 <details>

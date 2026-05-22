@@ -223,6 +223,7 @@ Estos 7 comandos cubren el 90% del trabajo de desarrollo en solitario:
 | `/frame:research <tema>` | Antes de planificar una nueva funcionalidad |
 | `/frame:explain <archivo>` | ¿Por qué este código tiene este aspecto? |
 | `/frame:why <tema>` | Buscar historial de decisiones |
+| `/frame:arch <módulo>` | Documentar la arquitectura de un módulo en `docs/arch/{módulo}.md` |
 </details>
 
 <details>

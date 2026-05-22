@@ -225,6 +225,7 @@ These 7 commands cover 90% of solo dev work:
 | `/frame:research <topic>` | Before planning a new feature |
 | `/frame:explain <file>` | Why does this code look like this? |
 | `/frame:why <topic>` | Search decision history |
+| `/frame:arch <module>` | Document a module's architecture to `docs/arch/{module}.md` |
 </details>
 
 <details>

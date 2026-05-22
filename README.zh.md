@@ -223,6 +223,7 @@ npx the-frame-ai init
 | `/frame:research <主题>` | 在规划新功能之前 |
 | `/frame:explain <文件>` | 为什么这段代码看起来是这样的？ |
 | `/frame:why <主题>` | 搜索决策历史 |
+| `/frame:arch <模块>` | 将模块架构记录到 `docs/arch/{模块}.md` |
 </details>
 
 <details>
