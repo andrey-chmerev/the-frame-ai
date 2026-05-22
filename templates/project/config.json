@@ -66,6 +66,16 @@
     "auditAgeDaysWarning": 7
   },
 
+  "security": {
+    "enabled": true,
+    "blockShipOnCritical": true,
+    "scanSecrets": true,
+    "scanOwasp": true,
+    "scanInfrastructure": true,
+    "scanAiLlm": true,
+    "excludePatterns": ["node_modules", ".git", "dist", "build", "*.min.js", "*.min.css"]
+  },
+
   "archive": {
     "enabled": true,
     "thresholdDays": 90,

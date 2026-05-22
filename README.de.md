@@ -17,9 +17,10 @@ Wenn du alleine mit Claude Code ein Produkt baust und wie ein Team arbeiten möc
 | Kontextverlust zwischen Sitzungen | Projektgedächtnis und automatischer Statusdump beim Sitzungsstart |
 | Chaos bei Aufgaben und Prioritäten | 6-Phasen-Workflow: Recherche → Plan → Build → Review → Ship → Reflect |
 | Angst, etwas Wichtiges zu zerstören | Safety-Hooks blockieren destruktive Befehle vor der Ausführung |
-| Sich wiederholende Routineaufgaben | 34 fertige Befehle für den vollständigen Entwicklungszyklus |
+| Sich wiederholende Routineaufgaben | 35 fertige Befehle für den vollständigen Entwicklungszyklus |
 | Komplexe Features mit Abhängigkeiten | Parallele Subagenten für unabhängige Aufgaben |
 | Keine Struktur für Solo-Arbeit | Roadmap, STATE.md, MAP.md — immer wissen, wo du bist und was als nächstes kommt |
+| Sicherheitslücken beim Deployment | Security-Agent prüft OWASP Top 10, Secrets, Infrastruktur, KI-Risiken |
 
 ## Wie man mit FRAME arbeitet
 
@@ -108,7 +109,37 @@ Führe `/frame:research <Thema>` aus — Claude erkundet die Codebasis, externe 
 /frame:ship
 ```
 
-### Verbesserung: Dashboard-Laden beschleunigen
+### Sicherheit: Audit vor dem Launch
+
+```
+/frame:daily
+# → Briefing zeigt: "Security: ⚠️ never run" — Zeit das zu beheben
+
+/frame:security
+# → vollständiger Projektscan über alle Kategorien:
+#   - Secrets: AWS-Keys, GitHub-Tokens, Stripe-Keys, Private Keys, .env in Git
+#   - OWASP Top 10: SQL-Injection, XSS, CSRF, Path Traversal, SSRF, Command Injection
+#   - Infrastruktur: Dockerfile (Root-User, :latest), Debug-Endpunkte
+#   - KI/LLM: Prompt Injection, unsichere Ausgabeverarbeitung, System-Prompt-Leak
+#   - Abhängigkeiten: bekannte CVEs via npm audit
+
+# → Bericht gespeichert unter .planning/reports/security/security-{date}.md
+# → STATE.md mit Security Status aktualisiert
+
+# Bei CRITICAL-Befunden:
+# ⛔ Ship BLOCKIERT. Kritische Befunde vor /frame:ship beheben.
+# → Bericht öffnen, jeden CRITICAL-Punkt beheben, /frame:security erneut ausführen
+
+# Wenn alles sauber:
+# ✓ Keine kritischen Probleme. Sicher fortzufahren.
+
+/frame:ship
+# → Sicherheitsprüfung bestanden, commit und push
+
+# Gezielte Scans wenn du weißt wonach du suchst:
+/frame:security secrets          # nur Secrets (~30 Sekunden)
+/frame:security src/api/         # bestimmtes Verzeichnis scannen
+```
 
 ```
 /frame:daily
@@ -141,10 +172,11 @@ Führe `/frame:research <Thema>` aus — Claude erkundet die Codebasis, externe 
 FRAME bietet:
 
 - **6-Phasen-Workflow**: Recherche → Plan → Build → Review → Ship → Reflect
-- **34 Befehle**: von schnellen Aufgaben bis zum vollständigen Feature-Entwicklungszyklus
-- **5 KI-Agenten**: Researcher, Planner, Builder, Reviewer, Devil's Advocate
+- **35 Befehle**: von schnellen Aufgaben bis zum vollständigen Feature-Entwicklungszyklus
+- **6 KI-Agenten**: Researcher, Planner, Builder, Reviewer, Devil's Advocate, Security
 - **Safety-Hooks**: blockieren destruktive Operationen, erzwingen Quality-Gates
 - **Git-Sicherheit**: Checkpoints, Rollback, Worktrees, Pause/Resume
+- **Sicherheitsaudit**: OWASP Top 10, Secret-Erkennung, Infrastruktur-Checks, KI/LLM-Risiken
 
 ## Voraussetzungen
 
@@ -222,6 +254,7 @@ Diese 7 Befehle decken 90% der Solo-Dev-Arbeit ab:
 | Befehl | Wann verwenden |
 |--------|---------------|
 | `/frame:review` | Vor dem Deployment — automatisierte Prüfungen + Checkliste |
+| `/frame:security` | Tiefer Sicherheitsaudit: Secrets, OWASP, Infrastruktur, KI/LLM-Risiken |
 | `/frame:health` | Vollständiger Projekt-Gesundheitscheck |
 | `/frame:check-deps` | Sicherheitsaudit + veraltete Pakete |
 | `/frame:performance` | Bundle-Größe und Lighthouse-Audit |
@@ -315,8 +348,8 @@ npx the-frame-ai version               # CLI-Version anzeigen
 
 ```
 .claude/
-  commands/          # 34 FRAME-Befehle
-  agents/            # 5 KI-Agenten
+  commands/          # 35 FRAME-Befehle
+  agents/            # 6 KI-Agenten
   hooks/             # 4 Safety-Hooks
 .frame/
   config.json        # FRAME-Konfiguration
@@ -327,7 +360,7 @@ npx the-frame-ai version               # CLI-Version anzeigen
   memory/            # Projektgedächtnis
   specs/             # Feature-Spezifikationen
   reviews/           # Review-Ergebnisse
-  reports/           # Berichte (täglich, Deps, Qualität, Sprint)
+  reports/           # Berichte (täglich, Deps, Qualität, Sprint, Sicherheit)
 ```
 
 ## Lizenz

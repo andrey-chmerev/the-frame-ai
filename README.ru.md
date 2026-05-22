@@ -15,9 +15,10 @@
 | Потеря контекста между сессиями | Память проекта и автоматический дамп состояния при старте |
 | Хаос в задачах и приоритетах | 6-фазный воркфлоу: Research → Plan → Build → Review → Ship → Reflect |
 | Страх сломать что-то важное | Safety-хуки блокируют деструктивные команды до их выполнения |
-| Долгие однотипные задачи | 34 готовые команды для всего цикла разработки |
+| Долгие однотипные задачи | 35 готовых команд для всего цикла разработки |
 | Сложные фичи с зависимостями | Параллельные субагенты для независимых задач |
 | Нет структуры для соло-работы | Роадмап, STATE.md, MAP.md — всегда знаешь где ты и что дальше |
+| Уязвимости в коде при деплое | Security-агент проверяет OWASP Top 10, секреты, инфраструктуру, AI-риски |
 
 ## Как работать с FRAME
 
@@ -106,7 +107,37 @@ Research → Plan → Build → Review → Ship → Reflect
 /frame:ship
 ```
 
-### Улучшение: ускорить загрузку дашборда
+### Безопасность: аудит перед запуском
+
+```
+/frame:daily
+# → в брифинге видишь: "Security: ⚠️ never run" — пора исправить
+
+/frame:security
+# → полное сканирование проекта по всем категориям:
+#   - секреты: AWS-ключи, GitHub-токены, Stripe-ключи, приватные ключи, .env в git
+#   - OWASP Top 10: SQL-инъекции, XSS, CSRF, path traversal, SSRF, command injection
+#   - инфраструктура: Dockerfile (root-пользователь, :latest), debug-эндпоинты
+#   - AI/LLM: prompt injection, небезопасная обработка вывода, утечка system prompt
+#   - зависимости: известные CVE через npm audit
+
+# → отчёт сохраняется в .planning/reports/security/security-{date}.md
+# → STATE.md обновляется с Security Status
+
+# Если найдены CRITICAL-проблемы:
+# ⛔ Ship ЗАБЛОКИРОВАН. Исправь критические находки перед /frame:ship.
+# → открой отчёт, исправь каждый CRITICAL-пункт, запусти /frame:security снова
+
+# Если всё чисто:
+# ✓ Критических проблем нет. Можно продолжать.
+
+/frame:ship
+# → проверка безопасности пройдена, коммит и пуш
+
+# Точечные сканирования когда знаешь что искать:
+/frame:security secrets          # только секреты (~30 секунд)
+/frame:security src/api/         # сканировать конкретную директорию
+```
 
 ```
 /frame:daily
@@ -139,10 +170,11 @@ Research → Plan → Build → Review → Ship → Reflect
 FRAME даёт:
 
 - **6-фазный воркфлоу**: Research → Plan → Build → Review → Ship → Reflect
-- **34 команды**: от быстрых задач до полного цикла разработки фичи
-- **5 AI-агентов**: Researcher, Planner, Builder, Reviewer, Devil's Advocate
+- **35 команд**: от быстрых задач до полного цикла разработки фичи
+- **6 AI-агентов**: Researcher, Planner, Builder, Reviewer, Devil's Advocate, Security
 - **Safety Hooks**: блокируют деструктивные операции, запускают quality gates
 - **Git Safety**: чекпоинты, откат, worktrees, пауза/возобновление
+- **Security Auditing**: OWASP Top 10, обнаружение секретов, проверки инфраструктуры, AI/LLM-риски
 
 ## Требования
 
@@ -220,6 +252,7 @@ npx the-frame init
 | Команда | Когда использовать |
 |---------|-------------------|
 | `/frame:review` | Перед деплоем — автоматические проверки + чеклист |
+| `/frame:security` | Глубокий аудит безопасности: секреты, OWASP, инфра, AI/LLM-риски |
 | `/frame:health` | Полная проверка здоровья проекта |
 | `/frame:check-deps` | Аудит безопасности + устаревшие пакеты |
 | `/frame:performance` | Размер бандла и Lighthouse-аудит |
@@ -313,8 +346,8 @@ npx the-frame version                  # Показать версию CLI
 
 ```
 .claude/
-  commands/          # 34 команды FRAME
-  agents/            # 5 AI-агентов
+  commands/          # 35 команд FRAME
+  agents/            # 6 AI-агентов
   hooks/             # 4 safety-хука
 .frame/
   config.json        # Конфигурация FRAME
@@ -325,7 +358,7 @@ npx the-frame version                  # Показать версию CLI
   memory/            # Память проекта
   specs/             # Спецификации фич
   reviews/           # Результаты ревью
-  reports/           # Отчёты (daily, deps, quality, sprint)
+  reports/           # Отчёты (daily, deps, quality, sprint, security)
 ```
 
 ## Лицензия
