@@ -14,6 +14,9 @@ Research the following topic: **$ARGUMENTS**
 - `$ARGUMENTS` is not empty — if empty, STOP and ask: "What topic should I research? Usage: /frame:research <topic>"
 - `.planning/MAP.md` exists — if missing, STOP: "Run /frame:init first — MAP.md not found."
 
+If validation passes, **immediately say to the user**:
+> "Starting research on **{topic}**. This may take a few minutes — I'll explore the codebase, search the web, and write research.md. Hang tight..."
+
 Then immediately write to `.planning/STATE.md`:
 ```markdown
 ## Current Position
@@ -125,6 +128,9 @@ Create `docs/specs/{topic}/research.md`:
 ```
 
 ## Result
+
+After completing all steps, **say to the user**:
+> "Research complete. File saved to `docs/specs/{topic}/research.md`. Next step: `/frame:plan {topic}`"
 
 - `docs/specs/{topic}/research.md` — research findings with Memory Impact
 - `.planning/STATE.md` updated (COMPLETE)
