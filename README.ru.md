@@ -124,12 +124,31 @@ Research → Plan → Build → Review → Ship → Reflect
 # → отчёт сохраняется в .planning/reports/security/security-{date}.md
 # → STATE.md обновляется с Security Status
 
-# Если найдены CRITICAL-проблемы:
-# ⛔ Ship ЗАБЛОКИРОВАН. Исправь критические находки перед /frame:ship.
-# → открой отчёт, исправь каждый CRITICAL-пункт, запусти /frame:security снова
+# Если найдены CRITICAL или HIGH проблемы:
+# ⛔ Ship ЗАБЛОКИРОВАН. Запусти /frame:security-fix чтобы исправить.
+
+/frame:security-fix
+# → читает последний отчёт и исправляет находки по приоритету:
+#   сначала CRITICAL, потом HIGH
+#   - убирает .env из git-трекинга (git rm --cached)
+#   - добавляет security headers в next.config.js / Express
+#   - добавляет CSRF-защиту на Route Handlers
+#   - запускает npm audit fix для уязвимых зависимостей
+#   - фиксит Dockerfile: добавляет USER, заменяет :latest на конкретную версию
+#   - для секретов уже в истории: говорит точно как ротировать + переписать историю
+# → проверяет каждый фикс после применения
+# → обновляет STATE.md: разблокирует ship если все CRITICAL устранены
+
+# Точечные фиксы:
+/frame:security-fix critical     # исправить только CRITICAL
+/frame:security-fix high         # исправить только HIGH
+/frame:security-fix SEC-1        # исправить конкретную находку по ID
+
+/frame:security
+# → повторный аудит чтобы убедиться что всё чисто
 
 # Если всё чисто:
-# ✓ Критических проблем нет. Можно продолжать.
+# ✓ Критических проблем нет. Можно продолжать с /frame:ship.
 
 /frame:ship
 # → проверка безопасности пройдена, коммит и пуш
@@ -254,6 +273,7 @@ npx the-frame init
 |---------|-------------------|
 | `/frame:review` | Перед деплоем — автоматические проверки + чеклист |
 | `/frame:security` | Глубокий аудит безопасности: секреты, OWASP, инфра, AI/LLM-риски |
+| `/frame:security-fix` | Исправить находки из последнего отчёта (сначала CRITICAL, потом HIGH) |
 | `/frame:health` | Полная проверка здоровья проекта |
 | `/frame:check-deps` | Аудит безопасности + устаревшие пакеты |
 | `/frame:performance` | Размер бандла и Lighthouse-аудит |

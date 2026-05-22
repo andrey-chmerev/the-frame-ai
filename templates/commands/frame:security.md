@@ -395,8 +395,12 @@ Security audit complete.
 Critical: {N} | High: {N} | Medium: {N} | Low: {N}
 Report: .planning/reports/security/security-{date}.md
 
-{If critical: "⛔ Ship BLOCKED. Fix critical findings before /frame:ship."}
-{If no critical: "✓ No critical issues. Safe to proceed."}
+{If critical:
+"⛔ Ship BLOCKED. Run /frame:security-fix to fix critical findings."}
+{If high but no critical:
+"⚠️  No critical issues, but HIGH findings need attention. Run /frame:security-fix high."}
+{If no critical and no high:
+"✓ No critical issues. Safe to proceed with /frame:ship."}
 ```
 
 ## Rules

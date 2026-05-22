@@ -126,12 +126,31 @@ Führe `/frame:research <Thema>` aus — Claude erkundet die Codebasis, externe 
 # → Bericht gespeichert unter .planning/reports/security/security-{date}.md
 # → STATE.md mit Security Status aktualisiert
 
-# Bei CRITICAL-Befunden:
-# ⛔ Ship BLOCKIERT. Kritische Befunde vor /frame:ship beheben.
-# → Bericht öffnen, jeden CRITICAL-Punkt beheben, /frame:security erneut ausführen
+# Bei CRITICAL oder HIGH Befunden:
+# ⛔ Ship BLOCKIERT. Führe /frame:security-fix aus um kritische Befunde zu beheben.
+
+/frame:security-fix
+# → liest den letzten Bericht und behebt Befunde nach Priorität:
+#   CRITICAL zuerst, dann HIGH
+#   - entfernt .env aus Git-Tracking (git rm --cached)
+#   - fügt fehlende Security-Header zu next.config.js / Express hinzu
+#   - fügt CSRF-Schutz für Route Handler hinzu
+#   - führt npm audit fix für verwundbare Abhängigkeiten aus
+#   - behebt Dockerfile: fügt USER-Direktive hinzu, ersetzt :latest
+#   - für Secrets bereits in der History: erklärt genau wie rotieren + History neu schreiben
+# → verifiziert jeden Fix nach der Anwendung
+# → aktualisiert STATE.md: entsperrt Ship wenn alle CRITICAL behoben
+
+# Gezielte Fixes:
+/frame:security-fix critical     # nur CRITICAL beheben
+/frame:security-fix high         # nur HIGH beheben
+/frame:security-fix SEC-1        # bestimmten Befund per ID beheben
+
+/frame:security
+# → Audit erneut ausführen um zu bestätigen dass alles sauber ist
 
 # Wenn alles sauber:
-# ✓ Keine kritischen Probleme. Sicher fortzufahren.
+# ✓ Keine kritischen Probleme. Sicher mit /frame:ship fortzufahren.
 
 /frame:ship
 # → Sicherheitsprüfung bestanden, commit und push
@@ -256,6 +275,7 @@ Diese 7 Befehle decken 90% der Solo-Dev-Arbeit ab:
 |--------|---------------|
 | `/frame:review` | Vor dem Deployment — automatisierte Prüfungen + Checkliste |
 | `/frame:security` | Tiefer Sicherheitsaudit: Secrets, OWASP, Infrastruktur, KI/LLM-Risiken |
+| `/frame:security-fix` | Befunde aus dem letzten Sicherheitsbericht beheben (CRITICAL zuerst, dann HIGH) |
 | `/frame:health` | Vollständiger Projekt-Gesundheitscheck |
 | `/frame:check-deps` | Sicherheitsaudit + veraltete Pakete |
 | `/frame:performance` | Bundle-Größe und Lighthouse-Audit |

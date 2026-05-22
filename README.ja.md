@@ -126,12 +126,31 @@ Claude Codeで一人でプロダクトを作っていて、チームのように
 # → レポートは .planning/reports/security/security-{date}.md に保存
 # → STATE.md が Security Status で更新
 
-# CRITICAL な発見がある場合：
-# ⛔ Ship がブロックされました。/frame:ship の前に重大な発見を修正してください。
-# → レポートを開き、各 CRITICAL 項目を修正し、/frame:security を再実行
+# CRITICAL または HIGH な発見がある場合：
+# ⛔ Ship がブロックされました。/frame:security-fix を実行して修正してください。
+
+/frame:security-fix
+# → 最新レポートを読み込み、優先度順に発見を修正：
+#   CRITICAL を先に、次に HIGH
+#   - .env を git トラッキングから削除（git rm --cached）
+#   - next.config.js / Express に不足している security headers を追加
+#   - Route Handlers に CSRF 保護を追加
+#   - 脆弱な依存関係に npm audit fix を実行
+#   - Dockerfile を修正：USER ディレクティブを追加、:latest を置換
+#   - 既に履歴にあるシークレット：ローテーションと履歴書き換えの手順を説明
+# → 各修正を適用後に検証
+# → STATE.md を更新：全 CRITICAL 解決後に ship をアンブロック
+
+# ターゲット修正：
+/frame:security-fix critical     # CRITICAL のみ修正
+/frame:security-fix high         # HIGH のみ修正
+/frame:security-fix SEC-1        # ID で特定の発見を修正
+
+/frame:security
+# → 全てクリーンであることを確認するために監査を再実行
 
 # クリーンな場合：
-# ✓ 重大な問題なし。安全に進められます。
+# ✓ 重大な問題なし。/frame:ship で安全に進められます。
 
 /frame:ship
 # → セキュリティチェック通過、コミットとプッシュ
@@ -256,6 +275,7 @@ npx the-frame-ai init
 |---------|-------------|
 | `/frame:review` | デプロイ前 — 自動チェック + チェックリスト |
 | `/frame:security` | 深度セキュリティ監査：シークレット、OWASP、インフラ、AI/LLMリスク |
+| `/frame:security-fix` | 最新セキュリティレポートの発見を修正（CRITICAL 優先、次に HIGH） |
 | `/frame:health` | プロジェクト全体のヘルスチェック |
 | `/frame:check-deps` | セキュリティ監査 + 古いパッケージ |
 | `/frame:performance` | バンドルサイズとLighthouse監査 |

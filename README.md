@@ -154,12 +154,31 @@ Run `/frame:research <topic>` — Claude explores the codebase, external sources
 # → report saved to .planning/reports/security/security-{date}.md
 # → STATE.md updated with Security Status
 
-# If CRITICAL findings:
-# ⛔ Ship BLOCKED. Fix critical findings before /frame:ship.
-# → open the report, fix each CRITICAL item, re-run /frame:security
+# If CRITICAL or HIGH findings:
+# ⛔ Ship BLOCKED. Run /frame:security-fix to fix critical findings.
+
+/frame:security-fix
+# → reads the latest report and fixes findings by priority:
+#   CRITICAL first, then HIGH
+#   - removes .env files from git tracking (git rm --cached)
+#   - adds missing security headers to next.config.js / Express
+#   - adds CSRF protection to Route Handlers
+#   - runs npm audit fix for vulnerable dependencies
+#   - fixes Dockerfile: adds USER directive, pins :latest tags
+#   - for secrets already in history: tells you exactly how to rotate + rewrite history
+# → verifies each fix after applying
+# → updates STATE.md: unblocks ship if all CRITICAL resolved
+
+# Targeted fixes:
+/frame:security-fix critical     # fix only CRITICAL findings
+/frame:security-fix high         # fix only HIGH findings
+/frame:security-fix SEC-1        # fix a specific finding by ID
+
+/frame:security
+# → re-run audit to confirm everything is clean
 
 # If clean:
-# ✓ No critical issues. Safe to proceed.
+# ✓ No critical issues. Safe to proceed with /frame:ship.
 
 /frame:ship
 # → security check passes, commit and push
@@ -258,6 +277,7 @@ These 7 commands cover 90% of solo dev work:
 |---------|-------------|
 | `/frame:review` | Before deploying — automated checks + checklist |
 | `/frame:security` | Deep security audit: secrets, OWASP, infra, AI/LLM risks |
+| `/frame:security-fix` | Fix findings from the latest security report (CRITICAL first, then HIGH) |
 | `/frame:health` | Full project health check |
 | `/frame:check-deps` | Dependency vulnerabilities + outdated packages |
 | `/frame:performance` | Bundle size and Lighthouse audit |

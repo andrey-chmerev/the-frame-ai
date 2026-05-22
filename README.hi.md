@@ -126,12 +126,31 @@ FRAME — AI-सहायता प्राप्त एकल विकास 
 # → रिपोर्ट .planning/reports/security/security-{date}.md में सहेजी जाती है
 # → STATE.md Security Status के साथ अपडेट होता है
 
-# CRITICAL निष्कर्ष होने पर:
-# ⛔ Ship BLOCKED. /frame:ship से पहले critical findings ठीक करें।
-# → रिपोर्ट खोलें, प्रत्येक CRITICAL आइटम ठीक करें, /frame:security फिर चलाएं
+# CRITICAL या HIGH निष्कर्ष होने पर:
+# ⛔ Ship BLOCKED. Critical findings ठीक करने के लिए /frame:security-fix चलाएं।
+
+/frame:security-fix
+# → नवीनतम रिपोर्ट पढ़ता है और प्राथमिकता के अनुसार findings ठीक करता है:
+#   पहले CRITICAL, फिर HIGH
+#   - .env को git tracking से हटाता है (git rm --cached)
+#   - next.config.js / Express में missing security headers जोड़ता है
+#   - Route Handlers पर CSRF protection जोड़ता है
+#   - vulnerable dependencies के लिए npm audit fix चलाता है
+#   - Dockerfile ठीक करता है: USER directive जोड़ता है, :latest बदलता है
+#   - history में पहले से मौजूद secrets के लिए: rotate + history rewrite कैसे करें बताता है
+# → प्रत्येक fix लागू करने के बाद verify करता है
+# → STATE.md अपडेट करता है: सभी CRITICAL हल होने पर ship unblock करता है
+
+# Targeted fixes:
+/frame:security-fix critical     # केवल CRITICAL ठीक करें
+/frame:security-fix high         # केवल HIGH ठीक करें
+/frame:security-fix SEC-1        # ID से specific finding ठीक करें
+
+/frame:security
+# → सब कुछ साफ है यह confirm करने के लिए audit फिर चलाएं
 
 # सब कुछ साफ होने पर:
-# ✓ कोई critical समस्या नहीं। आगे बढ़ना सुरक्षित है।
+# ✓ कोई critical समस्या नहीं। /frame:ship के साथ आगे बढ़ना सुरक्षित है।
 
 /frame:ship
 # → security check पास, commit और push
@@ -256,6 +275,7 @@ npx the-frame-ai init
 |-------|--------------|
 | `/frame:review` | डिप्लॉय करने से पहले — स्वचालित जांच + चेकलिस्ट |
 | `/frame:security` | गहरा सुरक्षा ऑडिट: secrets, OWASP, infrastructure, AI/LLM risks |
+| `/frame:security-fix` | नवीनतम रिपोर्ट से findings ठीक करें (पहले CRITICAL, फिर HIGH) |
 | `/frame:health` | पूर्ण प्रोजेक्ट स्वास्थ्य जांच |
 | `/frame:check-deps` | सुरक्षा ऑडिट + पुराने पैकेज |
 | `/frame:performance` | Bundle आकार और Lighthouse ऑडिट |

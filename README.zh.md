@@ -126,12 +126,31 @@ FRAME — 面向 AI 辅助独立开发的框架
 # → 报告保存至 .planning/reports/security/security-{date}.md
 # → STATE.md 更新 Security Status
 
-# 如果发现 CRITICAL 问题：
-# ⛔ Ship 已阻止。在 /frame:ship 之前修复严重发现。
-# → 打开报告，修复每个 CRITICAL 项，重新运行 /frame:security
+# 如果发现 CRITICAL 或 HIGH 问题：
+# ⛔ Ship 已阻止。运行 /frame:security-fix 修复严重发现。
+
+/frame:security-fix
+# → 读取最新报告并按优先级修复发现：
+#   先修复 CRITICAL，再修复 HIGH
+#   - 从 git 跟踪中移除 .env（git rm --cached）
+#   - 向 next.config.js / Express 添加缺失的 security headers
+#   - 为 Route Handlers 添加 CSRF 保护
+#   - 对有漏洞的依赖运行 npm audit fix
+#   - 修复 Dockerfile：添加 USER 指令，替换 :latest
+#   - 对已在历史记录中的密钥：说明如何轮换 + 重写历史
+# → 应用后验证每个修复
+# → 更新 STATE.md：所有 CRITICAL 解决后解除 ship 阻止
+
+# 针对性修复：
+/frame:security-fix critical     # 仅修复 CRITICAL
+/frame:security-fix high         # 仅修复 HIGH
+/frame:security-fix SEC-1        # 按 ID 修复特定发现
+
+/frame:security
+# → 重新运行审计确认一切正常
 
 # 如果一切正常：
-# ✓ 没有严重问题。可以安全继续。
+# ✓ 没有严重问题。可以安全继续 /frame:ship。
 
 /frame:ship
 # → 安全检查通过，提交并推送
@@ -256,6 +275,7 @@ npx the-frame-ai init
 |------|---------|
 | `/frame:review` | 部署前——自动化检查 + 清单 |
 | `/frame:security` | 深度安全审计：密钥、OWASP、基础设施、AI/LLM 风险 |
+| `/frame:security-fix` | 修复最新安全报告中的发现（先 CRITICAL，再 HIGH） |
 | `/frame:health` | 完整项目健康检查 |
 | `/frame:check-deps` | 安全审计 + 过时包 |
 | `/frame:performance` | Bundle 大小和 Lighthouse 审计 |

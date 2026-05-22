@@ -126,12 +126,31 @@ Ejecuta `/frame:research <tema>` — Claude explora la base de código, fuentes 
 # → informe guardado en .planning/reports/security/security-{date}.md
 # → STATE.md actualizado con Security Status
 
-# Si hay hallazgos CRITICAL:
-# ⛔ Ship BLOQUEADO. Corrige los hallazgos críticos antes de /frame:ship.
-# → abre el informe, corrige cada punto CRITICAL, vuelve a ejecutar /frame:security
+# Si hay hallazgos CRITICAL o HIGH:
+# ⛔ Ship BLOQUEADO. Ejecuta /frame:security-fix para corregir los hallazgos críticos.
+
+/frame:security-fix
+# → lee el último informe y corrige hallazgos por prioridad:
+#   CRITICAL primero, luego HIGH
+#   - elimina .env del seguimiento de git (git rm --cached)
+#   - añade security headers faltantes a next.config.js / Express
+#   - añade protección CSRF a Route Handlers
+#   - ejecuta npm audit fix para dependencias vulnerables
+#   - corrige Dockerfile: añade directiva USER, reemplaza :latest
+#   - para secretos ya en el historial: explica exactamente cómo rotar + reescribir historial
+# → verifica cada corrección después de aplicarla
+# → actualiza STATE.md: desbloquea ship si todos los CRITICAL están resueltos
+
+# Correcciones específicas:
+/frame:security-fix critical     # corregir solo CRITICAL
+/frame:security-fix high         # corregir solo HIGH
+/frame:security-fix SEC-1        # corregir un hallazgo específico por ID
+
+/frame:security
+# → volver a ejecutar auditoría para confirmar que todo está limpio
 
 # Si todo está limpio:
-# ✓ Sin problemas críticos. Seguro para continuar.
+# ✓ Sin problemas críticos. Seguro para continuar con /frame:ship.
 
 /frame:ship
 # → verificación de seguridad superada, commit y push
@@ -256,6 +275,7 @@ Estos 7 comandos cubren el 90% del trabajo de desarrollo en solitario:
 |---------|--------------|
 | `/frame:review` | Antes de desplegar — verificaciones automatizadas + lista de comprobación |
 | `/frame:security` | Auditoría de seguridad profunda: secretos, OWASP, infraestructura, riesgos IA/LLM |
+| `/frame:security-fix` | Corregir hallazgos del último informe de seguridad (CRITICAL primero, luego HIGH) |
 | `/frame:health` | Verificación completa del estado del proyecto |
 | `/frame:check-deps` | Auditoría de seguridad + paquetes desactualizados |
 | `/frame:performance` | Auditoría de tamaño de bundle y Lighthouse |
