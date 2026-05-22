@@ -49,7 +49,7 @@ const SKIP_PROJECT_FILES = new Set(['CONTEXT.md']);
 export async function init(target, flags = {}) {
   if (fileExists(join(target, '.frame', 'config.json'))) {
     logWarn('FRAME already installed in this project.');
-    log('Use `the-frame update` to update framework files.');
+    log('Use `npx the-frame-ai update` to update framework files.');
     return;
   }
 
