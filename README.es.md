@@ -17,9 +17,10 @@ Si estás construyendo un producto solo con Claude Code y quieres trabajar como 
 | Perder contexto entre sesiones | Memoria del proyecto y volcado automático de estado al inicio de sesión |
 | Caos en tareas y prioridades | Flujo de trabajo de 6 fases: Investigar → Planificar → Construir → Revisar → Publicar → Reflexionar |
 | Miedo a romper algo importante | Los safety hooks bloquean comandos destructivos antes de ejecutarse |
-| Tareas rutinarias repetitivas | 34 comandos listos para usar para el ciclo completo de desarrollo |
+| Tareas rutinarias repetitivas | 35 comandos listos para usar para el ciclo completo de desarrollo |
 | Funcionalidades complejas con dependencias | Subagentes paralelos para tareas independientes |
 | Sin estructura para el trabajo en solitario | Roadmap, STATE.md, MAP.md — siempre saber dónde estás y qué sigue |
+| Vulnerabilidades de seguridad al publicar | El agente de seguridad audita OWASP Top 10, secretos, infraestructura, riesgos de IA |
 
 ## Cómo trabajar con FRAME
 
@@ -108,7 +109,37 @@ Ejecuta `/frame:research <tema>` — Claude explora la base de código, fuentes 
 /frame:ship
 ```
 
-### Mejora: acelerar la carga del dashboard
+### Seguridad: auditoría antes del lanzamiento
+
+```
+/frame:daily
+# → el briefing muestra: "Security: ⚠️ never run" — hora de solucionarlo
+
+/frame:security
+# → escaneo completo del proyecto en todas las categorías:
+#   - secretos: claves AWS, tokens GitHub, claves Stripe, claves privadas, .env en git
+#   - OWASP Top 10: inyección SQL, XSS, CSRF, path traversal, SSRF, inyección de comandos
+#   - infraestructura: Dockerfile (usuario root, :latest), endpoints de debug
+#   - IA/LLM: inyección de prompts, manejo inseguro de salida, filtración de system prompt
+#   - dependencias: CVEs conocidos via npm audit
+
+# → informe guardado en .planning/reports/security/security-{date}.md
+# → STATE.md actualizado con Security Status
+
+# Si hay hallazgos CRITICAL:
+# ⛔ Ship BLOQUEADO. Corrige los hallazgos críticos antes de /frame:ship.
+# → abre el informe, corrige cada punto CRITICAL, vuelve a ejecutar /frame:security
+
+# Si todo está limpio:
+# ✓ Sin problemas críticos. Seguro para continuar.
+
+/frame:ship
+# → verificación de seguridad superada, commit y push
+
+# Escaneos específicos cuando sabes qué buscar:
+/frame:security secrets          # solo secretos (~30 segundos)
+/frame:security src/api/         # escanear directorio específico
+```
 
 ```
 /frame:daily
@@ -141,10 +172,11 @@ Ejecuta `/frame:research <tema>` — Claude explora la base de código, fuentes 
 FRAME proporciona:
 
 - **Flujo de trabajo de 6 fases**: Investigar → Planificar → Construir → Revisar → Publicar → Reflexionar
-- **34 comandos**: desde tareas rápidas hasta el ciclo completo de desarrollo de funcionalidades
-- **5 agentes de IA**: Investigador, Planificador, Constructor, Revisor, Abogado del Diablo
+- **35 comandos**: desde tareas rápidas hasta el ciclo completo de desarrollo de funcionalidades
+- **6 agentes de IA**: Investigador, Planificador, Constructor, Revisor, Abogado del Diablo, Seguridad
 - **Safety Hooks**: bloquean operaciones destructivas, aplican quality gates
 - **Git Safety**: checkpoints, rollback, worktrees, pausa/reanudación
+- **Auditoría de seguridad**: OWASP Top 10, detección de secretos, verificaciones de infraestructura, riesgos de IA/LLM
 
 ## Requisitos previos
 
@@ -222,6 +254,7 @@ Estos 7 comandos cubren el 90% del trabajo de desarrollo en solitario:
 | Comando | Cuándo usarlo |
 |---------|--------------|
 | `/frame:review` | Antes de desplegar — verificaciones automatizadas + lista de comprobación |
+| `/frame:security` | Auditoría de seguridad profunda: secretos, OWASP, infraestructura, riesgos IA/LLM |
 | `/frame:health` | Verificación completa del estado del proyecto |
 | `/frame:check-deps` | Auditoría de seguridad + paquetes desactualizados |
 | `/frame:performance` | Auditoría de tamaño de bundle y Lighthouse |
@@ -315,8 +348,8 @@ npx the-frame-ai version               # Mostrar versión del CLI
 
 ```
 .claude/
-  commands/          # 34 comandos FRAME
-  agents/            # 5 agentes de IA
+  commands/          # 35 comandos FRAME
+  agents/            # 6 agentes de IA
   hooks/             # 4 safety hooks
 .frame/
   config.json        # Configuración de FRAME
@@ -327,7 +360,7 @@ npx the-frame-ai version               # Mostrar versión del CLI
   memory/            # Memoria del proyecto
   specs/             # Especificaciones de funcionalidades
   reviews/           # Resultados de revisiones
-  reports/           # Informes (diario, deps, calidad, sprint)
+  reports/           # Informes (diario, deps, calidad, sprint, seguridad)
 ```
 
 ## Licencia

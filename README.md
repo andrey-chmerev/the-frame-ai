@@ -17,9 +17,10 @@ If you're building a product alone with Claude Code and want to work like a team
 | Losing context between sessions | Project memory and automatic state dump on session start |
 | Chaos in tasks and priorities | 6-phase workflow: Research → Plan → Build → Review → Ship → Reflect |
 | Fear of breaking something important | Safety hooks block destructive commands before they run |
-| Repetitive routine tasks | 34 ready-made commands for the full development cycle |
+| Repetitive routine tasks | 35 ready-made commands for the full development cycle |
 | Complex features with dependencies | Parallel subagents for independent tasks |
 | No structure for solo work | Roadmap, STATE.md, MAP.md — always know where you are and what's next |
+| Shipping code with security holes | Security agent audits OWASP Top 10, secrets, infra, AI risks before deploy |
 
 ## How to work with FRAME
 
@@ -136,15 +137,48 @@ Run `/frame:research <topic>` — Claude explores the codebase, external sources
 /frame:ship
 ```
 
+### Security: audit before launch
+
+```
+/frame:daily
+# → briefing shows: "Security: ⚠️ never run" — time to fix that
+
+/frame:security
+# → full project scan across all categories:
+#   - secrets: AWS keys, GitHub tokens, Stripe keys, private keys, .env in git
+#   - OWASP Top 10: SQL injection, XSS, CSRF, path traversal, SSRF, command injection
+#   - infrastructure: Dockerfile (root user, :latest), debug endpoints, missing .dockerignore
+#   - AI/LLM: prompt injection, insecure output handling, system prompt leakage
+#   - dependencies: known CVEs via npm audit
+
+# → report saved to .planning/reports/security/security-{date}.md
+# → STATE.md updated with Security Status
+
+# If CRITICAL findings:
+# ⛔ Ship BLOCKED. Fix critical findings before /frame:ship.
+# → open the report, fix each CRITICAL item, re-run /frame:security
+
+# If clean:
+# ✓ No critical issues. Safe to proceed.
+
+/frame:ship
+# → security check passes, commit and push
+
+# Targeted scans when you know what to look for:
+/frame:security secrets          # secrets-only scan (~30 seconds)
+/frame:security src/api/         # scan specific directory
+```
+
 ## What's inside
 
 FRAME provides:
 
 - **6-phase workflow**: Research → Plan → Build → Review → Ship → Reflect
-- **34 commands**: from quick tasks to full feature development cycle
-- **5 AI agents**: Researcher, Planner, Builder, Reviewer, Devil's Advocate
+- **35 commands**: from quick tasks to full feature development cycle
+- **6 AI agents**: Researcher, Planner, Builder, Reviewer, Devil's Advocate, Security
 - **Safety Hooks**: block destructive operations, enforce quality gates
 - **Git Safety**: checkpoints, rollback, worktrees, pause/resume
+- **Security Auditing**: OWASP Top 10, secret detection, infrastructure checks, AI/LLM risks
 
 ## Prerequisites
 
@@ -222,8 +256,9 @@ These 7 commands cover 90% of solo dev work:
 | Command | When to use |
 |---------|-------------|
 | `/frame:review` | Before deploying — automated checks + checklist |
+| `/frame:security` | Deep security audit: secrets, OWASP, infra, AI/LLM risks |
 | `/frame:health` | Full project health check |
-| `/frame:check-deps` | Security audit + outdated packages |
+| `/frame:check-deps` | Dependency vulnerabilities + outdated packages |
 | `/frame:performance` | Bundle size and Lighthouse audit |
 </details>
 
@@ -315,8 +350,8 @@ npx the-frame-ai version               # Show CLI version
 
 ```
 .claude/
-  commands/          # 34 FRAME commands
-  agents/            # 5 AI agents
+  commands/          # 35 FRAME commands
+  agents/            # 6 AI agents
   hooks/             # 4 safety hooks
 .frame/
   config.json        # FRAME configuration
@@ -327,7 +362,7 @@ npx the-frame-ai version               # Show CLI version
   memory/            # Project memory
   specs/             # Feature specs
   reviews/           # Review results
-  reports/           # Reports (daily, deps, quality, sprint)
+  reports/           # Reports (daily, deps, quality, sprint, security)
 ```
 
 ## License

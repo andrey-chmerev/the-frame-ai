@@ -21,6 +21,24 @@ Read in order:
 - `.planning/ROADMAP.md` — upcoming milestones (first 30 lines)
 - `.planning/memory/context.md` — blockers and current focus
 
+### Step 2.5: Security audit staleness check
+
+```bash
+LAST_SECURITY=$(ls .planning/reports/security/security-*.md 2>/dev/null | sort | tail -1)
+if [ -z "$LAST_SECURITY" ]; then
+  echo "SECURITY_STATUS=never"
+else
+  LAST_DATE=$(basename "$LAST_SECURITY" | grep -oE '[0-9]{4}-[0-9]{2}-[0-9]{2}')
+  DAYS_AGO=$(( ( $(date +%s) - $(date -d "$LAST_DATE" +%s 2>/dev/null || date -j -f "%Y-%m-%d" "$LAST_DATE" +%s) ) / 86400 ))
+  echo "SECURITY_STATUS=${DAYS_AGO}d ago"
+fi
+```
+
+If `SECURITY_STATUS=never` or `DAYS_AGO >= 7` → add to briefing output:
+```
+⚠️  Security: {never run | last run {N} days ago} — consider /frame:security
+```
+
 ### Step 3: Check open tasks
 
 If plan.md exists for current feature:
@@ -49,6 +67,8 @@ Count `[ ]` (open) vs `[x]` (done) tasks.
 ║    {next unchecked task or next phase}   ║
 ╠══════════════════════════════════════════╣
 ║  Blockers:  {blockers or "None"}         ║
+╠══════════════════════════════════════════╣
+║  Security:  {last audit date or "⚠️ never run"} ║
 ╠══════════════════════════════════════════╣
 ║  Roadmap:   {next milestone}             ║
 ╚══════════════════════════════════════════╝

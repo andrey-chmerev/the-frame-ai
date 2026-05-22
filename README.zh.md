@@ -17,9 +17,10 @@ FRAME — 面向 AI 辅助独立开发的框架
 | 会话之间丢失上下文 | 项目记忆和会话开始时自动状态转储 |
 | 任务和优先级混乱 | 6 阶段工作流：研究 → 计划 → 构建 → 审查 → 发布 → 反思 |
 | 害怕破坏重要内容 | 安全钩子在运行前阻止破坏性命令 |
-| 重复性日常任务 | 34 个现成命令覆盖完整开发周期 |
+| 重复性日常任务 | 35 个现成命令覆盖完整开发周期 |
 | 具有依赖关系的复杂功能 | 并行子代理处理独立任务 |
 | 独立工作缺乏结构 | Roadmap、STATE.md、MAP.md——始终知道你在哪里以及下一步是什么 |
+| 发布时存在安全漏洞 | 安全代理审计 OWASP Top 10、密钥泄露、基础设施、AI 风险 |
 
 ## 如何使用 FRAME
 
@@ -108,7 +109,37 @@ FRAME — 面向 AI 辅助独立开发的框架
 /frame:ship
 ```
 
-### 改进：加速仪表板加载
+### 安全：发布前审计
+
+```
+/frame:daily
+# → 简报显示："Security: ⚠️ never run" — 是时候解决了
+
+/frame:security
+# → 全项目扫描，覆盖所有类别：
+#   - 密钥：AWS 密钥、GitHub 令牌、Stripe 密钥、私钥、git 中的 .env
+#   - OWASP Top 10：SQL 注入、XSS、CSRF、路径遍历、SSRF、命令注入
+#   - 基础设施：Dockerfile（root 用户、:latest）、调试端点
+#   - AI/LLM：提示注入、不安全的输出处理、系统提示泄露
+#   - 依赖项：通过 npm audit 检查已知 CVE
+
+# → 报告保存至 .planning/reports/security/security-{date}.md
+# → STATE.md 更新 Security Status
+
+# 如果发现 CRITICAL 问题：
+# ⛔ Ship 已阻止。在 /frame:ship 之前修复严重发现。
+# → 打开报告，修复每个 CRITICAL 项，重新运行 /frame:security
+
+# 如果一切正常：
+# ✓ 没有严重问题。可以安全继续。
+
+/frame:ship
+# → 安全检查通过，提交并推送
+
+# 当你知道要找什么时进行针对性扫描：
+/frame:security secrets          # 仅扫描密钥（约 30 秒）
+/frame:security src/api/         # 扫描特定目录
+```
 
 ```
 /frame:daily
@@ -141,10 +172,11 @@ FRAME — 面向 AI 辅助独立开发的框架
 FRAME 提供：
 
 - **6 阶段工作流**：研究 → 计划 → 构建 → 审查 → 发布 → 反思
-- **34 个命令**：从快速任务到完整功能开发周期
-- **5 个 AI 代理**：研究员、规划师、构建者、审查员、魔鬼代言人
+- **35 个命令**：从快速任务到完整功能开发周期
+- **6 个 AI 代理**：研究员、规划师、构建者、审查员、魔鬼代言人、安全审计员
 - **安全钩子**：阻止破坏性操作，强制执行质量门控
 - **Git 安全**：检查点、回滚、工作树、暂停/恢复
+- **安全审计**：OWASP Top 10、密钥检测、基础设施检查、AI/LLM 风险
 
 ## 前提条件
 
@@ -222,6 +254,7 @@ npx the-frame-ai init
 | 命令 | 使用时机 |
 |------|---------|
 | `/frame:review` | 部署前——自动化检查 + 清单 |
+| `/frame:security` | 深度安全审计：密钥、OWASP、基础设施、AI/LLM 风险 |
 | `/frame:health` | 完整项目健康检查 |
 | `/frame:check-deps` | 安全审计 + 过时包 |
 | `/frame:performance` | Bundle 大小和 Lighthouse 审计 |
@@ -315,8 +348,8 @@ npx the-frame-ai version               # 显示 CLI 版本
 
 ```
 .claude/
-  commands/          # 34 个 FRAME 命令
-  agents/            # 5 个 AI 代理
+  commands/          # 35 个 FRAME 命令
+  agents/            # 6 个 AI 代理
   hooks/             # 4 个安全钩子
 .frame/
   config.json        # FRAME 配置
@@ -327,7 +360,7 @@ npx the-frame-ai version               # 显示 CLI 版本
   memory/            # 项目记忆
   specs/             # 功能规格
   reviews/           # 审查结果
-  reports/           # 报告（日常、依赖、质量、冲刺）
+  reports/           # 报告（日常、依赖、质量、冲刺、安全）
 ```
 
 ## 许可证

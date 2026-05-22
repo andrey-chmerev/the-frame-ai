@@ -34,6 +34,21 @@ Check `Deps Audit` in STATE.md:
 - If `Deps Status: CRITICAL` → **STOP**: fix critical vulnerabilities before shipping
 - If audit date is older than 7 days → warn: `⚠️ Deps audit is stale. Consider running /frame:check-deps`
 
+Check `Security Status` in STATE.md:
+- If `Security Status: CRITICAL` → **STOP**: fix critical security findings before shipping
+
+Check last security audit date:
+```bash
+LAST_SECURITY=$(ls .planning/reports/security/security-*.md 2>/dev/null | sort | tail -1)
+if [ -z "$LAST_SECURITY" ]; then
+  echo "⚠️  No security audit found. Consider running /frame:security before shipping."
+else
+  LAST_DATE=$(basename "$LAST_SECURITY" | grep -oE '[0-9]{4}-[0-9]{2}-[0-9]{2}')
+  DAYS_AGO=$(( ( $(date +%s) - $(date -d "$LAST_DATE" +%s 2>/dev/null || date -j -f "%Y-%m-%d" "$LAST_DATE" +%s) ) / 86400 ))
+  [ "$DAYS_AGO" -ge 7 ] && echo "⚠️  Security audit is ${DAYS_AGO} days old. Consider running /frame:security."
+fi
+```
+
 ### Step 1: Quality gate
 
 ```bash
