@@ -1,6 +1,6 @@
 {
   "name": "the-frame-ai",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "FRAME — Framework for AI-Assisted Solo Development",
   "type": "module",
   "bin": {
@@ -12,12 +12,21 @@
     "templates/"
   ],
   "keywords": [
+    "claude-code",
     "claude",
-    "ai",
-    "development",
+    "ai-coding",
+    "vibe-coding",
+    "solo-developer",
+    "ai-assisted-development",
+    "developer-workflow",
     "framework",
-    "solo",
-    "tdd"
+    "slash-commands",
+    "ai-agents",
+    "tdd",
+    "productivity",
+    "indie-hacker",
+    "solopreneur",
+    "llm-workflow"
   ],
   "license": "MIT",
   "repository": {
