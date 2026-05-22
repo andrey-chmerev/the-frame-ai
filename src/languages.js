@@ -52,28 +52,18 @@ export async function promptLanguage(langOverride, yes = false) {
   const options = LANGUAGES.map((l, i) => `  ${i + 1}) ${l.label}`).join('\n');
   const footer = `\n  Enter number [1-${LANGUAGES.length}] (or press Enter for auto): `;
 
-  return new Promise((resolve) => {
-    rl.question(prompt + options + footer, (answer) => {
-      const choice = answer.trim();
-      if (choice === '' || choice === '1') {
-        rl.close();
-        return resolve('auto');
-      }
+  const answer = (await ask(rl, prompt + options + footer)).trim();
+  rl.close();
 
-      const idx = parseInt(choice, 10) - 1;
-      if (idx >= 0 && idx < LANGUAGES.length) {
-        rl.close();
-        return resolve(LANGUAGES[idx].code);
-      }
+  if (answer === '' || answer === '1') return 'auto';
 
-      rl.question('  Enter custom language code (e.g., "ja", "ko", "fr"): ', (code) => {
-        rl.close();
-        resolve(code.trim().toLowerCase() || 'auto');
-      });
-    });
+  const idx = parseInt(answer, 10) - 1;
+  if (idx >= 0 && idx < LANGUAGES.length) return LANGUAGES[idx].code;
 
-    rl.on('close', () => resolve('auto'));
-  });
+  const rl2 = createInterface({ input: process.stdin, output: process.stdout });
+  const custom = (await ask(rl2, '  Enter custom language code (e.g., "ja", "ko", "fr"): ')).trim().toLowerCase();
+  rl2.close();
+  return custom || 'auto';
 }
 
 const STACK_PRESETS = {
