@@ -147,7 +147,7 @@ export async function init(target, flags = {}) {
 
     ensureDir(join(destPath, '..'));
     const content = readFileSync(srcPath, 'utf-8');
-    const replaced = applyVars(content, vars, qualityVars);
+    const replaced = relPath.startsWith('specs/_template/') ? content : applyVars(content, vars, qualityVars);
     writeFile(destPath, replaced);
     fileCount++;
   }

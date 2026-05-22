@@ -53,8 +53,6 @@ export async function promptLanguage(langOverride, yes = false) {
   const footer = `\n  Enter number [1-${LANGUAGES.length}] (or press Enter for auto): `;
 
   return new Promise((resolve) => {
-    rl.on('close', () => resolve('auto'));
-
     rl.question(prompt + options + footer, (answer) => {
       const choice = answer.trim();
       if (choice === '' || choice === '1') {
@@ -73,6 +71,8 @@ export async function promptLanguage(langOverride, yes = false) {
         resolve(code.trim().toLowerCase() || 'auto');
       });
     });
+
+    rl.on('close', () => resolve('auto'));
   });
 }
 
