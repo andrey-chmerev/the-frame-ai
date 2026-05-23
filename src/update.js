@@ -53,8 +53,7 @@ export async function update(target, flags = {}) {
 
   // Ask frontend question early, before file operations
   let frontendDecided = config.frontend === true;
-  process.stderr.write(`[FRAME] config.frontend=${JSON.stringify(config.frontend)}, !config.frontend=${!config.frontend}, isTTY=${process.stdin.isTTY}, yes=${flags.yes}\n`);
-  if (!config.frontend && process.stdin.isTTY && !flags.yes) {
+  if (!config.frontend && !flags.yes) {
     const frontend = await promptFrontend(false);
     if (frontend) {
       config.frontend = true;
