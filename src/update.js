@@ -101,10 +101,12 @@ export async function update(target, flags = {}) {
   }
 
   // 5. Update Playwright MCP (frontend projects)
-  if (config.frontend === undefined) {
-    const frontend = await promptFrontend(flags.yes);
-    config.frontend = frontend;
-    writeFileSync(join(target, '.frame', 'config.json'), JSON.stringify(config, null, 2), 'utf-8');
+  if (config.frontend === undefined || config.frontend === false) {
+    if (process.stdin.isTTY && !flags.yes) {
+      const frontend = await promptFrontend(false);
+      config.frontend = frontend;
+      writeFileSync(join(target, '.frame', 'config.json'), JSON.stringify(config, null, 2), 'utf-8');
+    }
   }
   if (config.frontend) {
     mergeClaudeSettings(join(target, '.claude', 'settings.json'));
