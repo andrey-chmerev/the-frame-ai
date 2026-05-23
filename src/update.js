@@ -51,6 +51,17 @@ export async function update(target, flags = {}) {
 
   log(`\nFRAME update: ${installedVersion} → ${VERSION}\n`);
 
+  // Ask frontend question early, before file operations
+  let frontendDecided = config.frontend === true;
+  if (!config.frontend && process.stdin.isTTY && !flags.yes) {
+    const frontend = await promptFrontend(false);
+    if (frontend) {
+      config.frontend = true;
+      frontendDecided = true;
+      writeFileSync(join(target, '.frame', 'config.json'), JSON.stringify(config, null, 2), 'utf-8');
+    }
+  }
+
   let updated = 0;
 
   // 1. Update commands
@@ -100,18 +111,8 @@ export async function update(target, flags = {}) {
     }
   }
 
-  // 5. Update Playwright MCP (frontend projects)
-  if (!config.frontend) {
-    if (process.stdin.isTTY && !flags.yes) {
-      const frontend = await promptFrontend(false);
-      if (frontend) {
-        config.frontend = true;
-        writeFileSync(join(target, '.frame', 'config.json'), JSON.stringify(config, null, 2), 'utf-8');
-        mergeClaudeSettings(join(target, '.claude', 'settings.json'));
-        if (config.copilot) mergeVscodeMcp(join(target, '.vscode', 'mcp.json'));
-      }
-    }
-  } else {
+  // 5. Apply Playwright MCP if frontend
+  if (frontendDecided) {
     mergeClaudeSettings(join(target, '.claude', 'settings.json'));
     if (config.copilot) mergeVscodeMcp(join(target, '.vscode', 'mcp.json'));
   }
