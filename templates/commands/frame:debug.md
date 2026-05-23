@@ -91,6 +91,7 @@ Update STATE.md: `Current Phase: 3/4`
    - **D-step**: Regression test must PASS
    - Run all tests: `{quality.commands.test}`
    - Type check: `{quality.commands.typecheck}`
+   - **If UI bug** (visual, layout, component): open browser via Playwright MCP → `browser_navigate` → `browser_screenshot` → confirm the bug is gone visually
 
 ### Phase 4: Review and Knowledge Capture
 

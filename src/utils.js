@@ -63,3 +63,28 @@ export function mergeVscodeSettings(settingsPath) {
   settings['chat.promptFiles'] = true;
   writeFileSync(settingsPath, JSON.stringify(settings, null, 2), 'utf-8');
 }
+
+const PLAYWRIGHT_MCP = {
+  command: 'npx',
+  args: ['@playwright/mcp@latest'],
+};
+
+export function mergeClaudeSettings(settingsPath) {
+  let settings = {};
+  if (existsSync(settingsPath)) {
+    try { settings = JSON.parse(readFileSync(settingsPath, 'utf-8')); } catch {}
+  }
+  settings.mcpServers = settings.mcpServers ?? {};
+  settings.mcpServers.playwright = PLAYWRIGHT_MCP;
+  writeFileSync(settingsPath, JSON.stringify(settings, null, 2), 'utf-8');
+}
+
+export function mergeVscodeMcp(mcpPath) {
+  let config = {};
+  if (existsSync(mcpPath)) {
+    try { config = JSON.parse(readFileSync(mcpPath, 'utf-8')); } catch {}
+  }
+  config.servers = config.servers ?? {};
+  config.servers.playwright = PLAYWRIGHT_MCP;
+  writeFileSync(mcpPath, JSON.stringify(config, null, 2), 'utf-8');
+}

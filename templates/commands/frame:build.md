@@ -140,6 +140,19 @@ If unclosed tasks exist — return and complete them or report to user.
 
 **D-step**: All checks must pass.
 
+### Step 6.5: UI Verification (if UI tasks present)
+
+**Detect UI tasks**: any task changed files with `.tsx`, `.vue`, `.css`, `component`, `page`, `layout`, `style`.
+
+If UI tasks exist AND Playwright MCP is available:
+1. `browser_navigate: {dev server URL}`
+2. `browser_screenshot`
+3. Compare with spec from `docs/specs/{feature}/spec.md`
+4. **PASS** → proceed to Step 7
+5. **FAIL** → describe problem, fix, re-run quality gates, re-verify
+
+If Playwright MCP is not available — skip and note: "UI not verified (no browser tool)".
+
 ### Step 7: Update STATE.md (COMPLETE)
 
 ```markdown

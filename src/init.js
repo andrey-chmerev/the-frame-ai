@@ -10,8 +10,10 @@ import {
   writeFile,
   applyVars,
   mergeVscodeSettings,
+  mergeClaudeSettings,
+  mergeVscodeMcp,
 } from './utils.js';
-import { LANGUAGES, getLanguageInstruction, promptLanguage, promptConfig, promptCopilot } from './languages.js';
+import { LANGUAGES, getLanguageInstruction, promptLanguage, promptConfig, promptCopilot, promptFrontend } from './languages.js';
 import { doctor } from './doctor.js';
 
 const PLANNING_DIRS = [
@@ -85,7 +87,14 @@ export async function init(target, flags = {}) {
   const commandCount = readdirSync(commandsSrc).filter((f) => f.endsWith('.md')).length;
   logSuccess(`${commandCount} commands → .claude/commands/`);
 
-  // 2b. Copilot Chat support
+  // 2b. Frontend: Playwright MCP
+  const frontend = await promptFrontend(flags.yes);
+  if (frontend) {
+    mergeClaudeSettings(join(target, '.claude', 'settings.json'));
+    logSuccess(`Playwright MCP → .claude/settings.json`);
+  }
+
+  // 2c. Copilot Chat support
   const copilot = await promptCopilot(flags.yes);
   if (copilot) {
     const promptsDest = join(target, '.github', 'prompts');
@@ -96,7 +105,9 @@ export async function init(target, flags = {}) {
     const vscodeDest = join(target, '.vscode');
     ensureDir(vscodeDest);
     mergeVscodeSettings(join(vscodeDest, 'settings.json'));
+    if (frontend) mergeVscodeMcp(join(vscodeDest, 'mcp.json'));
     logSuccess(`${commandCount} Copilot prompts → .github/prompts/`);
+    if (frontend) logSuccess(`Playwright MCP → .vscode/mcp.json`);
   }
 
   // 3. Copy agents and apply quality.commands substitution
@@ -163,6 +174,7 @@ export async function init(target, flags = {}) {
   if (fileExists(configPath)) {
     resolvedConfig.language = language;
     resolvedConfig.copilot = copilot;
+    resolvedConfig.frontend = frontend;
     writeFile(configPath, JSON.stringify(resolvedConfig, null, 2));
   }
 
@@ -184,6 +196,7 @@ export async function init(target, flags = {}) {
   log(`  Planning:  files in .planning/`);
   log(`  Config:    .frame/config.json`);
   if (copilot) log(`  Copilot:   ${commandCount} prompts in .vscode/`);
+  if (frontend) log(`  Playwright MCP: .claude/settings.json${copilot ? ' + .vscode/mcp.json' : ''}`);
   log('');
 
   // 11. Auto-run doctor

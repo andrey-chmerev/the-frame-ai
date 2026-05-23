@@ -45,6 +45,19 @@ Execute:
 4. Run quality gates: `{quality.commands.typecheck} && {quality.commands.test} && {quality.commands.lint}`
 5. Git commit: `git add {files} && git commit -m "{type}({scope}): {description}"`
 
+### Step 3.5: UI Verification (if UI task)
+
+**Detect UI task**: task description or changed files contain `.tsx`, `.vue`, `.css`, `component`, `page`, `layout`, `style`, `UI`, or `interface`.
+
+If this is a UI task AND Playwright MCP is available (`browser_navigate` tool exists):
+1. `browser_navigate: {dev server URL from .frame/config.json or ask user}`
+2. `browser_screenshot`
+3. Compare screenshot with task description
+4. **PASS** → continue to Step 4
+5. **FAIL** → describe the problem, return to Step 3 and fix, then re-verify
+
+If Playwright MCP is not available — skip this step and note: "UI not verified (no browser tool)".
+
 ### Step 4: Update STATE.md and wins
 
 Update `.planning/STATE.md`:

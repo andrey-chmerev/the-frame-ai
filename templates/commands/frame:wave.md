@@ -141,6 +141,13 @@ Repeat Steps 5-6 for each wave until all waves are complete.
 git log --oneline -10
 ```
 
+**UI Verification** (if any wave contained UI tasks — files with `.tsx`, `.vue`, `.css`, `component`, `page`, `layout`):
+
+If Playwright MCP is available:
+1. `browser_navigate: {dev server URL}`
+2. `browser_screenshot`
+3. Compare with spec — PASS → continue, FAIL → report to user with exact description, do NOT auto-fix
+
 Check completeness:
 ```bash
 TOTAL=$(grep -c "^### Task" plan.md)

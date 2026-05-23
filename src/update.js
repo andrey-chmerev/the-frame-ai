@@ -1,7 +1,8 @@
 import { join } from 'node:path';
 import { readdirSync, writeFileSync, readFileSync } from 'node:fs';
 import { TEMPLATES_DIR, VERSION, log, logSuccess } from './manifest.js';
-import { copyDir, makeExecutable, fileExists, applyVars, writeFile, ensureDir, mergeVscodeSettings } from './utils.js';
+import { copyDir, makeExecutable, fileExists, applyVars, writeFile, ensureDir, mergeVscodeSettings, mergeClaudeSettings, mergeVscodeMcp } from './utils.js';
+import { promptFrontend } from './languages.js';
 
 
 export async function update(target, flags = {}) {
@@ -97,6 +98,17 @@ export async function update(target, flags = {}) {
       config.copilot = true;
       writeFileSync(join(target, '.frame', 'config.json'), JSON.stringify(config, null, 2), 'utf-8');
     }
+  }
+
+  // 5. Update Playwright MCP (frontend projects)
+  if (config.frontend === undefined) {
+    const frontend = await promptFrontend(flags.yes);
+    config.frontend = frontend;
+    writeFileSync(join(target, '.frame', 'config.json'), JSON.stringify(config, null, 2), 'utf-8');
+  }
+  if (config.frontend) {
+    mergeClaudeSettings(join(target, '.claude', 'settings.json'));
+    if (config.copilot) mergeVscodeMcp(join(target, '.vscode', 'mcp.json'));
   }
 
   // 5. Write new version
