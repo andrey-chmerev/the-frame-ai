@@ -143,18 +143,12 @@ export async function promptCopilot(yes = false) {
 
 export async function promptFrontend(yes = false) {
   if (yes) return false;
-  try {
-    const { createReadStream } = await import('node:fs');
-    const input = createReadStream('/dev/tty');
-    const rl = createInterface({ input, output: process.stdout, terminal: true });
-    return new Promise((resolve) => {
-      rl.question('\n? Is this a frontend project? Adds Playwright MCP for UI verification (y/N): ', (answer) => {
-        rl.close();
-        input.destroy();
-        resolve(answer.trim().toLowerCase() === 'y');
-      });
+  if (!process.stdin.isTTY) return false;
+  const rl = createInterface({ input: process.stdin, output: process.stdout });
+  return new Promise((resolve) => {
+    rl.question('\n? Is this a frontend project? Adds Playwright MCP for UI verification (y/N): ', (answer) => {
+      rl.close();
+      resolve(answer.trim().toLowerCase() === 'y');
     });
-  } catch {
-    return false;
-  }
+  });
 }
