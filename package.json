@@ -1,6 +1,6 @@
 {
   "name": "the-frame-ai",
-  "version": "0.10.7",
+  "version": "0.10.8",
   "description": "FRAME — Framework for AI-Assisted Solo Development",
   "type": "module",
   "bin": {

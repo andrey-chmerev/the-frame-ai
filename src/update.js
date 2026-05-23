@@ -19,7 +19,6 @@ export async function update(target, flags = {}) {
   }
 
   const config = JSON.parse(readFileSync(join(target, '.frame', 'config.json'), 'utf-8'));
-  console.log(`[DBG] frontend=${JSON.stringify(config.frontend)} isTTY=${process.stdin.isTTY} yes=${flags.yes}`);
   const vars = { PROJECT_NAME: config.project ?? '', LANGUAGE: config.language ?? '' };
   const qualityVars = Object.fromEntries(
     Object.entries(config.quality?.commands ?? {}).map(([k, v]) => [`quality.commands.${k}`, v])
