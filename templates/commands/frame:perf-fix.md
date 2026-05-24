@@ -37,44 +37,25 @@ Parse issues based on `$ARGUMENTS`:
 
 Output: "Found {N} issues to fix: {list of IDs and titles}."
 
-### Step 2: For Each Issue — Propose Fix
+### Step 2: For Each Issue — Apply Fix
 
 For each issue in the list:
 
 1. Read the file mentioned in the issue (`File: path/file.ts:42`)
 2. Understand the surrounding context (±20 lines)
-3. Draft the specific code change
+3. Apply the fix immediately
 
-Then output a proposal block:
+Output before applying:
 
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 [PERF-1] {title}
 File: path/file.ts:42
-Category: {category}
-Impact: {impact from report}
-
-Proposed fix:
-{description of what will change — 2-3 sentences}
-
---- BEFORE ---
-{relevant code snippet}
-
---- AFTER ---
-{fixed code snippet}
+Applying fix: {description of what will change — 1 sentence}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Apply this fix? [y/n/skip]
 ```
 
-Wait for user confirmation before applying.
-
-- `y` → apply the fix, mark as done
-- `n` → stop entirely
-- `skip` → skip this issue, move to next
-
 ### Step 3: Apply Fix
-
-After confirmation:
 
 1. Apply the code change to the file
 2. Run type check if available:
@@ -122,8 +103,8 @@ Update `.planning/STATE.md`:
 
 ## Rules
 
-- **ALWAYS show before/after** — never apply a fix silently
-- **ALWAYS ask confirmation** per issue — never batch-apply without asking
+- **ALWAYS show what's being fixed** before applying (issue ID, file, one-line description)
+- **NEVER ask confirmation** — apply all found issues automatically
 - **ALWAYS run typecheck + tests** after each fix
 - **REVERT on failure** — if tests break, undo the change immediately
 - **NEVER fix test files** — only production code
