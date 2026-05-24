@@ -109,6 +109,30 @@ Claude Codeで一人でプロダクトを作っていて、チームのように
 /frame:ship
 ```
 
+### UI検証：インターフェースが動作することを確認する
+
+```
+/frame:build
+# → Claudeがタスクを実装し、「完了」と言う
+
+/frame:verify-ui
+# → Playwright MCPを通じてブラウザを開き、スクリーンショットを撮る
+# → タスクの説明と比較する
+# → PASS：インターフェースが期待通り
+# → FAIL：何が問題でどこを見ればいいか正確に説明
+
+# 何か問題がある場合：
+/frame:fast "fix: モバイルでボタンが表示されない"
+/frame:verify-ui
+# → 修正後に再確認
+```
+
+このコマンドは**確認のみ** — 自動修正はしません。問題が見つかった場合、正確に説明します：どの要素、どの動作、何が期待されていたか。
+
+**自動チェック**：`/frame:build`、`/frame:fast`、`/frame:wave`、`/frame:debug` で — タスクがUIファイル（`.tsx`、`.vue`、`.css`、`component`、`page`）に触れる場合 — ブラウザチェックがquality gatesの後に自動的に実行されます。
+
+**Playwright MCPが必要** — `npx the-frame init` または `npx the-frame update` 時にフロントエンドプロジェクトの質問に"y"と答えると自動的に追加されます。
+
 ### セキュリティ：リリース前の監査
 
 ```

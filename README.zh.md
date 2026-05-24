@@ -109,6 +109,30 @@ FRAME — 面向 AI 辅助独立开发的框架
 /frame:ship
 ```
 
+### UI 验证：确认界面正常工作
+
+```
+/frame:build
+# → Claude 实现任务，说"完成"
+
+/frame:verify-ui
+# → 通过 Playwright MCP 打开浏览器，截图
+# → 与任务描述对比
+# → PASS：界面符合预期
+# → FAIL：精确描述哪里有问题以及在哪里查看
+
+# 如果有问题：
+/frame:fast "fix: 按钮在移动端不显示"
+/frame:verify-ui
+# → 修复后重新检查
+```
+
+该命令只**验证** — 不自动修复。如果发现问题，会精确描述：哪个元素、什么行为、预期是什么。
+
+**自动检查**：在 `/frame:build`、`/frame:fast`、`/frame:wave` 和 `/frame:debug` 中 — 如果任务涉及 UI 文件（`.tsx`、`.vue`、`.css`、`component`、`page`）— 浏览器检查会在 quality gates 后自动运行。
+
+**需要 Playwright MCP** — 在 `npx the-frame init` 或 `npx the-frame update` 时，如果对前端项目问题回答"y"，会自动添加。
+
 ### 安全：发布前审计
 
 ```

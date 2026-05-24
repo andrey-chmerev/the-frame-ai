@@ -109,6 +109,30 @@ Ejecuta `/frame:research <tema>` — Claude explora la base de código, fuentes 
 /frame:ship
 ```
 
+### Verificación de UI: confirmar que la interfaz funciona
+
+```
+/frame:build
+# → Claude implementa la tarea, dice "listo"
+
+/frame:verify-ui
+# → abre el navegador a través de Playwright MCP, toma una captura de pantalla
+# → compara con la descripción de la tarea
+# → PASS: la interfaz coincide con las expectativas
+# → FAIL: describe exactamente qué está mal y dónde buscar
+
+# Si algo está mal:
+/frame:fast "fix: el botón no se muestra en móvil"
+/frame:verify-ui
+# → nueva verificación después del fix
+```
+
+El comando solo **verifica** — no corrige automáticamente. Si encuentra un problema, lo describe con precisión: qué elemento, qué comportamiento, qué se esperaba.
+
+**Verificación automática**: en `/frame:build`, `/frame:fast`, `/frame:wave` y `/frame:debug` — si la tarea toca archivos de UI (`.tsx`, `.vue`, `.css`, `component`, `page`) — la verificación del navegador se ejecuta automáticamente después de los quality gates.
+
+**Requiere Playwright MCP** — se añade automáticamente en `npx the-frame init` o `npx the-frame update` si respondes "y" a la pregunta sobre proyecto frontend.
+
 ### Seguridad: auditoría antes del lanzamiento
 
 ```
