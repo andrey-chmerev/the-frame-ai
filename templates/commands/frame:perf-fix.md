@@ -37,45 +37,46 @@ Parse issues based on `$ARGUMENTS`:
 
 Output: "Found {N} issues to fix: {list of IDs and titles}."
 
-### Step 2: For Each Issue — Apply Fix
+### Step 2: Group Issues into Waves
 
-For each issue in the list:
+Before applying any fixes, analyze all issues and group them into waves:
 
-1. Read the file mentioned in the issue (`File: path/file.ts:42`)
-2. Understand the surrounding context (±20 lines)
-3. Apply the fix immediately
+- **Wave 1**: issues in different files with no shared dependencies — apply all in this wave
+- **Wave 2**: issues that depend on Wave 1 changes (same module, shared types, etc.)
+- **Wave N**: remaining issues
 
-Output before applying:
+Output:
+```
+Wave 1 ({N} issues — independent): PERF-1, PERF-3, PERF-5
+Wave 2 ({N} issues — depend on wave 1): PERF-2, PERF-4
+```
 
+### Step 3: Apply Wave by Wave
+
+For each wave:
+
+1. Apply all fixes in the wave (read file → apply change for each issue)
+2. Output before each fix:
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 [PERF-1] {title}
 File: path/file.ts:42
-Applying fix: {description of what will change — 1 sentence}
+Applying: {1 sentence}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
-
-### Step 3: Apply Fix
-
-1. Apply the code change to the file
-2. Run type check if available:
+3. After all fixes in the wave, run typecheck + tests once:
 ```bash
 {quality.commands.typecheck} 2>&1 | tail -10
-```
-3. Run tests if available:
-```bash
 {quality.commands.test} 2>&1 | tail -20
 ```
 
-If typecheck or tests fail → revert the change, report what broke, ask user how to proceed.
+If typecheck or tests fail → revert all fixes from this wave, report what broke, ask user how to proceed. Then continue to next wave.
 
-Output: "✓ [PERF-1] fixed. {brief description of what changed}."
+Output after wave: "✓ Wave {N} complete: {list of fixed IDs}."
 
-### Step 4: Continue to Next Issue
+### Step 4: Summary
 
-After each fix (or skip), move to the next issue in the list.
-
-After all issues processed, output summary:
+After all waves processed, output summary:
 ```
 Performance fixes complete.
 Fixed: {N} | Skipped: {N}

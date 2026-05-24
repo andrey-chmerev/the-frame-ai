@@ -53,13 +53,11 @@ export async function update(target, flags = {}) {
 
   // Ask frontend question early, before file operations
   let frontendDecided = config.frontend === true;
-  if (!config.frontend && !flags.yes) {
+  if (config.frontend === undefined && !flags.yes) {
     const frontend = await promptFrontend(false);
-    if (frontend) {
-      config.frontend = true;
-      frontendDecided = true;
-      writeFileSync(join(target, '.frame', 'config.json'), JSON.stringify(config, null, 2), 'utf-8');
-    }
+    config.frontend = frontend;
+    frontendDecided = frontend;
+    writeFileSync(join(target, '.frame', 'config.json'), JSON.stringify(config, null, 2), 'utf-8');
   }
 
   let updated = 0;
