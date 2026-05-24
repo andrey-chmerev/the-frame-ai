@@ -109,32 +109,41 @@ Run `/frame:research <topic>` — Claude explores the codebase, external sources
 /frame:ship
 ```
 
-### Improvement: speed up dashboard loading
+### Performance: find and fix bottlenecks
 
 ```
 /frame:daily
 
-/frame:performance
-# → get baseline: bundle size, load time, Lighthouse score
-#   remember the numbers — you'll need them for comparison at the end
+/frame:perf-audit
+# → detects stack (Next.js + PostgreSQL + Redis, etc.)
+# → searches for current known issues for that exact stack
+# → deep scan: N+1 queries, memory leaks, blocking ops,
+#   missing cache headers, re-render causes, bundle size
+# → report saved to .planning/reports/performance/PERF_REPORT.md
+#   with Critical/High/Medium/Low priorities and effort estimates
 
-/frame:research "dashboard performance"
-# → Claude analyzes dashboard code: heavy components,
-#   redundant requests, what can be cached or lazy-loaded
+# Example report output:
+# Critical: 2 | High: 4 | Medium: 3 | Low: 1
+# [PERF-1] N+1 query in /api/users — 47 extra DB queries per request (S)
+# [PERF-2] setInterval without cleanup in Dashboard — memory leak (XS)
 
-/frame:plan "dashboard optimization"
-# → task list with impact estimates:
-#   1. lazy load heavy charts
-#   2. cache API requests
-#   3. remove duplicate requests on mount
+/frame:perf-fix
+# → reads PERF_REPORT.md, starts with Critical issues
+# → for each issue shows:
+#   --- BEFORE ---
+#   const users = await db.findMany()
+#   --- AFTER ---
+#   const users = await db.findMany({ select: { id, name, email } })
+# → asks: Apply this fix? [y/n/skip]
+# → applies, runs typecheck + tests, reverts if broken
 
-/frame:build
-# → sequential, each task with a test
+# Fix specific issue or priority:
+/frame:perf-fix PERF-1      # fix one issue
+/frame:perf-fix high        # fix all High priority
+/frame:perf-fix all         # fix Critical + High
 
-/frame:performance
-# → compare with baseline: see the real improvement
-
-/frame:ship
+/frame:perf-audit
+# → re-run to confirm improvements
 ```
 
 ### UI verification: confirm the interface works
@@ -217,8 +226,8 @@ The command only **verifies** — it doesn't auto-fix. If it finds a problem, it
 FRAME provides:
 
 - **6-phase workflow**: Research → Plan → Build → Review → Ship → Reflect
-- **35 commands**: from quick tasks to full feature development cycle
-- **6 AI agents**: Researcher, Planner, Builder, Reviewer, Devil's Advocate, Security
+- **37 commands**: from quick tasks to full feature development cycle
+- **7 AI agents**: Researcher, Planner, Builder, Reviewer, Devil's Advocate, Security, Performance Auditor
 - **Safety Hooks**: block destructive operations, enforce quality gates
 - **Git Safety**: checkpoints, rollback, worktrees, pause/resume
 - **Security Auditing**: OWASP Top 10, secret detection, infrastructure checks, AI/LLM risks
@@ -302,6 +311,8 @@ These 7 commands cover 90% of solo dev work:
 | `/frame:review` | Before deploying — automated checks + checklist |
 | `/frame:security` | Deep security audit: secrets, OWASP, infra, AI/LLM risks |
 | `/frame:security-fix` | Fix findings from the latest security report (CRITICAL first, then HIGH) |
+| `/frame:perf-audit` | Deep performance audit: detects stack, researches current issues, writes PERF_REPORT.md |
+| `/frame:perf-fix` | Fix issues from PERF_REPORT.md — shows before/after, asks confirmation per fix |
 | `/frame:health` | Full project health check |
 | `/frame:check-deps` | Dependency vulnerabilities + outdated packages |
 | `/frame:performance` | Bundle size and Lighthouse audit |

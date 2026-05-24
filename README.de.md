@@ -187,27 +187,36 @@ Der Befehl **prüft** nur — er behebt nicht automatisch. Wenn er ein Problem f
 ```
 /frame:daily
 
-/frame:performance
-# → Baseline ermitteln: Bundle-Größe, Ladezeit, Lighthouse-Score
-#   Zahlen merken — am Ende für den Vergleich benötigt
+/frame:perf-audit
+# → erkennt Stack (Next.js + PostgreSQL + Redis usw.)
+# → sucht aktuelle bekannte Probleme für genau diesen Stack
+# → Tiefenscan: N+1-Abfragen, Memory Leaks, blockierende Operationen,
+#   fehlende Cache-Header, Re-Render-Ursachen, Bundle-Größe
+# → Bericht gespeichert in .planning/reports/performance/PERF_REPORT.md
+#   mit Critical/High/Medium/Low-Prioritäten und Aufwandsschätzungen
 
-/frame:research "dashboard performance"
-# → Claude analysiert Dashboard-Code: schwere Komponenten,
-#   redundante Anfragen, was gecacht oder lazy-geladen werden kann
+# Beispiel-Ausgabe:
+# Critical: 2 | High: 4 | Medium: 3 | Low: 1
+# [PERF-1] N+1-Abfrage in /api/users — 47 extra DB-Abfragen pro Request (S)
+# [PERF-2] setInterval ohne Cleanup in Dashboard — Memory Leak (XS)
 
-/frame:plan "dashboard optimization"
-# → Aufgabenliste mit Impact-Schätzungen:
-#   1. schwere Charts lazy laden
-#   2. API-Anfragen cachen
-#   3. doppelte Anfragen beim Mount entfernen
+/frame:perf-fix
+# → liest PERF_REPORT.md, beginnt mit Critical
+# → zeigt für jedes Problem:
+#   --- BEFORE ---
+#   const users = await db.findMany()
+#   --- AFTER ---
+#   const users = await db.findMany({ select: { id, name, email } })
+# → fragt: Apply this fix? [y/n/skip]
+# → wendet an, führt Typecheck + Tests aus, macht Rollback bei Fehler
 
-/frame:build
-# → sequenziell, jede Aufgabe mit einem Test
+# Gezielte Fixes:
+/frame:perf-fix PERF-1      # ein Problem beheben
+/frame:perf-fix high        # alle High beheben
+/frame:perf-fix all         # Critical + High beheben
 
-/frame:performance
-# → mit Baseline vergleichen: echte Verbesserung sehen
-
-/frame:ship
+/frame:perf-audit
+# → erneut ausführen um Verbesserungen zu bestätigen
 ```
 
 ## Was drin ist
@@ -215,8 +224,8 @@ Der Befehl **prüft** nur — er behebt nicht automatisch. Wenn er ein Problem f
 FRAME bietet:
 
 - **6-Phasen-Workflow**: Recherche → Plan → Build → Review → Ship → Reflect
-- **35 Befehle**: von schnellen Aufgaben bis zum vollständigen Feature-Entwicklungszyklus
-- **6 KI-Agenten**: Researcher, Planner, Builder, Reviewer, Devil's Advocate, Security
+- **37 Befehle**: von schnellen Aufgaben bis zum vollständigen Feature-Entwicklungszyklus
+- **7 KI-Agenten**: Researcher, Planner, Builder, Reviewer, Devil's Advocate, Security, Performance Auditor
 - **Safety-Hooks**: blockieren destruktive Operationen, erzwingen Quality-Gates
 - **Git-Sicherheit**: Checkpoints, Rollback, Worktrees, Pause/Resume
 - **Sicherheitsaudit**: OWASP Top 10, Secret-Erkennung, Infrastruktur-Checks, KI/LLM-Risiken
@@ -300,6 +309,8 @@ Diese 7 Befehle decken 90% der Solo-Dev-Arbeit ab:
 | `/frame:review` | Vor dem Deployment — automatisierte Prüfungen + Checkliste |
 | `/frame:security` | Tiefer Sicherheitsaudit: Secrets, OWASP, Infrastruktur, KI/LLM-Risiken |
 | `/frame:security-fix` | Befunde aus dem letzten Sicherheitsbericht beheben (CRITICAL zuerst, dann HIGH) |
+| `/frame:perf-audit` | Tiefer Performance-Audit: erkennt Stack, recherchiert aktuelle Probleme, schreibt PERF_REPORT.md |
+| `/frame:perf-fix` | Probleme aus PERF_REPORT.md beheben — zeigt Before/After, fragt Bestätigung pro Fix |
 | `/frame:health` | Vollständiger Projekt-Gesundheitscheck |
 | `/frame:check-deps` | Sicherheitsaudit + veraltete Pakete |
 | `/frame:performance` | Bundle-Größe und Lighthouse-Audit |

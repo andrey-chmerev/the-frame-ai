@@ -187,27 +187,36 @@ El comando solo **verifica** — no corrige automáticamente. Si encuentra un pr
 ```
 /frame:daily
 
-/frame:performance
-# → obtener línea base: tamaño del bundle, tiempo de carga, puntuación Lighthouse
-#   recordar los números — los necesitarás para comparar al final
+/frame:perf-audit
+# → detecta el stack (Next.js + PostgreSQL + Redis, etc.)
+# → busca problemas conocidos actuales para ese stack exacto
+# → escaneo profundo: consultas N+1, fugas de memoria, operaciones bloqueantes,
+#   cabeceras de caché faltantes, causas de re-renders, tamaño del bundle
+# → informe guardado en .planning/reports/performance/PERF_REPORT.md
+#   con prioridades Critical/High/Medium/Low y estimaciones de esfuerzo
 
-/frame:research "dashboard performance"
-# → Claude analiza el código del dashboard: componentes pesados,
-#   solicitudes redundantes, qué se puede cachear o cargar de forma diferida
+# Ejemplo de salida:
+# Critical: 2 | High: 4 | Medium: 3 | Low: 1
+# [PERF-1] Consulta N+1 en /api/users — 47 consultas DB extra por request (S)
+# [PERF-2] setInterval sin cleanup en Dashboard — fuga de memoria (XS)
 
-/frame:plan "dashboard optimization"
-# → lista de tareas con estimaciones de impacto:
-#   1. carga diferida de gráficos pesados
-#   2. cachear solicitudes de API
-#   3. eliminar solicitudes duplicadas al montar
+/frame:perf-fix
+# → lee PERF_REPORT.md, empieza con Critical
+# → para cada problema muestra:
+#   --- BEFORE ---
+#   const users = await db.findMany()
+#   --- AFTER ---
+#   const users = await db.findMany({ select: { id, name, email } })
+# → pregunta: Apply this fix? [y/n/skip]
+# → aplica, ejecuta typecheck + tests, revierte si falla
 
-/frame:build
-# → secuencial, cada tarea con una prueba
+# Correcciones específicas:
+/frame:perf-fix PERF-1      # corregir un problema
+/frame:perf-fix high        # corregir todos los High
+/frame:perf-fix all         # corregir Critical + High
 
-/frame:performance
-# → comparar con la línea base: ver la mejora real
-
-/frame:ship
+/frame:perf-audit
+# → volver a ejecutar para confirmar mejoras
 ```
 
 ## Qué incluye
@@ -215,8 +224,8 @@ El comando solo **verifica** — no corrige automáticamente. Si encuentra un pr
 FRAME proporciona:
 
 - **Flujo de trabajo de 6 fases**: Investigar → Planificar → Construir → Revisar → Publicar → Reflexionar
-- **35 comandos**: desde tareas rápidas hasta el ciclo completo de desarrollo de funcionalidades
-- **6 agentes de IA**: Investigador, Planificador, Constructor, Revisor, Abogado del Diablo, Seguridad
+- **37 comandos**: desde tareas rápidas hasta el ciclo completo de desarrollo de funcionalidades
+- **7 agentes de IA**: Investigador, Planificador, Constructor, Revisor, Abogado del Diablo, Seguridad, Auditor de Rendimiento
 - **Safety Hooks**: bloquean operaciones destructivas, aplican quality gates
 - **Git Safety**: checkpoints, rollback, worktrees, pausa/reanudación
 - **Auditoría de seguridad**: OWASP Top 10, detección de secretos, verificaciones de infraestructura, riesgos de IA/LLM
@@ -300,6 +309,8 @@ Estos 7 comandos cubren el 90% del trabajo de desarrollo en solitario:
 | `/frame:review` | Antes de desplegar — verificaciones automatizadas + lista de comprobación |
 | `/frame:security` | Auditoría de seguridad profunda: secretos, OWASP, infraestructura, riesgos IA/LLM |
 | `/frame:security-fix` | Corregir hallazgos del último informe de seguridad (CRITICAL primero, luego HIGH) |
+| `/frame:perf-audit` | Auditoría de rendimiento profunda: detecta stack, investiga problemas actuales, escribe PERF_REPORT.md |
+| `/frame:perf-fix` | Corregir problemas de PERF_REPORT.md — muestra antes/después, pide confirmación por fix |
 | `/frame:health` | Verificación completa del estado del proyecto |
 | `/frame:check-deps` | Auditoría de seguridad + paquetes desactualizados |
 | `/frame:performance` | Auditoría de tamaño de bundle y Lighthouse |

@@ -187,27 +187,36 @@ Claude Codeで一人でプロダクトを作っていて、チームのように
 ```
 /frame:daily
 
-/frame:performance
-# → ベースラインを取得：バンドルサイズ、読み込み時間、Lighthouseスコア
-#   数値を記録 — 最後の比較に必要
+/frame:perf-audit
+# → スタックを検出（Next.js + PostgreSQL + Redis など）
+# → そのスタック固有の現在の既知問題を調査
+# → 深層スキャン：N+1クエリ、メモリリーク、ブロッキング操作、
+#   キャッシュヘッダーの欠如、再レンダリングの原因、バンドルサイズ
+# → レポートを .planning/reports/performance/PERF_REPORT.md に保存
+#   Critical/High/Medium/Low の優先度と工数見積もり付き
 
-/frame:research "dashboard performance"
-# → Claudeがダッシュボードコードを分析：重いコンポーネント、
-#   冗長なリクエスト、キャッシュまたは遅延読み込みできるもの
+# 出力例：
+# Critical: 2 | High: 4 | Medium: 3 | Low: 1
+# [PERF-1] /api/users の N+1クエリ — リクエストごとに47回の余分なDBクエリ (S)
+# [PERF-2] Dashboard の setInterval にクリーンアップなし — メモリリーク (XS)
 
-/frame:plan "dashboard optimization"
-# → 影響見積もり付きのタスクリスト：
-#   1. 重いチャートを遅延読み込み
-#   2. APIリクエストをキャッシュ
-#   3. マウント時の重複リクエストを削除
+/frame:perf-fix
+# → PERF_REPORT.md を読み、Critical から開始
+# → 各問題について表示：
+#   --- BEFORE ---
+#   const users = await db.findMany()
+#   --- AFTER ---
+#   const users = await db.findMany({ select: { id, name, email } })
+# → 確認：Apply this fix? [y/n/skip]
+# → 適用、typecheck + テスト実行、失敗時はリバート
 
-/frame:build
-# → 順次実行、各タスクにテスト付き
+# 特定の修正：
+/frame:perf-fix PERF-1      # 1つの問題を修正
+/frame:perf-fix high        # すべての High を修正
+/frame:perf-fix all         # Critical + High を修正
 
-/frame:performance
-# → ベースラインと比較：実際の改善を確認
-
-/frame:ship
+/frame:perf-audit
+# → 改善を確認するために再実行
 ```
 
 ## 内容
@@ -215,8 +224,8 @@ Claude Codeで一人でプロダクトを作っていて、チームのように
 FRAMEが提供するもの：
 
 - **6フェーズワークフロー**：調査 → 計画 → 構築 → レビュー → リリース → 振り返り
-- **35コマンド**：クイックタスクから完全な機能開発サイクルまで
-- **6つのAIエージェント**：リサーチャー、プランナー、ビルダー、レビュアー、悪魔の代弁者、セキュリティ
+- **37コマンド**：クイックタスクから完全な機能開発サイクルまで
+- **7つのAIエージェント**：リサーチャー、プランナー、ビルダー、レビュアー、悪魔の代弁者、セキュリティ、パフォーマンス監査
 - **セーフティフック**：破壊的操作をブロック、品質ゲートを強制
 - **Git安全機能**：チェックポイント、ロールバック、ワークツリー、一時停止/再開
 - **セキュリティ監査**：OWASP Top 10、シークレット検出、インフラチェック、AI/LLMリスク
@@ -300,6 +309,8 @@ npx the-frame-ai init
 | `/frame:review` | デプロイ前 — 自動チェック + チェックリスト |
 | `/frame:security` | 深度セキュリティ監査：シークレット、OWASP、インフラ、AI/LLMリスク |
 | `/frame:security-fix` | 最新セキュリティレポートの発見を修正（CRITICAL 優先、次に HIGH） |
+| `/frame:perf-audit` | 深層パフォーマンス監査：スタック検出、現在の問題を調査、PERF_REPORT.md を作成 |
+| `/frame:perf-fix` | PERF_REPORT.md の問題を修正 — Before/After を表示、修正ごとに確認 |
 | `/frame:health` | プロジェクト全体のヘルスチェック |
 | `/frame:check-deps` | セキュリティ監査 + 古いパッケージ |
 | `/frame:performance` | バンドルサイズとLighthouse監査 |

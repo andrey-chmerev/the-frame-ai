@@ -187,27 +187,36 @@ FRAME — 面向 AI 辅助独立开发的框架
 ```
 /frame:daily
 
-/frame:performance
-# → 获取基准：bundle 大小、加载时间、Lighthouse 分数
-#   记住这些数字——最后需要用于比较
+/frame:perf-audit
+# → 检测技术栈（Next.js + PostgreSQL + Redis 等）
+# → 搜索该技术栈的当前已知问题
+# → 深度扫描：N+1 查询、内存泄漏、阻塞操作、
+#   缺少缓存头、重渲染原因、bundle 大小
+# → 报告保存到 .planning/reports/performance/PERF_REPORT.md
+#   包含 Critical/High/Medium/Low 优先级和工作量估算
 
-/frame:research "dashboard performance"
-# → Claude 分析仪表板代码：重型组件，
-#   冗余请求，什么可以缓存或懒加载
+# 输出示例：
+# Critical: 2 | High: 4 | Medium: 3 | Low: 1
+# [PERF-1] /api/users 中的 N+1 查询 — 每次请求额外 47 次 DB 查询 (S)
+# [PERF-2] Dashboard 中 setInterval 没有清理 — 内存泄漏 (XS)
 
-/frame:plan "dashboard optimization"
-# → 带有影响估算的任务列表：
-#   1. 懒加载重型图表
-#   2. 缓存 API 请求
-#   3. 删除挂载时的重复请求
+/frame:perf-fix
+# → 读取 PERF_REPORT.md，从 Critical 开始
+# → 对每个问题显示：
+#   --- BEFORE ---
+#   const users = await db.findMany()
+#   --- AFTER ---
+#   const users = await db.findMany({ select: { id, name, email } })
+# → 询问：Apply this fix? [y/n/skip]
+# → 应用，运行 typecheck + 测试，失败时回滚
 
-/frame:build
-# → 顺序执行，每个任务都有测试
+# 针对性修复：
+/frame:perf-fix PERF-1      # 修复单个问题
+/frame:perf-fix high        # 修复所有 High
+/frame:perf-fix all         # 修复 Critical + High
 
-/frame:performance
-# → 与基准比较：查看实际改进
-
-/frame:ship
+/frame:perf-audit
+# → 重新运行以确认改进
 ```
 
 ## 内部包含什么
@@ -215,8 +224,8 @@ FRAME — 面向 AI 辅助独立开发的框架
 FRAME 提供：
 
 - **6 阶段工作流**：研究 → 计划 → 构建 → 审查 → 发布 → 反思
-- **35 个命令**：从快速任务到完整功能开发周期
-- **6 个 AI 代理**：研究员、规划师、构建者、审查员、魔鬼代言人、安全审计员
+- **37 个命令**：从快速任务到完整功能开发周期
+- **7 个 AI 代理**：研究员、规划师、构建者、审查员、魔鬼代言人、安全审计员、性能审计员
 - **安全钩子**：阻止破坏性操作，强制执行质量门控
 - **Git 安全**：检查点、回滚、工作树、暂停/恢复
 - **安全审计**：OWASP Top 10、密钥检测、基础设施检查、AI/LLM 风险
@@ -300,6 +309,8 @@ npx the-frame-ai init
 | `/frame:review` | 部署前——自动化检查 + 清单 |
 | `/frame:security` | 深度安全审计：密钥、OWASP、基础设施、AI/LLM 风险 |
 | `/frame:security-fix` | 修复最新安全报告中的发现（先 CRITICAL，再 HIGH） |
+| `/frame:perf-audit` | 深度性能审计：检测技术栈，研究当前问题，写入 PERF_REPORT.md |
+| `/frame:perf-fix` | 修复 PERF_REPORT.md 中的问题 — 显示前后对比，每个修复前确认 |
 | `/frame:health` | 完整项目健康检查 |
 | `/frame:check-deps` | 安全审计 + 过时包 |
 | `/frame:performance` | Bundle 大小和 Lighthouse 审计 |

@@ -187,27 +187,36 @@ FRAME — AI-सहायता प्राप्त एकल विकास 
 ```
 /frame:daily
 
-/frame:performance
-# → बेसलाइन प्राप्त करें: bundle आकार, लोड समय, Lighthouse स्कोर
-#   संख्याएं याद रखें — अंत में तुलना के लिए चाहिए होंगी
+/frame:perf-audit
+# → स्टैक डिटेक्ट करता है (Next.js + PostgreSQL + Redis आदि)
+# → उस स्टैक के लिए वर्तमान ज्ञात समस्याएं खोजता है
+# → गहरा स्कैन: N+1 क्वेरी, मेमोरी लीक, ब्लॉकिंग ऑपरेशन,
+#   कैश हेडर की कमी, re-render के कारण, bundle साइज
+# → रिपोर्ट .planning/reports/performance/PERF_REPORT.md में सेव
+#   Critical/High/Medium/Low प्राथमिकताओं और effort अनुमान के साथ
 
-/frame:research "dashboard performance"
-# → Claude डैशबोर्ड कोड का विश्लेषण करता है: भारी कंपोनेंट,
-#   अनावश्यक अनुरोध, क्या कैश या lazy-load किया जा सकता है
+# उदाहरण आउटपुट:
+# Critical: 2 | High: 4 | Medium: 3 | Low: 1
+# [PERF-1] /api/users में N+1 क्वेरी — प्रति request 47 अतिरिक्त DB क्वेरी (S)
+# [PERF-2] Dashboard में setInterval बिना cleanup — मेमोरी लीक (XS)
 
-/frame:plan "dashboard optimization"
-# → प्रभाव अनुमानों के साथ कार्य सूची:
-#   1. भारी चार्ट को lazy load करें
-#   2. API अनुरोधों को कैश करें
-#   3. माउंट पर डुप्लिकेट अनुरोध हटाएं
+/frame:perf-fix
+# → PERF_REPORT.md पढ़ता है, Critical से शुरू करता है
+# → प्रत्येक समस्या के लिए दिखाता है:
+#   --- BEFORE ---
+#   const users = await db.findMany()
+#   --- AFTER ---
+#   const users = await db.findMany({ select: { id, name, email } })
+# → पूछता है: Apply this fix? [y/n/skip]
+# → लागू करता है, typecheck + tests चलाता है, विफल होने पर revert करता है
 
-/frame:build
-# → क्रमिक, प्रत्येक कार्य एक परीक्षण के साथ
+# विशिष्ट fixes:
+/frame:perf-fix PERF-1      # एक समस्या ठीक करें
+/frame:perf-fix high        # सभी High ठीक करें
+/frame:perf-fix all         # Critical + High ठीक करें
 
-/frame:performance
-# → बेसलाइन से तुलना करें: वास्तविक सुधार देखें
-
-/frame:ship
+/frame:perf-audit
+# → सुधार की पुष्टि के लिए फिर से चलाएं
 ```
 
 ## अंदर क्या है
@@ -215,8 +224,8 @@ FRAME — AI-सहायता प्राप्त एकल विकास 
 FRAME प्रदान करता है:
 
 - **6-चरण वर्कफ़्लो**: अनुसंधान → योजना → निर्माण → समीक्षा → शिप → प्रतिबिंब
-- **35 कमांड**: त्वरित कार्यों से लेकर पूर्ण सुविधा विकास चक्र तक
-- **6 AI एजेंट**: शोधकर्ता, योजनाकार, निर्माता, समीक्षक, शैतान का वकील, सुरक्षा
+- **37 कमांड**: त्वरित कार्यों से लेकर पूर्ण सुविधा विकास चक्र तक
+- **7 AI एजेंट**: शोधकर्ता, योजनाकार, निर्माता, समीक्षक, शैतान का वकील, सुरक्षा, प्रदर्शन ऑडिटर
 - **सेफ्टी हुक्स**: विनाशकारी ऑपरेशन ब्लॉक करते हैं, गुणवत्ता गेट लागू करते हैं
 - **Git सुरक्षा**: चेकपॉइंट, रोलबैक, वर्कट्री, पॉज/रिज्यूम
 - **Security Auditing**: OWASP Top 10, secret detection, infrastructure checks, AI/LLM risks
@@ -300,6 +309,8 @@ npx the-frame-ai init
 | `/frame:review` | डिप्लॉय करने से पहले — स्वचालित जांच + चेकलिस्ट |
 | `/frame:security` | गहरा सुरक्षा ऑडिट: secrets, OWASP, infrastructure, AI/LLM risks |
 | `/frame:security-fix` | नवीनतम रिपोर्ट से findings ठीक करें (पहले CRITICAL, फिर HIGH) |
+| `/frame:perf-audit` | गहरा performance audit: स्टैक डिटेक्ट, वर्तमान समस्याएं खोजें, PERF_REPORT.md लिखें |
+| `/frame:perf-fix` | PERF_REPORT.md की समस्याएं ठीक करें — before/after दिखाएं, प्रत्येक fix पर पुष्टि |
 | `/frame:health` | पूर्ण प्रोजेक्ट स्वास्थ्य जांच |
 | `/frame:check-deps` | सुरक्षा ऑडिट + पुराने पैकेज |
 | `/frame:performance` | Bundle आकार और Lighthouse ऑडिट |

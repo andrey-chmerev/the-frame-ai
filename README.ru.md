@@ -182,30 +182,41 @@ Research → Plan → Build → Review → Ship → Reflect
 /frame:security src/api/         # сканировать конкретную директорию
 ```
 
+### Производительность: найти и исправить узкие места
+
 ```
 /frame:daily
 
-/frame:performance
-# → получаешь baseline: размер бандла, время загрузки, Lighthouse-score
-#   запомни цифры — они нужны для сравнения в конце
+/frame:perf-audit
+# → определяет стек (Next.js + PostgreSQL + Redis и т.д.)
+# → ищет актуальные известные проблемы именно для этого стека
+# → глубокое сканирование: N+1 запросы, утечки памяти, блокирующие операции,
+#   отсутствие кэш-заголовков, причины лишних ре-рендеров, размер бандла
+# → отчёт сохраняется в .planning/reports/performance/PERF_REPORT.md
+#   с приоритетами Critical/High/Medium/Low и оценкой трудозатрат
 
-/frame:research "dashboard performance"
-# → Claude анализирует код дашборда: тяжёлые компоненты,
-#   лишние запросы, что можно закэшировать или загрузить лениво
+# Пример вывода отчёта:
+# Critical: 2 | High: 4 | Medium: 3 | Low: 1
+# [PERF-1] N+1 запрос в /api/users — 47 лишних запросов к БД на запрос (S)
+# [PERF-2] setInterval без cleanup в Dashboard — утечка памяти (XS)
 
-/frame:plan "оптимизация дашборда"
-# → список задач с оценкой эффекта:
-#   1. lazy load тяжёлых графиков
-#   2. кэшировать API-запросы
-#   3. убрать дублирующиеся запросы при монтировании
+/frame:perf-fix
+# → читает PERF_REPORT.md, начинает с Critical
+# → для каждой проблемы показывает:
+#   --- BEFORE ---
+#   const users = await db.findMany()
+#   --- AFTER ---
+#   const users = await db.findMany({ select: { id, name, email } })
+# → спрашивает: Apply this fix? [y/n/skip]
+# → применяет, запускает typecheck + тесты, откатывает если сломалось
 
-/frame:build
-# → последовательно, каждая задача с тестом
+# Точечные фиксы:
+/frame:perf-fix PERF-1      # исправить одну проблему
+/frame:perf-fix high        # исправить все High
+/frame:perf-fix all         # исправить Critical + High
 
-/frame:performance
-# → сравниваешь с baseline: видишь реальный прирост
-
-/frame:ship
+/frame:perf-audit
+# → повторный аудит чтобы убедиться в улучшениях
 ```
 
 ## Что внутри
@@ -213,8 +224,8 @@ Research → Plan → Build → Review → Ship → Reflect
 FRAME даёт:
 
 - **6-фазный воркфлоу**: Research → Plan → Build → Review → Ship → Reflect
-- **35 команд**: от быстрых задач до полного цикла разработки фичи
-- **6 AI-агентов**: Researcher, Planner, Builder, Reviewer, Devil's Advocate, Security
+- **37 команд**: от быстрых задач до полного цикла разработки фичи
+- **7 AI-агентов**: Researcher, Planner, Builder, Reviewer, Devil's Advocate, Security, Performance Auditor
 - **Safety Hooks**: блокируют деструктивные операции, запускают quality gates
 - **Git Safety**: чекпоинты, откат, worktrees, пауза/возобновление
 - **Security Auditing**: OWASP Top 10, обнаружение секретов, проверки инфраструктуры, AI/LLM-риски
@@ -299,6 +310,8 @@ npx the-frame init
 | `/frame:review` | Перед деплоем — автоматические проверки + чеклист |
 | `/frame:security` | Глубокий аудит безопасности: секреты, OWASP, инфра, AI/LLM-риски |
 | `/frame:security-fix` | Исправить находки из последнего отчёта (сначала CRITICAL, потом HIGH) |
+| `/frame:perf-audit` | Глубокий аудит производительности: детектирует стек, ищет актуальные проблемы, пишет PERF_REPORT.md |
+| `/frame:perf-fix` | Исправить проблемы из PERF_REPORT.md — показывает before/after, спрашивает подтверждение |
 | `/frame:health` | Полная проверка здоровья проекта |
 | `/frame:check-deps` | Аудит безопасности + устаревшие пакеты |
 | `/frame:performance` | Размер бандла и Lighthouse-аудит |
