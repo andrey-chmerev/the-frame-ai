@@ -23,6 +23,8 @@ If `.frame/config.json` missing → STOP: "❌ Run /frame:init first."
 
 If `PERF_REPORT.md` missing → STOP: "❌ No performance report found. Run /frame:perf-audit first."
 
+Read `language` field from `.frame/config.json`. All output to the user must be written in that language. If `language` is `auto` or missing — use English.
+
 ### Step 1: Read Report
 
 Read `.planning/reports/performance/PERF_REPORT.md`.

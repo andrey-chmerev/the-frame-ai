@@ -24,6 +24,8 @@ Update `.planning/STATE.md`:
 
 Read `package.json` (or `requirements.txt`, `Cargo.toml`, `go.mod`), `.planning/MAP.md`, `.frame/config.json`.
 
+Read `language` field from `.frame/config.json`. All output to the user and the final report must be written in that language (e.g. `ru` → Russian, `en` → English). If `language` is `auto` or missing — use English.
+
 Determine:
 - **Runtime**: Node.js / Python / Go / Rust / Java
 - **Framework**: React / Next.js / Vue / Nuxt / Svelte / Express / FastAPI / Django / etc.
