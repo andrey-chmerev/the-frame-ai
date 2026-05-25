@@ -37,7 +37,7 @@ FRAME — 面向 AI 辅助独立开发的框架
 `/frame:plan <功能>` 将研究转化为带有估算的具体任务列表。
 
 **构建** — 实现
-`/frame:build` 按顺序执行任务（每次 1–3 个），采用 TDD。对于许多独立任务——`/frame:wave` 以并行批次运行它们。卡住了——`/frame:unstuck`。发现 bug——`/frame:debug`。
+`/frame:build` 按顺序执行任务（每次 1–3 个），采用 TDD。对于许多独立任务——`/frame:wave` 以并行批次运行它们。当质量比速度更重要时——`/frame:wave-team` 在每个任务后添加审查团队（Security、Performance、Tests、Conventions）。卡住了——`/frame:unstuck`。发现 bug——`/frame:debug`。
 
 **审查** — 部署前检查
 `/frame:review` 运行自动化检查并提供清单：测试、类型、安全性、性能。
@@ -262,6 +262,7 @@ npx the-frame-ai init
 | `/frame:plan <功能>` | 将研究转化为可操作的任务列表 |
 | `/frame:build` | 使用 TDD 实现 1–3 个任务（顺序） |
 | `/frame:wave` | 实现 4+ 个独立任务（并行子代理） |
+| `/frame:wave-team` | 类似 wave，但每个任务后有审查团队 |
 | `/frame:review` | 部署前——自动化检查 + 清单 |
 | `/frame:ship` | 提交，可选推送/PR，更新记忆 |
 
@@ -294,6 +295,7 @@ npx the-frame-ai init
 |------|---------|
 | `/frame:build` | 使用 TDD 实现计划（1–3 个任务，顺序） |
 | `/frame:wave` | 以并行批次实现 4+ 个独立任务 |
+| `/frame:wave-team` | 类似 wave，但每个任务后有审查团队 |
 | `/frame:fast <任务>` | 30 分钟内的快速任务 |
 | `/frame:debug <问题>` | 系统性 bug 调查 |
 | `/frame:forensics` | 深入研究为什么某些东西坏了 |

@@ -37,7 +37,7 @@ Ejecuta `/frame:research <tema>` — Claude explora la base de código, fuentes 
 `/frame:plan <funcionalidad>` convierte la investigación en una lista de tareas concreta con estimaciones.
 
 **Construir** — implementar
-`/frame:build` ejecuta tareas secuencialmente (1–3 a la vez) con TDD. Para muchas tareas independientes — `/frame:wave` las ejecuta en lotes paralelos. Atascado — `/frame:unstuck`. Encontraste un bug — `/frame:debug`.
+`/frame:build` ejecuta tareas secuencialmente (1–3 a la vez) con TDD. Para muchas tareas independientes — `/frame:wave` las ejecuta en lotes paralelos. Cuando la calidad importa más que la velocidad — `/frame:wave-team` añade un equipo de revisión (Security, Performance, Tests, Conventions) después de cada tarea. Atascado — `/frame:unstuck`. Encontraste un bug — `/frame:debug`.
 
 **Revisar** — verificar antes de desplegar
 `/frame:review` ejecuta verificaciones automatizadas y proporciona una lista de comprobación: pruebas, tipos, seguridad, rendimiento.
@@ -262,6 +262,7 @@ Estos 7 comandos cubren el 90% del trabajo de desarrollo en solitario:
 | `/frame:plan <funcionalidad>` | Convertir la investigación en una lista de tareas accionable |
 | `/frame:build` | Implementar 1–3 tareas con TDD (secuencial) |
 | `/frame:wave` | Implementar 4+ tareas independientes (subagentes paralelos) |
+| `/frame:wave-team` | Como wave, pero con equipo de revisión después de cada tarea |
 | `/frame:review` | Antes de desplegar — verificaciones automatizadas + lista de comprobación |
 | `/frame:ship` | Commit, push/PR opcional, actualizar memoria |
 
@@ -294,6 +295,7 @@ Estos 7 comandos cubren el 90% del trabajo de desarrollo en solitario:
 |---------|--------------|
 | `/frame:build` | Implementar el plan con TDD (1–3 tareas, secuencial) |
 | `/frame:wave` | Implementar 4+ tareas independientes en lotes paralelos |
+| `/frame:wave-team` | Como wave, pero con equipo de revisión después de cada tarea |
 | `/frame:fast <tarea>` | Tarea rápida de menos de 30 minutos |
 | `/frame:debug <problema>` | Investigación sistemática de bugs |
 | `/frame:forensics` | Análisis profundo de por qué algo se rompió |

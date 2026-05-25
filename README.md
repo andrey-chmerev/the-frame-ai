@@ -37,7 +37,7 @@ Run `/frame:research <topic>` — Claude explores the codebase, external sources
 `/frame:plan <feature>` turns research into a concrete task list with estimates.
 
 **Build** — implement
-`/frame:build` executes tasks sequentially (1–3 at a time) with TDD. For many independent tasks — `/frame:wave` runs them in parallel batches. Stuck — `/frame:unstuck`. Found a bug — `/frame:debug`.
+`/frame:build` executes tasks sequentially (1–3 at a time) with TDD. For many independent tasks — `/frame:wave` runs them in parallel batches. When quality matters more than speed — `/frame:wave-team` adds a review team (Security, Performance, Tests, Conventions) after each task. Stuck — `/frame:unstuck`. Found a bug — `/frame:debug`.
 
 **Review** — check before deploying
 `/frame:review` runs automated checks and gives a checklist: tests, types, security, performance.
@@ -264,6 +264,7 @@ These 7 commands cover 90% of solo dev work:
 | `/frame:plan <feature>` | Turn research into an actionable task list |
 | `/frame:build` | Implement 1–3 tasks with TDD (sequential) |
 | `/frame:wave` | Implement 4+ independent tasks (parallel subagents) |
+| `/frame:wave-team` | Like wave, but with a review team after each task |
 | `/frame:review` | Before deploying — automated checks + checklist |
 | `/frame:ship` | Commit, optional push/PR, update memory |
 
@@ -296,6 +297,7 @@ These 7 commands cover 90% of solo dev work:
 |---------|-------------|
 | `/frame:build` | Implement plan with TDD (1–3 tasks, sequential) |
 | `/frame:wave` | Implement 4+ independent tasks in parallel batches |
+| `/frame:wave-team` | Like wave, but with a review team (Security, Perf, Tests, Conventions) after each task |
 | `/frame:fast <task>` | Quick task under 30 minutes |
 | `/frame:debug <issue>` | Systematic bug investigation |
 | `/frame:forensics` | Deep dive into why something broke |

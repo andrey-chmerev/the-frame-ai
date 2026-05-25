@@ -37,7 +37,7 @@ Claude Codeで一人でプロダクトを作っていて、チームのように
 `/frame:plan <機能>` が調査を見積もり付きの具体的なタスクリストに変換します。
 
 **構築** — 実装する
-`/frame:build` がTDDでタスクを順次実行します（1〜3件ずつ）。多くの独立したタスクには — `/frame:wave` が並列バッチで実行します。行き詰まったら — `/frame:unstuck`。バグを発見したら — `/frame:debug`。
+`/frame:build` がTDDでタスクを順次実行します（1〜3件ずつ）。多くの独立したタスクには — `/frame:wave` が並列バッチで実行します。品質がスピードより重要な場合 — `/frame:wave-team` が各タスク後にレビューチーム（Security、Performance、Tests、Conventions）を追加します。行き詰まったら — `/frame:unstuck`。バグを発見したら — `/frame:debug`。
 
 **レビュー** — デプロイ前に確認する
 `/frame:review` が自動チェックを実行し、チェックリストを提供します：テスト、型、セキュリティ、パフォーマンス。
@@ -262,6 +262,7 @@ npx the-frame-ai init
 | `/frame:plan <機能>` | 調査を実行可能なタスクリストに変換 |
 | `/frame:build` | TDDで1〜3タスクを実装（順次） |
 | `/frame:wave` | 4つ以上の独立したタスクを実装（並列サブエージェント） |
+| `/frame:wave-team` | waveと同様だが、各タスク後にレビューチームを追加 |
 | `/frame:review` | デプロイ前 — 自動チェック + チェックリスト |
 | `/frame:ship` | コミット、オプションのプッシュ/PR、メモリ更新 |
 
@@ -294,6 +295,7 @@ npx the-frame-ai init
 |---------|-------------|
 | `/frame:build` | TDDで計画を実装（1〜3タスク、順次） |
 | `/frame:wave` | 4つ以上の独立したタスクを並列バッチで実装 |
+| `/frame:wave-team` | waveと同様だが、各タスク後にレビューチームを追加 |
 | `/frame:fast <タスク>` | 30分以内のクイックタスク |
 | `/frame:debug <問題>` | 体系的なバグ調査 |
 | `/frame:forensics` | 何かが壊れた原因の深掘り |

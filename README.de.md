@@ -37,7 +37,7 @@ Führe `/frame:research <Thema>` aus — Claude erkundet die Codebasis, externe 
 `/frame:plan <Feature>` verwandelt Recherche in eine konkrete Aufgabenliste mit Schätzungen.
 
 **Build** — implementieren
-`/frame:build` führt Aufgaben sequenziell aus (1–3 auf einmal) mit TDD. Für viele unabhängige Aufgaben — `/frame:wave` führt sie in parallelen Batches aus. Feststeckend — `/frame:unstuck`. Bug gefunden — `/frame:debug`.
+`/frame:build` führt Aufgaben sequenziell aus (1–3 auf einmal) mit TDD. Für viele unabhängige Aufgaben — `/frame:wave` führt sie in parallelen Batches aus. Wenn Qualität wichtiger als Geschwindigkeit ist — `/frame:wave-team` fügt ein Review-Team (Security, Performance, Tests, Conventions) nach jeder Aufgabe hinzu. Feststeckend — `/frame:unstuck`. Bug gefunden — `/frame:debug`.
 
 **Review** — vor dem Deployment prüfen
 `/frame:review` führt automatisierte Prüfungen durch und gibt eine Checkliste: Tests, Typen, Sicherheit, Performance.
@@ -262,6 +262,7 @@ Diese 7 Befehle decken 90% der Solo-Dev-Arbeit ab:
 | `/frame:plan <Feature>` | Recherche in eine umsetzbare Aufgabenliste umwandeln |
 | `/frame:build` | 1–3 Aufgaben mit TDD implementieren (sequenziell) |
 | `/frame:wave` | 4+ unabhängige Aufgaben implementieren (parallele Subagenten) |
+| `/frame:wave-team` | Wie wave, aber mit Review-Team nach jeder Aufgabe |
 | `/frame:review` | Vor dem Deployment — automatisierte Prüfungen + Checkliste |
 | `/frame:ship` | Commit, optionaler Push/PR, Gedächtnis aktualisieren |
 
@@ -294,6 +295,7 @@ Diese 7 Befehle decken 90% der Solo-Dev-Arbeit ab:
 |--------|---------------|
 | `/frame:build` | Plan mit TDD implementieren (1–3 Aufgaben, sequenziell) |
 | `/frame:wave` | 4+ unabhängige Aufgaben in parallelen Batches implementieren |
+| `/frame:wave-team` | Wie wave, aber mit Review-Team nach jeder Aufgabe |
 | `/frame:fast <Aufgabe>` | Schnelle Aufgabe unter 30 Minuten |
 | `/frame:debug <Problem>` | Systematische Bug-Untersuchung |
 | `/frame:forensics` | Tiefenanalyse warum etwas kaputt gegangen ist |
