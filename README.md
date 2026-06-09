@@ -325,6 +325,7 @@ These 7 commands cover 90% of solo dev work:
 
 | Command | When to use |
 |---------|-------------|
+| `/frame:test-plan` | After review, before ship — generates a manual "go check this as a user" checklist of what changed |
 | `/frame:ship` | Commit, optional push/PR, update memory |
 | `/frame:checkpoint` | Save a git tag before a risky change |
 | `/frame:rollback` | Roll back to a checkpoint |

@@ -20,14 +20,14 @@ Update `.planning/STATE.md` before starting:
 ```
 
 Read `.planning/STATE.md` and verify:
-- `Phase: REVIEW` ✓
+- `Phase:` is `REVIEW` OR `TEST` ✓ (TEST = manual test plan was generated after review)
 - `Status:` is `approve` OR `Shipped` OR contains `ready to ship` ✓ (not `request changes`)
 
 If conditions not met → **STOP**:
 ```
 ❌ Ship blocked. Review not completed or not approved.
    Current status: {status}
-   Run /frame:review first.
+   Run /frame:review first (optionally /frame:test-plan before shipping).
 ```
 
 Check `Deps Audit` in STATE.md:

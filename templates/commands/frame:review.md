@@ -149,6 +149,13 @@ Create `docs/specs/{feature}/review.md`:
 - Status: Review complete, ready to ship
 ```
 
+On approve, suggest the next step:
+```
+✅ Review passed.
+   → Run /frame:test-plan to get a manual "what to check as a user" list before shipping,
+     or go straight to /frame:ship.
+```
+
 **If request changes:**
 ```markdown
 ## Current Position
