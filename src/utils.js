@@ -8,7 +8,7 @@ import {
   chmodSync,
 } from 'node:fs';
 
-import { join } from 'node:path';
+import { join, dirname } from 'node:path';
 import { createHash } from 'node:crypto';
 
 export function ensureDir(dir) {
@@ -20,8 +20,7 @@ export function copyDir(src, dest) {
 }
 
 export function writeFile(dest, content) {
-  const dir = join(dest, '..');
-  ensureDir(dir);
+  ensureDir(dirname(dest));
   writeFileSync(dest, content, 'utf-8');
 }
 
@@ -39,9 +38,12 @@ export function makeExecutable(filePath) {
   chmodSync(filePath, 0o755);
 }
 
+const JUNK_FILES = new Set(['.DS_Store', 'Thumbs.db', '.gitkeep']);
+
 export function listFilesRecursive(dir) {
   const results = [];
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    if (JUNK_FILES.has(entry.name)) continue;
     const full = join(dir, entry.name);
     if (entry.isDirectory()) {
       results.push(...listFilesRecursive(full));
@@ -71,22 +73,6 @@ export function readManifest(manifestPath) {
 
 export function writeManifest(manifestPath, manifest) {
   writeFileSync(manifestPath, JSON.stringify(manifest, null, 2), 'utf-8');
-}
-
-export function mergeVscodeSettings(settingsPath) {
-  let settings = {};
-  if (existsSync(settingsPath)) {
-    const raw = readFileSync(settingsPath, 'utf-8');
-    try {
-      settings = JSON.parse(raw);
-    } catch {
-      // JSONC or unparseable — preserve file, skip merge
-      process.stderr.write(`[FRAME] mergeVscodeSettings: could not parse ${settingsPath}, skipping merge\n`);
-      return;
-    }
-  }
-  settings['chat.promptFiles'] = true;
-  writeFileSync(settingsPath, JSON.stringify(settings, null, 2), 'utf-8');
 }
 
 const PLAYWRIGHT_MCP = {
@@ -170,18 +156,3 @@ export function mergeFrameSettings(settingsPath) {
   writeFileSync(settingsPath, JSON.stringify(settings, null, 2), 'utf-8');
 }
 
-export function mergeVscodeMcp(mcpPath) {
-  let config = {};
-  if (existsSync(mcpPath)) {
-    const raw = readFileSync(mcpPath, 'utf-8');
-    try {
-      config = JSON.parse(raw);
-    } catch {
-      process.stderr.write(`[FRAME] mergeVscodeMcp: could not parse ${mcpPath}, skipping merge\n`);
-      return;
-    }
-  }
-  config.servers = config.servers ?? {};
-  config.servers.playwright = PLAYWRIGHT_MCP;
-  writeFileSync(mcpPath, JSON.stringify(config, null, 2), 'utf-8');
-}

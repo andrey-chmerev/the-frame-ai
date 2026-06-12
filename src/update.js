@@ -8,10 +8,8 @@ import {
   applyVars,
   writeFile,
   ensureDir,
-  mergeVscodeSettings,
   mergeFrameSettings,
   writeMcpConfig,
-  mergeVscodeMcp,
   hashContent,
   readManifest,
   writeManifest,
@@ -87,11 +85,6 @@ export async function update(target, flags = {}) {
       orphans.forEach((o) => log(`  ! ${o}`));
     }
 
-    if (config.copilot || flags.copilot) {
-      const files = readdirSync(join(TEMPLATES_DIR, 'commands')).filter((f) => f.endsWith('.md'));
-      files.forEach((f) => log(`  ~ .github/prompts/${f.replace(/\.md$/, '.prompt.md')}`));
-      total += files.length;
-    }
     log(`\n  Note: project files (STATE.md, MAP.md, memory/, etc.) are never updated`);
     log(`\nTotal: ${total} files would be updated. Run without --dry-run to apply.\n`);
     return;
@@ -171,30 +164,12 @@ export async function update(target, flags = {}) {
     updated++;
   }
 
-  // 4. Update Copilot prompts
-  if (config.copilot || flags.copilot) {
-    const promptsDest = join(target, '.github', 'prompts');
-    ensureDir(promptsDest);
-    for (const f of readdirSync(commandsDest).filter((f) => f.endsWith('.md'))) {
-      writeFile(join(promptsDest, f.replace(/\.md$/, '.prompt.md')), readFileSync(join(commandsDest, f), 'utf-8'));
-    }
-    const vscodeDest = join(target, '.vscode');
-    ensureDir(vscodeDest);
-    mergeVscodeSettings(join(vscodeDest, 'settings.json'));
-    updated += readdirSync(commandsDest).filter((f) => f.endsWith('.md')).length;
-    if (flags.copilot && !config.copilot) {
-      config.copilot = true;
-      writeFileSync(join(target, '.frame', 'config.json'), JSON.stringify(config, null, 2), 'utf-8');
-    }
-  }
-
-  // 5. Apply Playwright MCP if frontend
+  // 4. Apply Playwright MCP if frontend
   if (frontendDecided) {
     writeMcpConfig(join(target, '.mcp.json'));
-    if (config.copilot) mergeVscodeMcp(join(target, '.vscode', 'mcp.json'));
   }
 
-  // 5b. Always re-merge hooks and permissions into settings.json
+  // 5. Always re-merge hooks and permissions into settings.json
   mergeFrameSettings(join(target, '.claude', 'settings.json'));
 
   // 6. Write new version and updated manifest

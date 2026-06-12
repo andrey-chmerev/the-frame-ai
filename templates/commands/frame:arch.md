@@ -5,13 +5,15 @@ allowed-tools: [Read, Write, Bash]
 ---
 # /frame:arch — Module Architecture
 
-Analyse a module and generate `docs/arch/{module}.md` with its architecture description.
+**Module:** $ARGUMENTS
+
+Analyse the module and generate `docs/arch/{module}.md` with its architecture description.
 
 ## Instructions
 
 ### Step 0: Fail-fast
 
-Require a module name or path. If missing, STOP: "Which module? Provide a module name or path (e.g. `/frame:arch chat` or `/frame:arch src/payments`)."
+If `$ARGUMENTS` is empty, STOP: "Which module? Provide a module name or path (e.g. `/frame:arch chat` or `/frame:arch src/payments`)."
 
 ### Step 1: Locate the module
 

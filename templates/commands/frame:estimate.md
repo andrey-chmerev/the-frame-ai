@@ -5,13 +5,15 @@ allowed-tools: [Read, Bash]
 ---
 # /frame:estimate -- Task Estimation
 
+**Task:** $ARGUMENTS
+
 Quick pre-planning estimate: scope, risks, time. Helps decide whether to start now.
 
 ## Instructions
 
 ### Step 0: Fail-fast
 
-Check: task/feature description provided — if missing, STOP: "What do you want to estimate?"
+If `$ARGUMENTS` is empty, STOP: "What do you want to estimate? Usage: /frame:estimate <task description>"
 
 ### Step 1: Read project context
 
@@ -22,7 +24,7 @@ find . -name "*.ts" -o -name "*.js" -o -name "*.py" -o -name "*.go" | grep -v no
 Read:
 - `.planning/MAP.md` — architecture, key directories
 - `.planning/memory/context.md` — current focus, blockers
-- `.planning/memory/patterns.md` — Core section only
+- `.planning/memory/learnings.md` `## Patterns > ### Core` section only
 
 ### Step 2: Scope analysis
 
@@ -44,22 +46,13 @@ Count: files likely affected, modules involved, external dependencies needed.
 
 ### Step 4: Historical calibration
 
-Check if metrics.md has past estimates for this project:
+Check git log for completed tasks of similar scope:
 
 ```bash
-grep "estimate" .planning/memory/metrics.md 2>/dev/null | tail -20
+git log --oneline --since="90 days ago" 2>/dev/null | head -20
 ```
 
-If data exists, calculate actual vs estimated accuracy:
-- Find tasks of similar size (XS/S/M/L/XL) that were completed
-- Note if estimates were consistently over or under
-
-Include in output if data available:
-```
-║  Historical (your project):              ║
-║    M tasks avg: {N} hours actual         ║
-║    Estimate accuracy: {over/under/good}  ║
-```
+If comparable tasks are visible in git history, note rough delivery cadence to calibrate estimate confidence.
 
 ### Step 5: Output
 
@@ -104,7 +97,3 @@ Based on scope and risk:
 
 - No code changes
 - If MAP.md missing: estimate based on task description only, note low confidence
-- After output: append estimate to `.planning/memory/metrics.md`:
-  ```
-  - {date}: estimate "{task}" → {XS/S/M/L/XL} ({time range}), confidence: {low/medium/high}
-  ```

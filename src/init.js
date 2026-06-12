@@ -1,4 +1,4 @@
-import { join, basename } from 'node:path';
+import { join, basename, dirname, relative } from 'node:path';
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { TEMPLATES_DIR, VERSION, log, logSuccess, logWarn, logError, detectProjectName } from './manifest.js';
 import {
@@ -9,14 +9,12 @@ import {
   listFilesRecursive,
   writeFile,
   applyVars,
-  mergeVscodeSettings,
   mergeFrameSettings,
   writeMcpConfig,
-  mergeVscodeMcp,
   hashContent,
   writeManifest,
 } from './utils.js';
-import { LANGUAGES, getLanguageInstruction, promptLanguage, promptConfig, promptCopilot, promptFrontend } from './languages.js';
+import { LANGUAGES, getLanguageInstruction, promptLanguage, promptConfig, promptFrontend } from './languages.js';
 import { doctor } from './doctor.js';
 
 const PLANNING_DIRS = [
@@ -24,12 +22,10 @@ const PLANNING_DIRS = [
   '.planning/pause-history',
   '.planning/reports/daily',
   '.planning/reports/deps',
-  '.planning/reports/quality',
   '.planning/reports/sprint',
   '.planning/reports/cleanup',
   '.planning/reports/performance',
   '.planning/reports/security',
-  '.planning/reviews',
   '.planning/forensics',
   'docs/specs/archive',
 ];
@@ -38,7 +34,6 @@ const CLAUDE_DIRS = [
   '.claude/commands',
   '.claude/agents',
   '.claude/hooks',
-  '.claude/skills',
 ];
 
 // Files in templates/project/ that should be mapped to specific destinations
@@ -109,22 +104,6 @@ export async function init(target, flags = {}) {
     logSuccess(`Playwright MCP → .mcp.json`);
   }
 
-  // 2c. Copilot Chat support
-  const copilot = await promptCopilot(flags.yes);
-  if (copilot) {
-    const promptsDest = join(target, '.github', 'prompts');
-    ensureDir(promptsDest);
-    for (const f of readdirSync(commandsDest).filter((f) => f.endsWith('.md'))) {
-      writeFile(join(promptsDest, f.replace(/\.md$/, '.prompt.md')), readFileSync(join(commandsDest, f), 'utf-8'));
-    }
-    const vscodeDest = join(target, '.vscode');
-    ensureDir(vscodeDest);
-    mergeVscodeSettings(join(vscodeDest, 'settings.json'));
-    if (frontend) mergeVscodeMcp(join(vscodeDest, 'mcp.json'));
-    logSuccess(`${commandCount} Copilot prompts → .github/prompts/`);
-    if (frontend) logSuccess(`Playwright MCP → .vscode/mcp.json`);
-  }
-
   // 3. Copy agents and apply quality.commands substitution
   const agentsSrc = join(TEMPLATES_DIR, 'agents');
   const agentsDest = join(target, '.claude', 'agents');
@@ -162,7 +141,7 @@ export async function init(target, flags = {}) {
 
   let fileCount = 0;
   for (const srcPath of projectFiles) {
-    const relPath = srcPath.replace(projectSrc + '/', '');
+    const relPath = relative(projectSrc, srcPath);
 
     if (SKIP_PROJECT_FILES.has(relPath)) continue;
 
@@ -179,7 +158,7 @@ export async function init(target, flags = {}) {
       }
     }
 
-    ensureDir(join(destPath, '..'));
+    ensureDir(dirname(destPath));
     const content = readFileSync(srcPath, 'utf-8');
     const noVars = relPath.startsWith('specs/_template/') || relPath.startsWith('specs/') && relPath.includes('_template/');
     const replaced = noVars ? content : applyVars(content, vars, qualityVars);
@@ -199,7 +178,6 @@ export async function init(target, flags = {}) {
   if (fileExists(configPath)) {
     resolvedConfig.project = projectName;
     resolvedConfig.language = language;
-    resolvedConfig.copilot = copilot;
     resolvedConfig.frontend = frontend;
     writeFile(configPath, JSON.stringify(resolvedConfig, null, 2));
   }
@@ -225,8 +203,7 @@ export async function init(target, flags = {}) {
   log(`  Hooks:     ${hookFiles.length} in .claude/hooks/`);
   log(`  Planning:  files in .planning/`);
   log(`  Config:    .frame/config.json`);
-  if (copilot) log(`  Copilot:   ${commandCount} prompts in .vscode/`);
-  if (frontend) log(`  Playwright MCP: .mcp.json${copilot ? ' + .vscode/mcp.json' : ''}`);
+  if (frontend) log(`  Playwright MCP: .mcp.json`);
   log('');
 
   // 11. Auto-run doctor

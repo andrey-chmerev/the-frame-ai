@@ -50,7 +50,7 @@ export async function promptLanguage(langOverride, yes = false) {
 
   const prompt = '\n? Select response language:\n\n';
   const options = LANGUAGES.map((l, i) => `  ${i + 1}) ${l.label}`).join('\n');
-  const footer = `\n  Enter number [1-${LANGUAGES.length}] (or press Enter for auto): `;
+  const footer = `\n  Enter number [1-${LANGUAGES.length}], press Enter for auto, or type a code (e.g. 'ja', 'fr', 'ko'): `;
 
   const answer = (await ask(rl, prompt + options + footer)).trim();
   rl.close();
@@ -130,17 +130,6 @@ export async function promptConfig(defaultConfig, yes = false) {
 
   rl.close();
   return config;
-}
-
-export async function promptCopilot(yes = false) {
-  if (!process.stdin.isTTY || yes) return false;
-  const rl = createInterface({ input: process.stdin, output: process.stdout });
-  return new Promise((resolve) => {
-    rl.question('\n? Add GitHub Copilot Chat support? (y/N): ', (answer) => {
-      rl.close();
-      resolve(answer.trim().toLowerCase() === 'y');
-    });
-  });
 }
 
 export async function promptFrontend(yes = false) {

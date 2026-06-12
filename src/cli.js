@@ -17,7 +17,6 @@ Usage:
 Options:
   --lang <code>   Set response language (e.g. en, ru, zh). Overrides FRAME_LANG env var.
   --dry-run       (update only) Show what would be updated without making changes.
-  --copilot       (update only) Enable GitHub Copilot Chat support (adds .vscode/*.prompt.md).
 
 Examples:
   npx the-frame-ai init              Install in current directory
@@ -25,12 +24,11 @@ Examples:
   npx the-frame-ai init --lang ru    Install with Russian language preset
   npx the-frame-ai update            Update in current directory
   npx the-frame-ai update --dry-run  Preview update without applying
-  npx the-frame-ai update --copilot  Enable Copilot Chat support on existing install
   npx the-frame-ai doctor            Check health in current directory
 `;
 
 function parseFlags(args) {
-  const flags = { lang: null, dryRun: false, yes: false, copilot: false };
+  const flags = { lang: null, dryRun: false, yes: false };
   const rest = [];
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '--lang' && args[i + 1]) {
@@ -39,8 +37,6 @@ function parseFlags(args) {
       flags.dryRun = true;
     } else if (args[i] === '--yes' || args[i] === '-y') {
       flags.yes = true;
-    } else if (args[i] === '--copilot') {
-      flags.copilot = true;
     } else {
       rest.push(args[i]);
     }
