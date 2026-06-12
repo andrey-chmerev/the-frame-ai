@@ -326,32 +326,32 @@ These commands cover 90% of solo dev work:
 |---------|-------------|-----------|
 | `/frame:add-task` | Add a task to the current plan.md without interrupting work | `<task description>` |
 | `/frame:arch` | Document module architecture and design decisions for a file or module | `<file or module path>` |
-| `/frame:audit` | Unified project audit: 12 categories, tier-scaled agents, adversarial verification | `[security \| performance \| deps \| quick \| <category> <path> \| --priv]` |
-| `/frame:build` | Implement planned tasks using TDD — reads Parallel: labels from plan.md, auto-selects sequential or parallel worktrees | — |
-| `/frame:checkpoint` | Manage git checkpoints: list, create, rollback, or clean up frame/checkpoint/* tags | `[list \| create \| cleanup \| rollback [<tag> \| --soft]]` |
+| `/frame:audit` | Comprehensive project audit across 12 categories — security, performance, business logic, API, data, observability, deps, tests, infra, maintainability, a11y, privacy | `[category | quick] [scope-path] [--priv]` |
+| `/frame:build` | Implement planned tasks using TDD — auto-detects sequential or parallel execution from plan.md | `[feature]` |
+| `/frame:checkpoint` | Manage git checkpoints: list, create, rollback, or clean up frame/checkpoint/* tags | `[list | create | cleanup | rollback [<tag> | --soft]]` |
 | `/frame:cleanup-memory` | Trim and archive memory files, removing stale and low-confidence entries | — |
 | `/frame:daily` | Morning briefing — project status, today's priorities, and blockers | `[full]` |
-| `/frame:debug` | Systematically debug an issue: git archaeology, ranked hypotheses, or deep forensic investigation | `[--deep] <issue description \| FINDING-ID>` |
+| `/frame:debug` | Systematically debug an issue — or run deep forensic investigation with 5-why analysis | `[--deep] <SEC-N|issue description>` |
 | `/frame:doctor` | Check FRAME installation health — verify paths, config, and hook registration | — |
 | `/frame:fast` | Execute a quick task end-to-end without full research/plan cycle | `<task description>` |
-| `/frame:health` | Daily health check: tests, lint, types, audit freshness — or sprint velocity check | `[sprint]` |
+| `/frame:health` | Daily health check: tests, lint, types, security scan freshness — or sprint velocity check | `[sprint]` |
 | `/frame:init` | Initialize project: scan codebase, fill MAP.md, STATE.md, and memory files | — |
 | `/frame:migrate` | Plan and execute a database or schema migration with rollback safety | `<migration description>` |
 | `/frame:note` | Save a quick memory note (pattern, decision, or anti-pattern) to memory files | `<note text>` |
 | `/frame:pause` | Save session state to pause-state.json and create a checkpoint | — |
-| `/frame:plan` | Decompose a feature into atomic tasks with wave grouping, Parallel labels, and R/AC coverage — or plan from audit findings | `<feature description> \| audit [all]` |
+| `/frame:plan` | Decompose a feature into atomic tasks with wave grouping, traceability, and Parallel labels; or create a plan from audit findings | `<feature description> | audit [all]` |
 | `/frame:refactor` | Refactor code with test coverage verification and checkpoint safety | `<refactor scope>` |
-| `/frame:research` | Domain research: clarification gate, parallel codebase + web scouting, Decision Log cycle | `<topic or question>` |
+| `/frame:research` | Domain research: clarification gate, parallel codebase + web scouting, new research.md with Decision Log cycle | `<topic or question>` |
 | `/frame:resume` | Resume work from pause-state.json — restore context and continue | — |
 | `/frame:retrospective` | Write retrospective, update memory files with learnings and patterns | — |
-| `/frame:review` | Code review: 6-panel parallel review on diff, automated gates, R/AC traceability | — |
+| `/frame:review` | Code review: completion check, automated gates, parallel reviewer panel with verification pass | `[audit]` |
 | `/frame:ship` | Prepare and create a git commit and pull request after review passes | — |
 | `/frame:test-plan` | Generate a manual user acceptance checklist for the current feature | `<feature or scope>` |
 | `/frame:unstuck` | Get unblocked: diagnose blockers, suggest next actions, reset mental model | — |
 | `/frame:upgrade` | Upgrade FRAME framework files to the latest version with diff preview and changelog | — |
 | `/frame:verify-ui` | Browser UI verification using Playwright MCP: screenshot and assert UI state | `[<url or component>]` |
-| `/frame:why` | Explain why code looks the way it does — or search decision history by keyword | `<keyword \| file path \| function name>` |
-| `/frame:worktree` | Manage git worktrees for parallel task execution without context switching | `[create \| list \| cleanup \| <task-name>]` |
+| `/frame:why` | Explain why code looks the way it does — or search decision history by keyword | `<keyword | file path | function name>` |
+| `/frame:worktree` | Manage git worktrees for parallel task execution without context switching | `[create | list | cleanup | <task-name>]` |
 <!-- COMMANDS:END -->
 
 ## Agents
@@ -364,10 +364,10 @@ These commands cover 90% of solo dev work:
 | `conventions-reviewer` | Review agent for wave-team. Checks code conventions and style in a single task's git diff. Returns PASS/WARN/FAIL verdict. |
 | `devils-advocate` | Find problems in code — code review, plan critique, or finding verification. Never writes application code. Use when: reviewing implementation, challenging a plan, or verifying audit/review findings. |
 | `performance-auditor` | Performance auditor agent. Detects stack, researches current perf issues, runs deep audit, writes PERF_REPORT.md. Never edits application code. Use when: auditing perf before ship or on demand. |
-| `planner` | Planning agent. Decomposes research into atomic tasks with wave grouping and Parallel labels. Use when: research.md is complete and needs to be broken into a plan. |
-| `researcher` | Research agent. Analyzes codebase or web for alternatives and context before planning. In /frame:research acts as the codebase-scout or web-scout subagent. Use when: exploring options or gathering context. |
+| `planner` | Planning agent. Decomposes research into atomic tasks with wave grouping. Use when: research.md is complete and needs to be broken into a plan. |
+| `researcher` | Research agent. Analyzes codebase or web for alternatives and context before planning. In /frame:research acts as codebase-scout or web-scout subagent. Use when: exploring options or gathering context. |
 | `reviewer` | Review agent. Checks code against spec, runs quality gates, security analysis. In /frame:review panel acts as the Spec Compliance reviewer. Use when: implementation is complete and needs review before ship. |
-| `security` | Security auditor agent. Scans code for vulnerabilities, secrets, OWASP violations. Writes security report. Never edits application code. Use when: auditing before ship or on demand. |
+| `security` | Security auditor agent. Scans code for vulnerabilities, secrets, OWASP violations. When used in /frame:audit produces security-category report; when used in /frame:review panel produces diff-scoped findings. Never edits application code. |
 | `tests-reviewer` | Review agent for wave-team. Checks test coverage and quality of a single task's git diff. Returns PASS/WARN/FAIL verdict. |
 <!-- AGENTS:END -->
 
