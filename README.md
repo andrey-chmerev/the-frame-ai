@@ -2,8 +2,6 @@
 
 FRAME — Framework for AI-Assisted Solo Development
 
-[🇺🇸 English](README.md) | [🇨🇳 中文](README.zh.md) | [🇮🇳 हिंदी](README.hi.md) | [🇯🇵 日本語](README.ja.md) | [🇩🇪 Deutsch](README.de.md) | [🇪🇸 Español](README.es.md) | [🇷🇺 Русский](README.ru.md)
-
 ## What is FRAME?
 
 **FRAME (Framework for AI-Assisted Solo Development)** is a framework for solo developers building products with Claude Code. It turns chaotic AI-assisted development into a predictable process — from idea to deploy — with memory, structure, and protection against mistakes.
@@ -17,10 +15,10 @@ If you're building a product alone with Claude Code and want to work like a team
 | Losing context between sessions | Project memory and automatic state dump on session start |
 | Chaos in tasks and priorities | 6-phase workflow: Research → Plan → Build → Review → Ship → Reflect |
 | Fear of breaking something important | Safety hooks block destructive commands before they run |
-| Repetitive routine tasks | 35 ready-made commands for the full development cycle |
-| Complex features with dependencies | Parallel subagents for independent tasks |
+| Repetitive routine tasks | 28 ready-made commands for the full development cycle |
+| Complex features with dependencies | Parallel subagents for independent tasks (wave-based planning) |
 | No structure for solo work | Roadmap, STATE.md, MAP.md — always know where you are and what's next |
-| Shipping code with security holes | Security agent audits OWASP Top 10, secrets, infra, AI risks before deploy |
+| Shipping code with security holes | `/frame:audit` — unified security, performance, and dependency audit before deploy |
 
 ## How to work with FRAME
 
@@ -31,16 +29,17 @@ Research → Plan → Build → Review → Ship → Reflect
 Each session is one cycle. Start with `/frame:daily`, end with `/frame:ship`.
 
 **Research** — understand before you build
-Run `/frame:research <topic>` — Claude explores the codebase, external sources, and builds context for the next step.
+Run `/frame:research <topic>` — Claude explores the codebase and external sources, asks clarifying questions, builds context, and stays available for a chat-driven decision log.
 
 **Plan** — break it into tasks
-`/frame:plan <feature>` turns research into a concrete task list with estimates.
+`/frame:plan <feature>` turns research into a concrete task list with wave grouping and `Parallel: yes/no` labels.
+`/frame:plan audit` creates a fix plan from the latest audit report.
 
 **Build** — implement
-`/frame:build` executes tasks sequentially (1–3 at a time) with TDD. For many independent tasks — `/frame:wave` runs them in parallel batches. When quality matters more than speed — `/frame:wave-team` adds a review team (Security, Performance, Tests, Conventions) after each task. Stuck — `/frame:unstuck`. Found a bug — `/frame:debug`.
+`/frame:build` reads the `Parallel:` labels from plan.md and automatically decides whether to run tasks sequentially or in parallel worktrees. No flags needed. Stuck — `/frame:unstuck`. Found a bug — `/frame:debug`.
 
 **Review** — check before deploying
-`/frame:review` runs automated checks and gives a checklist: tests, types, security, performance.
+`/frame:review` runs automated checks and a 6-panel review (spec compliance, security, performance, business logic, tests, conventions) on the diff.
 
 **Ship** — deploy and record
 `/frame:ship` commits, optional push/PR, and updates project memory.
@@ -57,24 +56,27 @@ Run `/frame:research <topic>` — Claude explores the codebase, external sources
 # → see current project status and what's planned
 
 /frame:research "Google OAuth"
-# → Claude studies the codebase: how current auth works,
-#   what patterns are already used, what needs to be added
+# → Claude asks 2-3 clarifying questions, then studies the codebase:
+#   how current auth works, what patterns are already used, what needs to be added
+#   → research.md with Requirements (R1, R2...) and Acceptance Criteria (AC1, AC2...)
 
 /frame:plan "Google OAuth"
-# → get a concrete task list:
-#   1. configure Google OAuth credentials
-#   2. add callback route
-#   3. connect to sessions
-#   4. add button to UI
+# → get a concrete task list with wave grouping:
+#   Wave 1 (Parallel: yes): configure credentials, add callback route
+#   Wave 2 (Parallel: no): connect to sessions (depends on Wave 1)
+#   Wave 3 (Parallel: yes): add UI button, write integration tests
 
 /frame:checkpoint
-# → save a restore point — if something goes wrong, you can roll back
+# → save a restore point — if something goes wrong, use /frame:checkpoint rollback
 
-/frame:wave
-# → tasks 1–4 are independent, Claude runs them in parallel
+/frame:build
+# → reads Parallel: labels from plan.md
+#   Wave 1: runs tasks in parallel worktrees (automatically)
+#   Wave 2: runs sequentially (depends on Wave 1 output)
 
 /frame:review
-# → automated checks: tests, types, security
+# → automated checks + 6-panel review on the diff (spec compliance, security, performance, tests, conventions, business logic)
+# → every requirement and AC traced to implementation
 
 /frame:ship
 # → commit, optional push/PR, project memory updated
@@ -87,18 +89,19 @@ Run `/frame:research <topic>` — Claude explores the codebase, external sources
 # → restore context, see the bug is already in the plan or add it
 
 /frame:debug "login after reset"
-# → Claude systematically checks: logs, reset flow, sessions, tokens
-# → you get a hypothesis with a specific location in the code
+# → git archaeology first (git log -15 -- relevant files)
+# → max 3 ranked hypotheses, checks cheapest first
+# → you get a confirmed root cause with specific location in code
 
 # If the cause is found immediately:
 /frame:checkpoint                        # restore point before the fix
 /frame:fast "fix: invalidate old session after password reset"
-# → Claude makes a targeted fix, writes a regression test
+# → Claude makes a targeted fix, writes a regression test, prints one-line summary
 
 # If the cause is unclear — go deeper:
-/frame:forensics
-# → analyzes git history of changes in this area,
-#   finds the commit that broke the behavior
+/frame:debug --deep
+# → 3 parallel investigators: git-history, code, config
+#   analyzes git history, finds the commit that broke the behavior (5-why analysis)
 
 /frame:checkpoint
 /frame:fast "fix: ..."                   # fix the found cause
@@ -109,41 +112,37 @@ Run `/frame:research <topic>` — Claude explores the codebase, external sources
 /frame:ship
 ```
 
-### Performance: find and fix bottlenecks
+### Audit: find issues before launch
 
 ```
 /frame:daily
+# → briefing shows: "Audit: ⚠️ never run" — time to fix that
 
-/frame:perf-audit
-# → detects stack (Next.js + PostgreSQL + Redis, etc.)
-# → searches for current known issues for that exact stack
-# → deep scan: N+1 queries, memory leaks, blocking ops,
-#   missing cache headers, re-render causes, bundle size
-# → report saved to .planning/reports/performance/PERF_REPORT.md
-#   with Critical/High/Medium/Low priorities and effort estimates
+/frame:audit
+# → detects project size (S/M/L), launches category agents in parallel:
+#   SEC: OWASP Top 10, secrets, auth, CORS
+#   PERF: N+1 queries, memory leaks, cache, bundle
+#   DEPS: vulnerabilities, outdated packages
+#   LOGIC, DATA, OBS, TEST, INFRA, MAINT, A11Y, PRIV
+# → verification pass: devils-advocate tries to REFUTE CRITICAL/HIGH findings
+# → AUDIT.md saved to .planning/reports/audit/{date}/AUDIT.md
 
-# Example report output:
-# Critical: 2 | High: 4 | Medium: 3 | Low: 1
-# [PERF-1] N+1 query in /api/users — 47 extra DB queries per request (S)
-# [PERF-2] setInterval without cleanup in Dashboard — memory leak (XS)
+# Targeted scans:
+/frame:audit security           # security only
+/frame:audit performance        # performance only
+/frame:audit deps               # dependencies only
+/frame:audit quick              # top 4 categories (SEC, PERF, DEPS, LOGIC)
 
-/frame:perf-fix
-# → reads PERF_REPORT.md, starts with Critical issues
-# → for each issue shows:
-#   --- BEFORE ---
-#   const users = await db.findMany()
-#   --- AFTER ---
-#   const users = await db.findMany({ select: { id, name, email } })
-# → asks: Apply this fix? [y/n/skip]
-# → applies, runs typecheck + tests, reverts if broken
+# After audit, create a fix plan:
+/frame:plan audit
+# → reads AUDIT.md, groups findings into tasks by file/module
+# → Wave 1: CRITICAL findings, Wave 2: HIGH findings
 
-# Fix specific issue or priority:
-/frame:perf-fix PERF-1      # fix one issue
-/frame:perf-fix high        # fix all High priority
-/frame:perf-fix all         # fix Critical + High
+/frame:build
+# → implements fix tasks
 
-/frame:perf-audit
-# → re-run to confirm improvements
+/frame:ship
+# → security check passes, commit and push
 ```
 
 ### UI verification: confirm the interface works
@@ -166,59 +165,20 @@ Run `/frame:research <topic>` — Claude explores the codebase, external sources
 
 The command only **verifies** — it doesn't auto-fix. If it finds a problem, it describes it precisely: which element, what behavior, what was expected.
 
-**Automatic check**: in `/frame:build`, `/frame:fast`, `/frame:wave`, and `/frame:debug` — if the task touches UI files (`.tsx`, `.vue`, `.css`, `component`, `page`) — browser check runs automatically after quality gates.
+**Automatic check**: in `/frame:build`, `/frame:fast`, and `/frame:debug` — if the task touches UI files (`.tsx`, `.vue`, `.css`, `component`, `page`) — browser check runs automatically after quality gates.
 
 **Requires Playwright MCP** — added automatically on `npx the-frame-ai init` or `npx the-frame-ai update` if you answer "y" to the frontend project question.
 
-### Security: audit before launch
+### CI / Autonomous mode
 
-```
-/frame:daily
-# → briefing shows: "Security: ⚠️ never run" — time to fix that
+FRAME doesn't have a dedicated headless command. For CI or non-interactive runs, invoke commands directly via `claude -p`:
 
-/frame:security
-# → full project scan across all categories:
-#   - secrets: AWS keys, GitHub tokens, Stripe keys, private keys, .env in git
-#   - OWASP Top 10: SQL injection, XSS, CSRF, path traversal, SSRF, command injection
-#   - infrastructure: Dockerfile (root user, :latest), debug endpoints, missing .dockerignore
-#   - AI/LLM: prompt injection, insecure output handling, system prompt leakage
-#   - dependencies: known CVEs via npm audit
+```bash
+# Run full cycle autonomously
+claude -p "/frame:build" --allowedTools "Bash,Read,Write,Edit"
 
-# → report saved to .planning/reports/security/security-{date}.md
-# → STATE.md updated with Security Status
-
-# If CRITICAL or HIGH findings:
-# ⛔ Ship BLOCKED. Run /frame:security-fix to fix critical findings.
-
-/frame:security-fix
-# → reads the latest report and fixes findings by priority:
-#   CRITICAL first, then HIGH
-#   - removes .env files from git tracking (git rm --cached)
-#   - adds missing security headers to next.config.js / Express
-#   - adds CSRF protection to Route Handlers
-#   - runs npm audit fix for vulnerable dependencies
-#   - fixes Dockerfile: adds USER directive, pins :latest tags
-#   - for secrets already in history: tells you exactly how to rotate + rewrite history
-# → verifies each fix after applying
-# → updates STATE.md: unblocks ship if all CRITICAL resolved
-
-# Targeted fixes:
-/frame:security-fix critical     # fix only CRITICAL findings
-/frame:security-fix high         # fix only HIGH findings
-/frame:security-fix SEC-1        # fix a specific finding by ID
-
-/frame:security
-# → re-run audit to confirm everything is clean
-
-# If clean:
-# ✓ No critical issues. Safe to proceed with /frame:ship.
-
-/frame:ship
-# → security check passes, commit and push
-
-# Targeted scans when you know what to look for:
-/frame:security secrets          # secrets-only scan (~30 seconds)
-/frame:security src/api/         # scan specific directory
+# Audit in CI
+claude -p "/frame:audit quick" --allowedTools "Bash,Read,Write,Grep"
 ```
 
 ## What's inside
@@ -226,11 +186,11 @@ The command only **verifies** — it doesn't auto-fix. If it finds a problem, it
 FRAME provides:
 
 - **6-phase workflow**: Research → Plan → Build → Review → Ship → Reflect
-- **37 commands**: from quick tasks to full feature development cycle
-- **7 AI agents**: Researcher, Planner, Builder, Reviewer, Devil's Advocate, Security, Performance Auditor
+- **28 commands**: from quick tasks to full feature development cycle
+- **10 AI agents**: Researcher, Planner, Builder, Reviewer, Auditor, Devil's Advocate, Security, Performance Auditor, Tests Reviewer, Conventions Reviewer
 - **Safety Hooks**: block destructive operations, enforce quality gates
 - **Git Safety**: checkpoints, rollback, worktrees, pause/resume
-- **Security Auditing**: OWASP Top 10, secret detection, infrastructure checks, AI/LLM risks
+- **Unified Audit**: 12 categories (SEC, PERF, LOGIC, API, DATA, OBS, DEPS, TEST, INFRA, MAINT, A11Y, PRIV) with adversarial verification
 
 ## Prerequisites
 
@@ -255,17 +215,16 @@ npx the-frame-ai init
 
 ### Core — start here
 
-These 7 commands cover 90% of solo dev work:
+These commands cover 90% of solo dev work:
 
 | Command | When to use |
 |---------|-------------|
 | `/frame:daily` | **Start here** after any break — what was done, what's next |
 | `/frame:research <topic>` | Before planning a new feature |
-| `/frame:plan <feature>` | Turn research into an actionable task list |
-| `/frame:build` | Implement 1–3 tasks with TDD (sequential) |
-| `/frame:wave` | Implement 4+ independent tasks (parallel subagents) |
-| `/frame:wave-team` | Like wave, but with a review team after each task |
-| `/frame:review` | Before deploying — automated checks + checklist |
+| `/frame:plan <feature>` | Turn research into an actionable task list with waves |
+| `/frame:plan audit` | Create fix tasks from the latest audit report |
+| `/frame:build` | Implement tasks — reads Parallel: labels, runs sequentially or in parallel automatically |
+| `/frame:review` | Before deploying — 6-panel review + automated checks |
 | `/frame:ship` | Commit, optional push/PR, update memory |
 
 ### All Commands by Phase
@@ -276,8 +235,7 @@ These 7 commands cover 90% of solo dev work:
 | Command | When to use |
 |---------|-------------|
 | `/frame:research <topic>` | Before planning a new feature |
-| `/frame:explain <file>` | Why does this code look like this? |
-| `/frame:why <topic>` | Search decision history |
+| `/frame:why <topic or path>` | Search decision history or explain why code looks the way it does |
 | `/frame:arch <module>` | Document a module's architecture to `docs/arch/{module}.md` |
 </details>
 
@@ -286,7 +244,8 @@ These 7 commands cover 90% of solo dev work:
 
 | Command | When to use |
 |---------|-------------|
-| `/frame:plan <feature>` | Turn research into an actionable task list |
+| `/frame:plan <feature>` | Turn research into an actionable task list with wave grouping |
+| `/frame:plan audit [all]` | Turn audit findings into a fix plan (Critical+High, or all) |
 | `/frame:add-task` | Add a task to the plan without interrupting work |
 </details>
 
@@ -295,29 +254,28 @@ These 7 commands cover 90% of solo dev work:
 
 | Command | When to use |
 |---------|-------------|
-| `/frame:build` | Implement plan with TDD (1–3 tasks, sequential) |
-| `/frame:wave` | Implement 4+ independent tasks in parallel batches |
-| `/frame:wave-team` | Like wave, but with a review team (Security, Perf, Tests, Conventions) after each task |
+| `/frame:build` | Implement plan with TDD — auto-detects sequential vs parallel from plan |
 | `/frame:fast <task>` | Quick task under 30 minutes |
-| `/frame:debug <issue>` | Systematic bug investigation |
-| `/frame:forensics` | Deep dive into why something broke |
+| `/frame:debug <issue>` | Systematic bug investigation with git archaeology |
+| `/frame:debug --deep` | Deep forensic investigation (parallel investigators, 5-why, timeline) |
+| `/frame:debug <SEC-N>` | Debug a specific finding from the last audit/review by ID |
 | `/frame:refactor` | Refactor with TDD safety net |
 | `/frame:migrate` | DB/API/deps migration with rollback plan |
 </details>
 
 <details>
-<summary>Review</summary>
+<summary>Review & Audit</summary>
 
 | Command | When to use |
 |---------|-------------|
-| `/frame:review` | Before deploying — automated checks + checklist |
-| `/frame:security` | Deep security audit: secrets, OWASP, infra, AI/LLM risks |
-| `/frame:security-fix` | Fix findings from the latest security report (CRITICAL first, then HIGH) |
-| `/frame:perf-audit` | Deep performance audit: detects stack, researches current issues, writes PERF_REPORT.md |
-| `/frame:perf-fix` | Fix issues from PERF_REPORT.md — shows before/after, asks confirmation per fix |
+| `/frame:review` | Before deploying — automated checks + 6-panel review |
+| `/frame:audit` | Full project audit: 12 categories, adversarial verification |
+| `/frame:audit security` | Security-only audit: secrets, OWASP, auth, CORS |
+| `/frame:audit performance` | Performance-only audit: N+1, cache, memory leaks, bundle |
+| `/frame:audit deps` | Dependency audit: vulnerabilities, outdated packages |
+| `/frame:audit quick` | Top 4 categories (SEC, PERF, DEPS, LOGIC) — fast overview |
 | `/frame:health` | Full project health check |
-| `/frame:check-deps` | Dependency vulnerabilities + outdated packages |
-| `/frame:performance` | Bundle size and Lighthouse audit |
+| `/frame:health sprint` | Weekly progress vs roadmap |
 </details>
 
 <details>
@@ -325,10 +283,9 @@ These 7 commands cover 90% of solo dev work:
 
 | Command | When to use |
 |---------|-------------|
-| `/frame:test-plan` | After review, before ship — generates a manual "go check this as a user" checklist of what changed |
+| `/frame:test-plan` | After review, before ship — generates a manual "go check this as a user" checklist |
 | `/frame:ship` | Commit, optional push/PR, update memory |
-| `/frame:checkpoint` | Save a git tag before a risky change |
-| `/frame:rollback` | Roll back to a checkpoint |
+| `/frame:checkpoint` | Save/list/rollback git checkpoints |
 </details>
 
 <details>
@@ -336,8 +293,7 @@ These 7 commands cover 90% of solo dev work:
 
 | Command | When to use |
 |---------|-------------|
-| `/frame:retrospective` | After deploy — update memory and metrics |
-| `/frame:sprint-check` | Weekly progress vs roadmap |
+| `/frame:retrospective` | After deploy — update memory and record learnings |
 | `/frame:cleanup-memory` | Trim and archive stale memory |
 </details>
 
@@ -347,10 +303,9 @@ These 7 commands cover 90% of solo dev work:
 | Command | When to use |
 |---------|-------------|
 | `/frame:daily` | Start of day — what was done, what's next |
-| `/frame:status` | Full state dump (git, memory, blockers) |
+| `/frame:daily full` | Full technical context dump (STATE.md + memory + git diff) |
 | `/frame:note` | Capture a pattern, decision, or anti-pattern |
 | `/frame:unstuck` | Stuck? Get 3 concrete options to unblock |
-| `/frame:context` | Show current working context |
 | `/frame:init` | First run — scan codebase, fill MAP.md |
 | `/frame:doctor` | Verify FRAME installation |
 | `/frame:pause` / `/frame:resume` | Save and restore mid-task state |
@@ -362,20 +317,71 @@ These 7 commands cover 90% of solo dev work:
 | Command | When to use |
 |---------|-------------|
 | `/frame:worktree` | Isolated git worktree for parallel experiments |
-| `/frame:headless` | Autonomous CI mode (no interaction) |
-| `/frame:estimate <task>` | Scope and time estimate before starting |
 </details>
+
+## Full Command Reference
+
+<!-- COMMANDS:START -->
+| Command | Description | Arguments |
+|---------|-------------|-----------|
+| `/frame:add-task` | Add a task to the current plan.md without interrupting work | `<task description>` |
+| `/frame:arch` | Document module architecture and design decisions for a file or module | `<file or module path>` |
+| `/frame:audit` | Unified project audit: 12 categories, tier-scaled agents, adversarial verification | `[security \| performance \| deps \| quick \| <category> <path> \| --priv]` |
+| `/frame:build` | Implement planned tasks using TDD — reads Parallel: labels from plan.md, auto-selects sequential or parallel worktrees | — |
+| `/frame:checkpoint` | Manage git checkpoints: list, create, rollback, or clean up frame/checkpoint/* tags | `[list \| create \| cleanup \| rollback [<tag> \| --soft]]` |
+| `/frame:cleanup-memory` | Trim and archive memory files, removing stale and low-confidence entries | — |
+| `/frame:daily` | Morning briefing — project status, today's priorities, and blockers | `[full]` |
+| `/frame:debug` | Systematically debug an issue: git archaeology, ranked hypotheses, or deep forensic investigation | `[--deep] <issue description \| FINDING-ID>` |
+| `/frame:doctor` | Check FRAME installation health — verify paths, config, and hook registration | — |
+| `/frame:fast` | Execute a quick task end-to-end without full research/plan cycle | `<task description>` |
+| `/frame:health` | Daily health check: tests, lint, types, audit freshness — or sprint velocity check | `[sprint]` |
+| `/frame:init` | Initialize project: scan codebase, fill MAP.md, STATE.md, and memory files | — |
+| `/frame:migrate` | Plan and execute a database or schema migration with rollback safety | `<migration description>` |
+| `/frame:note` | Save a quick memory note (pattern, decision, or anti-pattern) to memory files | `<note text>` |
+| `/frame:pause` | Save session state to pause-state.json and create a checkpoint | — |
+| `/frame:plan` | Decompose a feature into atomic tasks with wave grouping, Parallel labels, and R/AC coverage — or plan from audit findings | `<feature description> \| audit [all]` |
+| `/frame:refactor` | Refactor code with test coverage verification and checkpoint safety | `<refactor scope>` |
+| `/frame:research` | Domain research: clarification gate, parallel codebase + web scouting, Decision Log cycle | `<topic or question>` |
+| `/frame:resume` | Resume work from pause-state.json — restore context and continue | — |
+| `/frame:retrospective` | Write retrospective, update memory files with learnings and patterns | — |
+| `/frame:review` | Code review: 6-panel parallel review on diff, automated gates, R/AC traceability | — |
+| `/frame:ship` | Prepare and create a git commit and pull request after review passes | — |
+| `/frame:test-plan` | Generate a manual user acceptance checklist for the current feature | `<feature or scope>` |
+| `/frame:unstuck` | Get unblocked: diagnose blockers, suggest next actions, reset mental model | — |
+| `/frame:upgrade` | Upgrade FRAME framework files to the latest version with diff preview and changelog | — |
+| `/frame:verify-ui` | Browser UI verification using Playwright MCP: screenshot and assert UI state | `[<url or component>]` |
+| `/frame:why` | Explain why code looks the way it does — or search decision history by keyword | `<keyword \| file path \| function name>` |
+| `/frame:worktree` | Manage git worktrees for parallel task execution without context switching | `[create \| list \| cleanup \| <task-name>]` |
+<!-- COMMANDS:END -->
+
+## Agents
+
+<!-- AGENTS:START -->
+| Agent | Description |
+|-------|-------------|
+| `auditor` | Universal category auditor. Receives a category brief from the orchestrating command, audits the codebase for that category, writes findings to its category file. Use when: /frame:audit spawns category-specific subagents. |
+| `builder` | Implementation agent. Writes code using TDD, runs quality gates, creates git commits. Use when: implementing a planned task from plan.md. |
+| `conventions-reviewer` | Review agent for wave-team. Checks code conventions and style in a single task's git diff. Returns PASS/WARN/FAIL verdict. |
+| `devils-advocate` | Find problems in code — code review, plan critique, or finding verification. Never writes application code. Use when: reviewing implementation, challenging a plan, or verifying audit/review findings. |
+| `performance-auditor` | Performance auditor agent. Detects stack, researches current perf issues, runs deep audit, writes PERF_REPORT.md. Never edits application code. Use when: auditing perf before ship or on demand. |
+| `planner` | Planning agent. Decomposes research into atomic tasks with wave grouping and Parallel labels. Use when: research.md is complete and needs to be broken into a plan. |
+| `researcher` | Research agent. Analyzes codebase or web for alternatives and context before planning. In /frame:research acts as the codebase-scout or web-scout subagent. Use when: exploring options or gathering context. |
+| `reviewer` | Review agent. Checks code against spec, runs quality gates, security analysis. In /frame:review panel acts as the Spec Compliance reviewer. Use when: implementation is complete and needs review before ship. |
+| `security` | Security auditor agent. Scans code for vulnerabilities, secrets, OWASP violations. Writes security report. Never edits application code. Use when: auditing before ship or on demand. |
+| `tests-reviewer` | Review agent for wave-team. Checks test coverage and quality of a single task's git diff. Returns PASS/WARN/FAIL verdict. |
+<!-- AGENTS:END -->
 
 ## Hooks
 
-FRAME installs 4 hooks into `.claude/hooks/`. They run automatically.
+FRAME installs 5 hooks into `.claude/hooks/`. They run automatically.
 
 | Hook | Trigger | What it does | To disable |
 |------|---------|--------------|------------|
-| `safety-net.sh` | Before Bash | Blocks `rm -rf` and `DROP TABLE/DATABASE` | Remove from `.claude/settings.local.json` |
-| `git-safety.sh` | Before Bash | Blocks force push, `reset --hard`, warns on `git add -A` | Remove from `.claude/settings.local.json` |
-| `quality-gate.sh` | After file write | Runs typecheck + lint on changed file | Remove from `.claude/settings.local.json` |
-| `session-init.sh` | Session start | Shows current phase/task; full context dump if away > 24h | Remove from `.claude/settings.local.json` |
+| `safety-net.sh` | Before Bash | Blocks `rm -rf` and `DROP TABLE/DATABASE` | Remove from `.claude/settings.json` |
+| `git-safety.sh` | Before Bash | Blocks force push, `reset --hard`, warns on `git add -A` | Remove from `.claude/settings.json` |
+| `quality-gate.sh` | After file write | Runs typecheck + lint on changed file | Remove from `.claude/settings.json` |
+| `session-init.sh` | Session start | Shows current phase/task; full context dump if away > 24h | Remove from `.claude/settings.json` |
+| `pre-compact.sh` | Before context compaction | Saves timestamp to STATE.md before context is compressed | Remove from `.claude/settings.json` |
 
 ## Configuration
 
@@ -409,20 +415,31 @@ npx the-frame-ai version               # Show CLI version
 
 ```
 .claude/
-  commands/          # 35 FRAME commands
-  agents/            # 6 AI agents
-  hooks/             # 4 safety hooks
+  commands/          # 28 FRAME commands
+  agents/            # 10 AI agents
+  hooks/             # 5 safety hooks
 .frame/
   config.json        # FRAME configuration
 .planning/
   STATE.md           # Current position
   MAP.md             # Project map
   ROADMAP.md         # Roadmap
-  memory/            # Project memory
+  memory/            # Project memory (context, conventions, dependencies, learnings)
   specs/             # Feature specs
-  reviews/           # Review results
-  reports/           # Reports (daily, deps, quality, sprint, security)
+  reports/
+    audit/           # Audit reports (security, performance, deps, etc.)
 ```
+
+## Breaking Changes in v0.14.0
+
+- **`/frame:security`** removed → use `/frame:audit security` or `/frame:audit`
+- **`/frame:performance`** removed → use `/frame:audit performance` or `/frame:audit`
+- **`/frame:check-deps`** removed → use `/frame:audit deps`
+- **`/frame:estimate`** removed → estimates are now per-task fields in plan.md
+- **`/frame:headless`** removed → use `claude -p "/frame:build {feature}"` directly
+- **`/frame:build --parallel`** removed → build reads `Parallel:` labels from plan.md automatically
+- **`/frame:build --review-team`** removed → inline review team replaced by `/frame:review` panel
+- Reports moved: `.planning/reports/security/` and `.planning/reports/performance/` → `.planning/reports/audit/`
 
 ## License
 

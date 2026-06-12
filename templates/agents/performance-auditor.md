@@ -23,13 +23,7 @@ test -f .frame/config.json || echo "MISSING"
 ```
 If missing → STOP: "Run /frame:init first."
 
-Update `.planning/STATE.md`:
-```
-## Current Position
-- Phase: PERFORMANCE
-- Status: IN_PROGRESS
-- Started: {timestamp}
-```
+> **NEVER write .planning/STATE.md** — STATE.md is owned by the orchestrating command, not subagents.
 
 ### Step 1: Detect Stack
 
@@ -265,7 +259,7 @@ Based on detected stack, run additional targeted checks:
 # Missing Image optimization
 grep -rn --include="*.{ts,tsx,jsx}" -E '<img ' . 2>/dev/null | grep -v node_modules | grep -v '.git/' | grep -v test | head -10
 # Missing dynamic imports for heavy components
-grep -rn --include="*.{ts,tsx,jsx}" -E "import.*from '(?!next)" . 2>/dev/null | grep -v node_modules | grep -v '.git/' | grep -v test | wc -l
+grep -rn --include="*.{ts,tsx,jsx}" -E "import.*from '" . 2>/dev/null | grep -Ev "from 'next" | grep -v node_modules | grep -v '.git/' | grep -v test | wc -l
 # getServerSideProps vs getStaticProps usage
 grep -rn --include="*.{ts,tsx,js}" -E 'getServerSideProps' . 2>/dev/null | grep -v node_modules | grep -v '.git/' | head -10
 ```
@@ -373,14 +367,14 @@ Create `.planning/reports/performance/PERF_REPORT.md`:
 2. [PERF-2] — {title} (High, {effort})
 ...
 
-Run `/frame:perf-fix` to start fixing.
+To fix: use `/frame:plan audit` → `/frame:build` → `/frame:review audit`.
 ```
 
-### Step 6: Update Memory & STATE.md
+### Step 6: Update Memory & Return Findings
 
-If anti-patterns found, add to `.planning/memory/anti-patterns.md`:
+If anti-patterns found, add to `.planning/memory/learnings.md` under `## Anti-Patterns`:
 ```markdown
-## [PERF-{N}] {title}
+### [PERF-{N}] {title}
 - **Date**: {date}
 - **Category**: {category}
 - **Issue**: {description}
@@ -388,23 +382,28 @@ If anti-patterns found, add to `.planning/memory/anti-patterns.md`:
 - **Status**: open
 ```
 
-Update `.planning/STATE.md`:
-```markdown
-## Current Position
-- Phase: PERFORMANCE
-- Status: COMPLETE
-- Performance Status: {CRITICAL | HIGH | MEDIUM | CLEAN}
-- Issues: {total} (Critical: {N}, High: {N}, Medium: {N}, Low: {N})
-- Report: .planning/reports/performance/PERF_REPORT.md
-```
-
-Report to user:
+Return as final text:
 ```
 Performance audit complete.
 Critical: {N} | High: {N} | Medium: {N} | Low: {N}
 Report: .planning/reports/performance/PERF_REPORT.md
+```
 
-Run /frame:perf-fix to start fixing issues.
+## Panel Mode (used in /frame:review)
+
+When called from the review panel, the orchestrating command passes a diff. Scope = only changed files and lines in the diff.
+
+Apply the checklist only to the provided diff. Return verdict + findings as final text:
+```
+Verdict: PASS | WARN | FAIL
+Findings: {N}
+{finding 1 in universal schema}
+...
+
+What NOT to report in panel mode:
+- Pre-existing performance issues not touched by the diff
+- Micro-optimizations without measurable impact
+- Issues outside the changed lines
 ```
 
 ## Constraints

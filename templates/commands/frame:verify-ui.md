@@ -1,8 +1,9 @@
 ---
 description: "Browser UI verification using Playwright MCP: screenshot and assert UI state"
 argument-hint: "[<url or component>]"
+allowed-tools: [Read, Bash]
 ---
-# /frame:verify -- Browser UI Verification
+# /frame:verify-ui -- Browser UI Verification
 
 Verifies UI result in a real browser via Playwright MCP. Use when the agent claims "done" but the interface looks wrong.
 
@@ -26,7 +27,7 @@ Check in order:
 
 ```
 browser_navigate: {url}
-browser_screenshot
+browser_take_screenshot
 ```
 
 Describe what you see: layout, content, interactive elements.
@@ -47,7 +48,7 @@ If the initial screenshot shows a problem, try to reproduce it:
 ```
 browser_click: {element}        # click buttons, links
 browser_type: {selector} {text} # fill forms
-browser_screenshot              # screenshot after interaction
+browser_take_screenshot              # screenshot after interaction
 ```
 
 Describe the exact problem: what element, what behavior, what was expected.
@@ -84,7 +85,7 @@ On FAIL — do NOT auto-fix. Report to the user and wait for a decision:
 
 ## When to Use
 
-- After `/frame:fast`, `/frame:build`, `/frame:wave` on UI tasks
+- After `/frame:fast` or `/frame:build` on UI tasks
 - When the agent says "done" but visually something is off
 - Before `/frame:ship` for frontend features
 - When debugging visual regressions
@@ -92,7 +93,7 @@ On FAIL — do NOT auto-fix. Report to the user and wait for a decision:
 ## Playwright MCP Setup
 
 If `browser_navigate` is not available, Playwright MCP is not configured.
-Add to `.claude/settings.json`:
+Add to `.mcp.json` in the project root:
 ```json
 {
   "mcpServers": {

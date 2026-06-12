@@ -30,7 +30,7 @@ cat .planning/pause-state.json
 If the file contains only `{}` or is missing required fields (`phase`, `feature`, `resumeHint`), stop:
 ```
 ERROR: pause-state.json is empty or invalid — no saved session to resume.
-Use /frame:status to see current state, or /frame:init to start fresh.
+Use /frame:daily to see current state, or /frame:init to start fresh.
 ```
 
 Immediately update status in `.planning/STATE.md`:

@@ -93,8 +93,8 @@ git tag "frame/pause-$TIMESTAMP" -m "FRAME pause: $ARGUMENTS"
 
 If autoCheckpoint is enabled, also create a phase checkpoint:
 ```bash
-PHASE=$(grep -oE 'Phase: .+' .planning/STATE.md 2>/dev/null | head -1 | sed 's/Phase: //' || echo "unknown")
-if echo "research plan build review" | grep -q "$PHASE"; then
+PHASE=$(grep -oE 'Phase: .+' .planning/STATE.md 2>/dev/null | head -1 | sed 's/Phase: //' | tr '[:upper:]' '[:lower:]' || echo "unknown")
+if echo "research plan build review" | grep -qw "$PHASE"; then
   git tag "frame/checkpoint/$PHASE-$TIMESTAMP-pause" -m "Auto checkpoint before pause ($PHASE phase)"
 fi
 ```

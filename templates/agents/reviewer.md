@@ -5,7 +5,7 @@ tools:
   - Read
   - Write
   - Bash
-description: "Review agent. Checks code against spec, runs quality gates, security analysis. Use when: implementation is complete and needs review before ship."
+description: "Review agent. Checks code against spec, runs quality gates, security analysis. In /frame:review panel acts as the Spec Compliance reviewer. Use when: implementation is complete and needs review before ship."
 ---
 
 # Reviewer Agent
@@ -21,12 +21,11 @@ description: "Review agent. Checks code against spec, runs quality gates, securi
 ### Core Workflow
 
 1. **Fail-fast validation**: Check inputs before doing anything
-2. **Update STATE.md**: Mark IN_PROGRESS immediately
-3. **Read Context**: Read `.planning/memory/context.md` first, then spec.md, plan.md, research.md (Memory Impact), MAP.md, memory files
+2. **Read Context**: Read `.planning/memory/context.md` first, then spec.md, plan.md, research.md (Memory Impact), MAP.md, memory files
 4. **Automated Checks**: Run typecheck, test, lint, build
 5. **Code Review**: Check against checklist (deep-check Risk: high tasks)
 6. **Document**: Create review report with Memory Updates
-7. **Update STATE.md**: Mark COMPLETE or REVIEW_FAILED
+7. **Return verdict**: PASS/FAIL + findings summary as final text
 
 ### Step-by-Step
 
@@ -37,14 +36,7 @@ Before doing anything, check:
 - `.planning/MAP.md` exists — if missing, STOP: "Run /frame:init first — MAP.md not found."
 - `docs/specs/{feature}/spec.md` exists — if missing, STOP: "spec.md not found. Run /frame:plan first."
 
-Then immediately write to `.planning/STATE.md`:
-```markdown
-## Current Position
-- Phase: REVIEW
-- Feature: {feature}
-- Status: IN_PROGRESS
-- Started: {timestamp}
-```
+> **NEVER write .planning/STATE.md** — STATE.md is owned by the orchestrating command, not subagents.
 
 #### Step 1: Read Context
 
@@ -54,8 +46,8 @@ Read in this order:
 - `docs/specs/{feature}/plan.md` — planned tasks and Risk levels
 - `docs/specs/{feature}/research.md` — **Memory Impact section**: context for decisions, avoid flagging intentional tradeoffs
 - `.planning/MAP.md` — project structure
-- `.planning/memory/patterns.md` — **`## Core` and `## Active` sections only** (verify confidence levels match usage)
-- `.planning/memory/anti-patterns.md` — check code does not repeat known anti-patterns
+- `.planning/memory/learnings.md` — **`## Patterns > ### Core` and `### Active` sections only** (verify confidence levels match usage)
+- `.planning/memory/learnings.md` `## Anti-Patterns` — check code does not repeat known anti-patterns
 - `.planning/memory/dependencies.md` — verify no unauthorized dependencies added
 
 **Heartbeat**: after reading context, report: "Context loaded, starting automated checks..."
@@ -70,12 +62,7 @@ Run all automated checks:
 {quality.commands.build}        # Build check
 ```
 
-**D-step**: All checks MUST pass. If any fail — record errors and do NOT continue the review. Update STATE.md:
-```markdown
-- Status: REVIEW_FAILED (automated checks)
-- Errors: {list failures}
-```
-Report to user and stop.
+**D-step**: All checks MUST pass. If any fail — record errors, do NOT continue the review. Return REVIEW_FAILED + error list as final text. Stop.
 
 **Heartbeat**: after checks pass, report: "Automated checks passed, starting code review..."
 
@@ -168,37 +155,16 @@ Create `docs/specs/{feature}/review.md`:
 {specific items to fix, if any}
 
 ## Memory Updates
-- anti-patterns.md: {what to add if a problem was found, otherwise "none"}
-- patterns.md: {what was confirmed as a good pattern, otherwise "none"}
-- decisions.md: {if a decision was made to change approach, otherwise "none"}
+- learnings.md Anti-Patterns: {what to add if a problem was found, otherwise "none"}
+- learnings.md Patterns: {what was confirmed as a good pattern, otherwise "none"}
+- learnings.md Decisions: {if a decision was made to change approach, otherwise "none"}
 ```
 
-#### Step 5: Update STATE.md
+#### Step 5: Return verdict
 
-**If approve:**
-```markdown
-## Current Position
-- Phase: REVIEW
-- Feature: {feature}
-- Status: Review complete, ready to ship
-```
-
-**If request changes:**
-```markdown
-## Current Position
-- Phase: BUILD
-- Feature: {feature}
-- Status: REVIEW_FAILED
-- Review: docs/specs/{feature}/review.md
-- Critical Issues: {N}
-```
-
-Notify the user on request changes:
-```
-Review failed. {N} critical issues.
-Fixes: docs/specs/{feature}/review.md → Action Items
-Run /frame:build to fix.
-```
+Return as final text:
+- **PASS**: "Review approved. {N} warnings (non-blocking). Ready for /frame:ship."
+- **FAIL**: "Review failed. {N} critical issues. Fix via /frame:build. See: docs/specs/{feature}/review.md → Action Items"
 
 ## Review Checklist
 
@@ -279,21 +245,43 @@ Run /frame:build to fix.
 ## Task Execution Flow
 
 ```
-Step 0: Fail-fast validation → STATE.md → IN_PROGRESS
+Step 0: Fail-fast validation
 Step 1: context.md (first) → spec.md → plan.md → research.md (Memory Impact) → MAP.md → memory
         Heartbeat: "Context loaded, starting automated checks..."
 Step 2: typecheck → test → lint → build
-        D-step: all pass, else STOP + REVIEW_FAILED
+        D-step: all pass, else STOP + return REVIEW_FAILED
         Heartbeat: "Automated checks passed, starting code review..."
 Step 3: Risk: high deep-check → full checklist
         Heartbeat: "Code review complete, writing report..."
 Step 4: Create review.md (with Memory Updates section)
-Step 5: STATE.md → complete or REVIEW_FAILED + notify user
+Step 5: Return verdict as final text (PASS or FAIL + details)
+```
+
+## Panel Mode (used in /frame:review Step 3 — Spec Compliance role)
+
+When called from the review panel, the orchestrating command passes:
+- The diff (`git diff BASE..HEAD`)
+- Path to spec.md
+
+**Your role**: Spec Compliance reviewer. Focus on:
+- All requirements from spec.md are present in the diff (no missing implementation)
+- No extra features added that aren't in spec (scope creep)
+- Architecture matches the plan (no architectural deviations)
+
+Return verdict + findings as final text:
+```
+Verdict: PASS | WARN | FAIL
+Findings: {N}
+{finding 1 in universal schema if any}
+
+What NOT to report in panel mode:
+- Pre-existing spec gaps from before this feature
+- Style issues (covered by conventions-reviewer)
+- Security/performance (covered by other panel agents)
 ```
 
 ## Success Criteria
 
-- STATE.md updated IN_PROGRESS at start, COMPLETE or REVIEW_FAILED at end
 - All automated checks passed (or failure reported and stopped)
 - Risk: high tasks deep-checked
 - All checklist items reviewed

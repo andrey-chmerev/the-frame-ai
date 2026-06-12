@@ -16,16 +16,14 @@
 
 - **File naming**: (define your convention)
 - **Imports**: (define your import order)
-- **TypeScript**: Strict mode
 - **Git**: `{type}({scope}): {description}` — types: feat, fix, refactor, test, docs, chore
-- **Tests**: co-located or `__tests__/` directory
+- **Tests**: (define your test location convention)
 
 ## Rules (MUST follow)
 
 1. Always run quality checks before commit
-2. Use error reporting (not console.log)
-3. No `any` type — use `unknown` + type guard
-4. New features require tests
+2. New features require tests
+3. (add project-specific rules here)
 
 ## FRAME Framework
 
@@ -52,7 +50,7 @@ This project uses FRAME (Framework for AI-Assisted Solo Development).
 - `.frame/config.json` — FRAME configuration
 - `.planning/memory/` — project memory
 
-**Quality Gates** (D→P→D):
+**Quality Gates** (D→P→D pattern: Deterministic check → Probabilistic/LLM change → Deterministic verify):
 - `{quality.commands.typecheck}` — Type check
 - `{quality.commands.test}` — Test check
 - `{quality.commands.lint}` — Lint check
@@ -60,5 +58,5 @@ This project uses FRAME (Framework for AI-Assisted Solo Development).
 
 ## Anti-Patterns (NEVER do)
 
-- ❌ Skip verification steps (D→P→D is mandatory)
-- ❌ `any` type (use `unknown` + type guard)
+- ❌ Skip verification steps (D→P→D: always confirm LLM output with a deterministic check)
+- ❌ Skip tests for new features

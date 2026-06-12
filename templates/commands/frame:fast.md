@@ -1,6 +1,7 @@
 ---
 description: "Execute a quick task end-to-end without full research/plan cycle"
 argument-hint: "<task description>"
+allowed-tools: [Read, Write, Edit, Bash]
 ---
 # /frame:fast -- Quick Task
 
@@ -20,18 +21,16 @@ Write to `.planning/STATE.md`:
 - Status: IN_PROGRESS
 ```
 
-Quickly check:
-- `memory/anti-patterns.md` — any similar case already solved
-- `memory/patterns.md` — expected pattern for this area
+Check `.planning/memory/learnings.md` — `## Anti-Patterns` section only (skip full memory read — speed is the point).
 
-**Scope limit**: if the task will take more than 30 minutes — warn the user and suggest `/frame:build`, but continue if they want to proceed.
+**Scope check**: estimate mentally. If the task clearly requires more than 30 minutes → **STOP immediately**: "This task needs `/frame:build` — it involves {reason}: {estimated scope}."
+Do NOT continue on an oversized task even if asked.
 
 ### Step 1: Mini Research (30 sec)
 
 Quickly analyze:
 - What needs to be done
-- Where the relevant files are (use `.planning/MAP.md`)
-- Whether similar patterns exist in the project
+- Where the relevant files are — check `.planning/MAP.md` (only this, no full memory read)
 
 ### Step 2: Mini Plan (30 sec)
 
@@ -73,20 +72,21 @@ Update `.planning/STATE.md`:
 - Last fast task: {date} — {task description}
 ```
 
-Append to `.planning/memory/wins.md`:
-```markdown
-- {date}: {task description} — {files changed, 1 line summary}
-```
+If a new anti-pattern was discovered, add it to `.planning/memory/learnings.md` `## Anti-Patterns`.
 
-If a new pattern or anti-pattern was discovered during the task — record it in the appropriate memory file.
+Show one-line output summary:
+```
+fast: {task} — {files changed} file(s) changed, {tests} tests added, commit {hash}
+```
 
 ## Rules
 
-- **Fast** -- entire task should take ≤30 minutes
-- **Scope** -- if clearly >30 min, warn and suggest `/frame:build`
-- **Tests optional** -- only if logic changed
-- **Quality gates mandatory** -- typecheck + test + lint
-- **Specific files** -- never `git add -A`
+- **Fast** — entire task ≤30 min; scope check at Step 0, hard stop if over
+- **Minimal ceremony** — only MAP.md + Anti-Patterns; no full memory read
+- **Tests optional** — only if logic changed
+- **Quality gates mandatory** — typecheck + test + lint
+- **Specific files** — never `git add -A`
+- **Escalate by fact** — if you discover mid-task that it's larger than 30 min, stop and redirect to `/frame:build`
 
 ## When to Use
 
@@ -101,6 +101,7 @@ If a new pattern or anti-pattern was discovered during the task — record it in
 
 ## Result
 
-- Task completed in 2-5 minutes
+- Task completed in ≤30 minutes
 - Quality gates passed
 - Git commit created
+- One-line summary printed

@@ -1,6 +1,7 @@
 ---
 description: "Refactor code with test coverage verification and checkpoint safety"
 argument-hint: "<refactor scope>"
+allowed-tools: [Read, Write, Edit, Bash]
 ---
 # /frame:refactor -- Refactoring with Test Coverage
 
@@ -29,8 +30,8 @@ Update `.planning/STATE.md` before any work:
 ### Step 1: Read Context
 
 Read before refactoring:
-- `.planning/memory/patterns.md` — Core + Active patterns (what to follow)
-- `.planning/memory/anti-patterns.md` — what to avoid
+- `.planning/memory/learnings.md` `## Patterns` Core + Active sections (what to follow)
+- `.planning/memory/learnings.md` `## Anti-Patterns` section (what to avoid)
 - `docs/specs/{feature}/research.md` — **Memory Impact** section (if exists)
 
 ### Step 2: Baseline Metrics
@@ -134,8 +135,8 @@ git commit -m "refactor({scope}): {description}"
 
 ### Step 9: Update Memory + STATE.md
 
-Update `.planning/memory/patterns.md` if a new good pattern was confirmed.
-Update `.planning/memory/anti-patterns.md` if a problem was found and fixed.
+Update `.planning/memory/learnings.md` `## Patterns` if a new good pattern was confirmed.
+Update `.planning/memory/learnings.md` `## Anti-Patterns` if a problem was found and fixed.
 
 Update `.planning/STATE.md`:
 ```markdown

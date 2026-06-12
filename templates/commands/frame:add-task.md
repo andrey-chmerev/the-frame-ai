@@ -1,6 +1,7 @@
 ---
 description: "Add a task to the current plan.md without interrupting work"
 argument-hint: "<task description>"
+allowed-tools: [Read, Write, Bash]
 ---
 # /frame:add-task -- Add Task to Current Plan
 

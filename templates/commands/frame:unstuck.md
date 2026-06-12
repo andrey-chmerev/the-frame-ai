@@ -15,7 +15,7 @@ Ask if not provided: "What are you stuck on? Describe the problem in one sentenc
 Read:
 - `.planning/STATE.md` — current phase, feature, task
 - `.planning/memory/context.md` — active blockers
-- `.planning/memory/anti-patterns.md` — known traps
+- `.planning/memory/learnings.md` `## Anti-Patterns` — known traps
 
 ```bash
 git log --oneline -5
@@ -34,9 +34,7 @@ Determine which type:
 ### Step 3: Check memory for prior solutions
 
 ```bash
-grep -i "{keywords from block}" .planning/memory/decisions.md 2>/dev/null | head -5
-grep -i "{keywords from block}" .planning/memory/anti-patterns.md 2>/dev/null | head -5
-grep -i "{keywords from block}" .planning/memory/patterns.md 2>/dev/null | head -5
+grep -i "{keywords from block}" .planning/memory/learnings.md 2>/dev/null | head -15
 ```
 
 ### Step 4: Output 3 options
@@ -78,7 +76,7 @@ Option templates by block type:
 
 **Scope creep:**
 1. Cut to the original requirement, defer extras → `/frame:add-task`
-2. Re-estimate and update plan → `/frame:estimate`
+2. Review task scope and split if needed → `/frame:plan`
 3. Checkpoint and start fresh sub-task → `/frame:checkpoint` then `/frame:fast`
 
 **External:**

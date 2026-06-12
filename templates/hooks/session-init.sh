@@ -4,6 +4,16 @@
 PROJECT_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || echo ".")
 STATE_FILE="$PROJECT_ROOT/.planning/STATE.md"
 
+# Write session start timestamp for telemetry
+SESSIONS_DIR="$PROJECT_ROOT/.planning/sessions"
+if [ -d "$SESSIONS_DIR" ] && command -v git >/dev/null 2>&1; then
+  SESSION_FILE="$SESSIONS_DIR/$(date -u +"%Y-%m-%dT%H-%M-%SZ").json"
+  BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")
+  TASK=$(grep "^- Task:" "$STATE_FILE" 2>/dev/null | head -1 | sed 's/.*Task: //' || echo "")
+  printf '{"started_at":"%s","branch":"%s","task":"%s"}\n' \
+    "$(date -u +"%Y-%m-%dT%H:%M:%SZ")" "$BRANCH" "$TASK" > "$SESSION_FILE"
+fi
+
 # Onboarding: STATE.md missing or not yet filled (only template headers)
 if [ ! -f "$STATE_FILE" ] || ! grep -q "^- Phase:" "$STATE_FILE" 2>/dev/null; then
   echo "╔══════════════════════════════════════════╗"

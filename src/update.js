@@ -17,6 +17,15 @@ import {
 import { promptFrontend } from './languages.js';
 
 
+// Commands removed in v0.14.0 and their replacements
+const COMMAND_REPLACEMENTS = {
+  'frame:security.md': '/frame:audit security',
+  'frame:performance.md': '/frame:audit performance',
+  'frame:check-deps.md': '/frame:audit deps',
+  'frame:estimate.md': '/frame:plan (estimates are now per-task)',
+  'frame:headless.md': 'claude -p "/frame:build {feature}" (see README)',
+};
+
 export async function update(target, flags = {}) {
   if (!fileExists(join(target, '.frame', 'config.json'))) {
     console.error(`\x1b[31m✗\x1b[0m FRAME not installed in this project.`);
@@ -136,9 +145,17 @@ export async function update(target, flags = {}) {
   for (const f of readdirSync(commandsDest).filter((f) => f.endsWith('.md'))) {
     const key = `.claude/commands/${f}`;
     if (key in oldManifest && !existsSync(join(commandsSrc, f))) {
-      log(`  orphan ${key} (removed from framework; delete manually if no longer needed)`);
+      const replacement = COMMAND_REPLACEMENTS[f];
+      if (replacement) {
+        log(`  orphan ${key} (removed in v0.14.0 → use: ${replacement})`);
+      } else {
+        log(`  orphan ${key} (removed from framework; delete manually if no longer needed)`);
+      }
     }
   }
+
+  // Ensure audit reports directory exists (added in v0.14.0)
+  ensureDir(join(target, '.planning', 'reports', 'audit'));
 
   // 2. Update agents
   const agentsSrc = join(TEMPLATES_DIR, 'agents');

@@ -1,5 +1,6 @@
 ---
 description: "Prepare and create a git commit and pull request after review passes"
+allowed-tools: [Read, Write, Bash]
 ---
 # /frame:ship -- Git + PR
 
@@ -33,22 +34,19 @@ If conditions not met → **STOP**:
    Run /frame:review first (optionally /frame:test-plan before shipping).
 ```
 
-Check `Deps Audit` in STATE.md:
-- If `Deps Status: CRITICAL` → **STOP**: fix critical vulnerabilities before shipping
-- If audit date is older than 7 days → warn: `⚠️ Deps audit is stale. Consider running /frame:check-deps`
+Check `Audit Status` in STATE.md:
+- If `Audit Status: CRITICAL` → **STOP**: "Resolve critical audit findings first: /frame:plan audit"
+- `Review Status` ≠ approve → already blocked above
 
-Check `Security Status` in STATE.md:
-- If `Security Status: CRITICAL` → **STOP**: fix critical security findings before shipping
-
-Check last security audit date:
+Check last audit date:
 ```bash
-LAST_SECURITY=$(ls .planning/reports/security/security-*.md 2>/dev/null | sort | tail -1)
-if [ -z "$LAST_SECURITY" ]; then
-  echo "⚠️  No security audit found. Consider running /frame:security before shipping."
+LAST_AUDIT=$(ls .planning/reports/audit/*/AUDIT.md 2>/dev/null | sort | tail -1)
+if [ -z "$LAST_AUDIT" ]; then
+  echo "⚠️  No audit found. Consider running /frame:audit before shipping."
 else
-  LAST_DATE=$(basename "$LAST_SECURITY" | grep -oE '[0-9]{4}-[0-9]{2}-[0-9]{2}')
+  LAST_DATE=$(echo "$LAST_AUDIT" | grep -oE '[0-9]{4}-[0-9]{2}-[0-9]{2}')
   DAYS_AGO=$(( ( $(date +%s) - $(date -d "$LAST_DATE" +%s 2>/dev/null || date -j -f "%Y-%m-%d" "$LAST_DATE" +%s) ) / 86400 ))
-  [ "$DAYS_AGO" -ge 7 ] && echo "⚠️  Security audit is ${DAYS_AGO} days old. Consider running /frame:security."
+  [ "$DAYS_AGO" -ge 14 ] && echo "⚠️  Audit is ${DAYS_AGO} days old. Consider running /frame:audit."
 fi
 ```
 
@@ -124,9 +122,9 @@ Update `.planning/context.md`:
 - `Current Focus` → remove the completed feature
 - `Recent Decisions` → add an entry about what was shipped
 
-If an architectural decision was made during ship (branch choice, PR strategy, rollback), add to `.planning/memory/decisions.md`:
+If an architectural decision was made during ship (branch choice, PR strategy, rollback), add to `.planning/memory/learnings.md` under `## Decisions`:
 ```markdown
-## [DEC-{XXX}] {Decision name}
+### [DEC-{XXX}] {Decision name}
 - **Date**: {date}
 - **Status**: accepted
 - **Context**: {why the decision was needed}
@@ -134,7 +132,7 @@ If an architectural decision was made during ship (branch choice, PR strategy, r
 - **Consequences**: {what follows from this}
 ```
 
-### Step 7: Update STATE.md
+### Step 7: Update STATE.md + session telemetry
 
 Update `.planning/STATE.md`:
 ```markdown
@@ -147,6 +145,22 @@ Update `.planning/STATE.md`:
 - Review: approve / {N} warnings
 - Shipped: {timestamp}
 - Status: Shipped
+```
+
+Write finish timestamp to the latest session file:
+```bash
+SESSION_FILE=$(ls .planning/sessions/*.json 2>/dev/null | sort | tail -1)
+if [ -n "$SESSION_FILE" ]; then
+  CONTENT=$(cat "$SESSION_FILE")
+  # Add finished_at and feature to the session record
+  node -e "
+    const s = JSON.parse(process.argv[1]);
+    s.finished_at = new Date().toISOString();
+    s.feature = process.argv[2];
+    s.commit = process.argv[3];
+    process.stdout.write(JSON.stringify(s, null, 2));
+  " "$CONTENT" "{feature}" "$(git rev-parse --short HEAD 2>/dev/null)" > "$SESSION_FILE.tmp" && mv "$SESSION_FILE.tmp" "$SESSION_FILE"
+fi
 ```
 
 ## Rules
@@ -162,5 +176,5 @@ Update `.planning/STATE.md`:
 - Git commit created
 - Optionally: git push (with confirmation), PR created
 - `.planning/context.md` updated
-- `.planning/memory/decisions.md` updated (if architectural decision made)
+- `.planning/memory/learnings.md` Decisions section updated (if architectural decision made)
 - `.planning/STATE.md` updated

@@ -1,7 +1,8 @@
-{
-  "name": "Context",
-  "description": "Current project state — what's happening now, recent decisions, health"
-}
+---
+title: Context
+description: Current working context — what's happening now, recent decisions, health
+note: Tracks the CURRENT working context. For project architecture overview, see MAP.md. For project conventions and git format, see CLAUDE.md.
+---
 
 # Project Context
 
@@ -11,7 +12,7 @@
 - Blocked by: {blockers or "none"}
 
 ## Recent Decisions (last 2 weeks)
-- {decision with link to decisions.md if available}
+- {decision with link to learnings.md if available}
 
 ## Health
 - Last retrospective: {date}

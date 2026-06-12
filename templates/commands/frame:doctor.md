@@ -42,7 +42,7 @@ done
 ### 4. .planning/memory/
 
 ```bash
-for file in context.md patterns.md conventions.md decisions.md anti-patterns.md wins.md metrics.md dependencies.md; do
+for file in context.md conventions.md dependencies.md learnings.md; do
   if [ -f ".planning/memory/$file" ]; then
     echo "$file: OK"
   else
@@ -50,13 +50,13 @@ for file in context.md patterns.md conventions.md decisions.md anti-patterns.md 
   fi
 done
 
-# Check patterns.md has required sections
-if [ -f ".planning/memory/patterns.md" ]; then
-  for section in "## Core" "## Active" "## Archived"; do
-    if grep -q "^${section}$" .planning/memory/patterns.md; then
-      echo "patterns.md section '${section}': OK"
+# Check learnings.md has required sections
+if [ -f ".planning/memory/learnings.md" ]; then
+  for section in "## Patterns" "## Anti-Patterns" "## Decisions"; do
+    if grep -q "^${section}$" .planning/memory/learnings.md; then
+      echo "learnings.md section '${section}': OK"
     else
-      echo "patterns.md section '${section}': MISSING"
+      echo "learnings.md section '${section}': MISSING"
     fi
   done
 fi
@@ -79,15 +79,15 @@ fi
 ### 6. Settings
 
 ```bash
-if [ -f ".claude/settings.local.json" ]; then
-  echo "settings.local.json: OK"
-  if grep -q "hooks" .claude/settings.local.json; then
+if [ -f ".claude/settings.json" ]; then
+  echo "settings.json: OK"
+  if grep -q "hooks" .claude/settings.json; then
     echo "  Hooks configured: OK"
   else
-    echo "  Hooks configured: MISSING"
+    echo "  Hooks configured: MISSING — run npx the-frame-ai update"
   fi
 else
-  echo "settings.local.json: MISSING"
+  echo "settings.json: MISSING — run npx the-frame-ai init"
 fi
 ```
 
@@ -95,9 +95,10 @@ fi
 
 ```bash
 command_count=$(ls .claude/commands/frame:*.md 2>/dev/null | wc -l | tr -d ' ')
-expected_count=$(ls .claude/commands/frame:*.md 2>/dev/null | wc -l | tr -d ' ')
-if [ "$command_count" -ge 1 ]; then
+if [ "$command_count" -ge 30 ]; then
   echo "Commands: $command_count — OK"
+elif [ "$command_count" -ge 1 ]; then
+  echo "Commands: $command_count — WARNING (expected ≥30)"
 else
   echo "Commands: $command_count — INCOMPLETE (no commands found)"
 fi
@@ -107,10 +108,12 @@ fi
 
 ```bash
 agent_count=$(ls .claude/agents/*.md 2>/dev/null | wc -l | tr -d ' ')
-if [ "$agent_count" -ge 5 ]; then
-  echo "Agents: $agent_count/5 — OK"
+if [ "$agent_count" -ge 9 ]; then
+  echo "Agents: $agent_count — OK"
+elif [ "$agent_count" -ge 5 ]; then
+  echo "Agents: $agent_count — WARNING (expected ≥9)"
 else
-  echo "Agents: $agent_count/5 — INCOMPLETE"
+  echo "Agents: $agent_count — INCOMPLETE"
 fi
 ```
 
@@ -152,13 +155,13 @@ git log --oneline -5 2>/dev/null
 |  Core Files:                                                         |
 |   CLAUDE.md          OK (N sections)                                 |
 |   .planning/         OK (4/4 files)                                  |
-|   .planning/memory/  OK (8/8 files)                                  |
+|   .planning/memory/  OK (4/4 files)                                  |
 |   .frame/config.json OK (language: en)                               |
 |   settings.local.json OK                                             |
 |                                                                      |
 |  FRAME Components:                                                   |
 |   Commands:          N — OK                                          |
-|   Agents:            5/5  — OK                                       |
+|   Agents:            N — OK                                          |
 |   Hooks:             4/4  — OK                                       |
 |                                                                      |
 |  Git:                                                                |

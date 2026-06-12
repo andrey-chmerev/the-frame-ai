@@ -13,9 +13,9 @@ Input: **$ARGUMENTS**
 
 ### Step 1: Route by prefix
 
-- Starts with `pattern:` → append to `.planning/memory/patterns.md` under `## Active`
-- Starts with `decision:` → append to `.planning/memory/decisions.md`
-- Starts with `anti:` → append to `.planning/memory/anti-patterns.md`
+- Starts with `pattern:` → append to `.planning/memory/learnings.md` under `## Patterns > ### Active`
+- Starts with `decision:` → append to `.planning/memory/learnings.md` under `## Decisions`
+- Starts with `anti:` → append to `.planning/memory/learnings.md` under `## Anti-Patterns`
 - No prefix → append to `.planning/memory/context.md`
 
 Strip the prefix before saving.

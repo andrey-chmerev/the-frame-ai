@@ -1,10 +1,16 @@
 ---
-description: "Daily health check: tests, lint, types, security scan freshness"
+description: "Daily health check: tests, lint, types, security scan freshness — or sprint velocity check"
+argument-hint: "[sprint]"
 allowed-tools: [Read, Bash]
 ---
 # /frame:health -- Daily Health Check
 
-Daily project health check.
+Daily project health check, with optional sprint velocity mode.
+
+### Routing
+
+- (no args) — run daily health check: tests, lint, types, security freshness, disk, git
+- `sprint` — sprint planning check: ROADMAP progress, velocity, blockers, sprint report
 
 ## Instructions
 
@@ -59,6 +65,95 @@ Read reports from `.planning/reports/daily/` for the last 7 days and determine e
 - **CRITICAL** — tests failed, audit found vulnerabilities, or open blockers
 
 For each failed check, add a concrete action item to the "Action Items" section.
+
+---
+
+## Mode: sprint (sprint planning check)
+
+Triggered by: `/frame:health sprint`
+
+Checks ROADMAP progress and velocity.
+
+### Step S0: Fail-fast
+
+```bash
+git rev-parse --is-inside-work-tree 2>/dev/null || { echo "ERROR: Not a git repository. Run from project root."; exit 1; }
+```
+
+Check `.planning/ROADMAP.md` exists — if missing, STOP: "Run /frame:init first — ROADMAP.md not found."
+
+Update `.planning/STATE.md`:
+```markdown
+## Current Position
+- Phase: SPRINT-CHECK
+- Status: IN_PROGRESS
+- Started: {timestamp}
+```
+
+### Step S1: Read ROADMAP
+
+```bash
+cat .planning/ROADMAP.md
+cat .planning/STATE.md
+```
+
+### Step S2: Git stats for last 2 weeks
+
+```bash
+git log --since="2 weeks ago" --oneline | wc -l
+git log --since="2 weeks ago" --oneline | head -10
+```
+
+### Step S3: Count tasks in plan.md
+
+Find the current plan.md and count:
+```bash
+find docs/specs -name "plan.md" | head -1
+```
+Read plan.md and count:
+- `[DONE]` tasks — completed this sprint
+- `[ ]` tasks — remaining
+- `[BLOCKED]` tasks — blocked
+
+### Step S4: Create sprint report
+
+```bash
+mkdir -p .planning/reports/sprint
+```
+
+Create `.planning/reports/sprint/{date}.md`:
+
+```markdown
+# Sprint Check -- {date}
+
+## Progress
+- Commits last 2 weeks: N
+- Completed tasks (DONE): N
+- Remaining tasks: N
+- Blocked tasks: N
+
+## Velocity
+- Average: N tasks/week (based on [DONE] tasks in plan.md)
+
+## Blockers
+- {blocker 1}
+- {blocker 2}
+
+## Recommendations
+1. {recommendation}
+```
+
+Note velocity in the health report output only (velocity tracking via git log is sufficient).
+
+Update `.planning/STATE.md`:
+```markdown
+## Current Position
+- Phase: SPRINT-CHECK
+- Status: COMPLETE
+- Finished: {timestamp}
+```
+
+---
 
 ### Step 5: Create report
 

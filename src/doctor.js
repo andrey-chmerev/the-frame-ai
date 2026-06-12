@@ -19,7 +19,6 @@ const REQUIRED_FILES = [
   '.claude/settings.json',
   '.planning/STATE.md',
   '.planning/MAP.md',
-  '.planning/pause-state.json',
 ];
 
 const HOOK_FILES = [
@@ -161,4 +160,6 @@ export async function doctor(target) {
     if (warnings > 0) logWarn(`${warnings} warning(s) found`);
   }
   log('');
+
+  return { errors, warnings };
 }

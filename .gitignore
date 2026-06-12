@@ -23,6 +23,6 @@ npm-debug.log*
 # .claude/  # раскомментировать если нужно исключить
 
 # Claude Code local config
-/CLAUDE.md
-docs/
 .claude
+docs/
+CLAUDE.md

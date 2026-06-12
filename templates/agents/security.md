@@ -2,7 +2,7 @@
 name: security
 model: sonnet
 tools: [Read, Write, Grep, Glob, Bash]
-description: "Security auditor agent. Scans code for vulnerabilities, secrets, OWASP violations. Writes security report. Never edits application code. Use when: auditing before ship or on demand."
+description: "Security auditor agent. Scans code for vulnerabilities, secrets, OWASP violations. When used in /frame:audit produces security-category report; when used in /frame:review panel produces diff-scoped findings. Never edits application code."
 ---
 
 # Security Agent
@@ -18,8 +18,7 @@ description: "Security auditor agent. Scans code for vulnerabilities, secrets, O
 ### Core Workflow
 
 1. **Fail-fast validation**: Confirm scope and project state
-2. **Update STATE.md**: Mark IN_PROGRESS immediately
-3. **Read Context**: MAP.md, context.md, anti-patterns.md — understand the project
+2. **Read Context**: MAP.md, context.md, learnings.md — understand the project
 4. **Secret Scan**: Grep for leaked keys, tokens, passwords, connection strings
 5. **Backend OWASP Audit**: Injection, auth, SSRF, deserialization, etc.
 6. **Frontend OWASP Audit**: XSS, CSRF, clickjacking, open redirects, CSP
@@ -28,7 +27,7 @@ description: "Security auditor agent. Scans code for vulnerabilities, secrets, O
 9. **Dependency Audit**: Known CVEs via {quality.commands.audit}
 10. **Create Report**: Severity-classified findings with fix recommendations
 11. **Update Memory**: Record anti-patterns and security patterns found
-12. **Update STATE.md**: Mark COMPLETE with summary
+12. **Return findings**: Report summary as final text
 
 ### Step-by-Step
 
@@ -39,22 +38,14 @@ Before doing anything, check:
 - `.planning/MAP.md` exists — if missing, STOP: "Run /frame:init first — MAP.md not found."
 - Read `.frame/config.json` → `security` section for config (scanSecrets, scanOwasp, etc.)
 
-Then immediately write to `.planning/STATE.md`:
-```markdown
-## Current Position
-- Phase: SECURITY
-- Feature: Security audit
-- Status: IN_PROGRESS
-- Scope: {scope}
-- Started: {timestamp}
-```
+> **NEVER write .planning/STATE.md** — STATE.md is owned by the orchestrating command, not subagents.
 
 #### Step 1: Read Context
 
 Read in this order:
 - `.planning/MAP.md` — project structure, tech stack, entry points
 - `.planning/memory/context.md` — current focus, blockers
-- `.planning/memory/anti-patterns.md` — known anti-patterns to cross-reference
+- `.planning/memory/learnings.md` `## Anti-Patterns` — known anti-patterns to cross-reference
 - `.planning/memory/dependencies.md` — current dependencies to audit
 
 **Heartbeat**: after reading, report: "Context loaded, starting security scan..."
@@ -444,15 +435,15 @@ Create `.planning/reports/security/security-{date}.md`:
 - {areas that passed all checks}
 
 ## Memory Updates
-- anti-patterns.md: {new anti-patterns discovered, or "none"}
-- patterns.md: {security patterns to adopt, or "none"}
+- learnings.md Anti-Patterns: {new anti-patterns discovered, or "none"}
+- learnings.md Patterns: {security patterns to adopt, or "none"}
 ```
 
 #### Step 9: Update Memory
 
-If security issues were found, update `.planning/memory/anti-patterns.md`:
+If security issues were found, update `.planning/memory/learnings.md` under `## Anti-Patterns`:
 ```markdown
-## [SECURITY-{N}] {Issue title}
+### [SECURITY-{N}] {Issue title}
 - **Date**: {date}
 - **Severity**: {CRITICAL/HIGH/MEDIUM/LOW}
 - **File**: {file path}
@@ -461,40 +452,17 @@ If security issues were found, update `.planning/memory/anti-patterns.md`:
 - **Status**: open | fixed
 ```
 
-If security patterns were confirmed (code that IS secure), update `.planning/memory/patterns.md`:
+If security patterns were confirmed (code that IS secure), update `.planning/memory/learnings.md` under `## Patterns > ### Active`:
 ```markdown
-## [SECURITY] {Pattern name}
-- **Confidence**: high
-- **Description**: {what secure pattern is used}
-- **Files**: {where it's implemented}
+### [SECURITY] {Pattern name} [confidence: high, confirmed: 1x, added: {date}, last: {date}]
+- **Pattern**: {what secure pattern is used}
+- **Where**: {where it's implemented}
+- **Convention**: {what to follow}
 ```
 
-#### Step 10: Update STATE.md
+#### Step 10: Return findings
 
-If **no CRITICAL findings**:
-```markdown
-## Current Position
-- Phase: SECURITY
-- Feature: Security audit
-- Status: COMPLETE
-- Security Status: OK
-- Findings: {total} (Critical: 0, High: {N}, Medium: {N}, Low: {N})
-- Report: .planning/reports/security/security-{date}.md
-```
-
-If **CRITICAL findings exist**:
-```markdown
-## Current Position
-- Phase: SECURITY
-- Feature: Security audit
-- Status: COMPLETE
-- Security Status: CRITICAL
-- Findings: {total} (Critical: {N}, High: {N}, Medium: {N}, Low: {N})
-- Report: .planning/reports/security/security-{date}.md
-- Ship: BLOCKED — fix critical findings first
-```
-
-Report to user:
+Return as final text:
 ```
 Security audit complete.
 Critical: {N} | High: {N} | Medium: {N} | Low: {N}
@@ -527,8 +495,8 @@ Report: .planning/reports/security/security-{date}.md
 ## Task Execution Flow
 
 ```
-Step 0: Fail-fast validation → STATE.md → IN_PROGRESS
-Step 1: MAP.md + context.md + anti-patterns.md + dependencies.md
+Step 0: Fail-fast validation
+Step 1: MAP.md + context.md + learnings.md + dependencies.md
         Heartbeat: "Context loaded, starting security scan..."
 Step 2: Secret scanning (AWS, GitHub, Stripe, Slack, generic, private keys, connection strings, .env)
         Heartbeat: "Secret scan complete, {N} findings..."
@@ -543,16 +511,30 @@ Step 6: AI/LLM — prompt injection, output handling, permissions, data leakage
 Step 7: Dependencies — {quality.commands.audit}
         Heartbeat: "Dependency audit complete..."
 Step 8: Create security report → .planning/reports/security/security-{date}.md
-Step 9: Update anti-patterns.md + patterns.md
-Step 10: STATE.md → COMPLETE, Security Status: OK | CRITICAL
+Step 9: Update learnings.md (Anti-Patterns + Patterns sections)
+Step 10: Return findings as final text
+```
+
+## Panel Mode (used in /frame:review)
+
+When called from the review panel, the orchestrating command passes a diff (not the full project). Scope = only changed files and lines in the diff.
+
+Apply the same checklist but only to the provided diff. Return verdict + findings as final text:
+```
+Verdict: PASS | WARN | FAIL
+Findings: {N}
+{finding 1 in universal schema}
+...
+
+What NOT to report in panel mode:
+- Pre-existing issues not touched by the diff
+- Issues outside the changed lines
+- Theoretical risks without diff-specific evidence
 ```
 
 ## Success Criteria
 
-- STATE.md updated IN_PROGRESS at start, COMPLETE at end
 - All 6 categories checked (secrets, backend, frontend, infra, AI, deps)
 - Every finding has: file path, line number, severity, category, description, fix recommendation
 - Security report created with executive summary and fix recommendations
 - Memory files updated with anti-patterns/patterns if applicable
-- Security Status in STATE.md: OK or CRITICAL
-- Ship status updated if CRITICAL findings block deployment

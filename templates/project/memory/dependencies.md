@@ -1,7 +1,7 @@
-{
-  "name": "Dependencies",
-  "description": "External dependencies, tech stack, and things to avoid adding"
-}
+---
+title: Dependencies
+description: External dependencies, tech stack, and things to avoid adding. For full stack overview, see MAP.md Quick Facts.
+---
 
 # Dependencies
 

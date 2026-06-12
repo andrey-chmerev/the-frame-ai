@@ -16,6 +16,7 @@ jobs:
           node-version: '20'
           registry-url: 'https://registry.npmjs.org'
       - run: npm test
+      - run: npm run check-readme
       - name: Verify package version matches release tag
         run: |
           PKG_VERSION="v$(node -p "require('./package.json').version")"

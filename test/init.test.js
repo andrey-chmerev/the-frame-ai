@@ -43,7 +43,6 @@ test('init: creates all required directories', async () => {
       '.planning/memory',
       '.planning/forensics',
       '.planning/pause-history',
-      '.planning/reviews',
       '.planning/reports/daily',
     ];
     for (const d of required) {

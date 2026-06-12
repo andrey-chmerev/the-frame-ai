@@ -1,7 +1,7 @@
 # Subagent Prompt Template
 
 ## Memory (read before writing code)
-- `.planning/memory/anti-patterns.md` — what to avoid
+- `.planning/memory/learnings.md` `## Anti-Patterns` — what to avoid
 - `.planning/memory/conventions.md` — how to write code
 - `.planning/memory/dependencies.md` — stack + Avoid list
 - `docs/specs/{FEATURE}/research.md` → Memory Impact section

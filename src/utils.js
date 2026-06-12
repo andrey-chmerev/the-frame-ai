@@ -123,6 +123,13 @@ const FRAME_HOOKS = {
       ],
     },
   ],
+  PreCompact: [
+    {
+      hooks: [
+        { type: 'command', command: 'bash "$CLAUDE_PROJECT_DIR/.claude/hooks/pre-compact.sh"' },
+      ],
+    },
+  ],
   SessionStart: [
     {
       hooks: [

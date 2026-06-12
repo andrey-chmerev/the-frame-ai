@@ -29,12 +29,32 @@ Update `.planning/STATE.md`:
 - Started: {timestamp}
 ```
 
-### Step 1: Analyze the last commit
+### Step 1: Analyze the last commit + measure actual time
 
 ```bash
 git log --oneline -10
 git diff HEAD~1 --stat
 ```
+
+Read session telemetry to get the actual task duration:
+```bash
+# Find the session file for the current feature (most recent with finished_at)
+SESSION_FILE=$(ls .planning/sessions/*.json 2>/dev/null | sort | tail -1)
+if [ -n "$SESSION_FILE" ]; then cat "$SESSION_FILE"; fi
+```
+
+If `started_at` and `finished_at` are both present, compute duration:
+```bash
+node -e "
+  const s = JSON.parse(require('fs').readFileSync(process.argv[1], 'utf-8'));
+  if (s.started_at && s.finished_at) {
+    const mins = Math.round((new Date(s.finished_at) - new Date(s.started_at)) / 60000);
+    console.log('Duration: ' + (mins >= 60 ? Math.floor(mins/60) + 'h ' + (mins%60) + 'm' : mins + 'm'));
+  }
+" "$SESSION_FILE" 2>/dev/null || echo "Duration: unknown (no telemetry)"
+```
+
+Use the real duration in the retrospective report instead of an estimate.
 
 ### Step 2: Identify what worked
 
@@ -72,11 +92,13 @@ Update `.planning/memory/context.md` with current state:
 - Stale patterns: {count}
 ```
 
-#### patterns.md
+#### learnings.md
 
-If a new pattern was discovered, add:
+Update `.planning/memory/learnings.md` with findings from this task.
+
+**If a new pattern was discovered**, add under `## Patterns > ### Active`:
 ```markdown
-## {Pattern Name} [confidence: low, confirmed: 1x, added: {date}, last: {date}]
+### {Pattern Name} [confidence: low, confirmed: 1x, added: {date}, last: {date}]
 - **Pattern**: {description}
 - **Where**: {where it is used}
 - **Convention**: {convention}
@@ -84,27 +106,23 @@ If a new pattern was discovered, add:
 - **Discovered**: {date}
 ```
 
-If an existing pattern was used again, **update its metadata**:
+If an existing pattern was confirmed, **update its metadata**:
 - Increment `confirmed` count
 - Update `last` date
 - Promote confidence: `low` (1x) -> `medium` (2-4x) -> `high` (5+)
 
-#### anti-patterns.md
-
-If an anti-pattern was discovered, add:
+**If an anti-pattern was discovered**, add under `## Anti-Patterns`:
 ```markdown
-## Anti-pattern: {anti-pattern}
+### Anti-pattern: {anti-pattern}
 - **Why it is bad**: {reason}
 - **Correct approach**: {how it should be done}
 - **Related decision**: {DEC-XXX if avoided by a decision, or blank}
 - **Occurrences**: {count}
 ```
 
-#### decisions.md
-
-If an architectural decision was made, add:
+**If an architectural decision was made**, add under `## Decisions`:
 ```markdown
-## [DEC-{XXX}] {Decision Title}
+### [DEC-{XXX}] {Decision Title}
 - **Date**: {date}
 - **Status**: accepted
 - **Context**: {why this decision was needed}
@@ -112,36 +130,16 @@ If an architectural decision was made, add:
 - **Consequences**: {what follows}
 
 Related:
-- → derives: patterns.md#{pattern-name}
-- → avoids: anti-patterns.md#{anti-pattern-name}
+- → derives: learnings.md#{pattern-name}
+- → avoids: learnings.md#{anti-pattern-name}
 ```
 
-#### wins.md
+### Step 4b: Cross-link learnings
 
-If the task went well, add:
-```markdown
-## {date}: {feature}
-- **What was done**: {description}
-- **Why it worked**: {reasons}
-- **Time**: {actual} min (estimate: {estimate} min)
-- **Preserved**: {pattern/approach}
-```
+After writing to `## Decisions`, check if the new decision implies any of the following:
 
-#### metrics.md
-
-Append one row to the Session Log table with real timestamps only.
-If start time is unknown, leave Start/End blank. Do NOT estimate or invent durations.
-
-```markdown
-| {date} | {task description} | {start time or —} | {end time or —} | {duration or —} |
-```
-
-### Step 4b: Cross-link memory files
-
-After writing to decisions.md, check if the new decision implies any of the following:
-
-- **New pattern**: if the decision establishes a repeatable approach, ensure a corresponding entry exists in `patterns.md` (or update an existing one).
-- **New anti-pattern**: if the decision avoids or replaces a previous approach, ensure the old approach is recorded in `anti-patterns.md` with the correct approach pointing to the new decision.
+- **New pattern**: if the decision establishes a repeatable approach, ensure a corresponding entry exists in `## Patterns` (or update an existing one).
+- **New anti-pattern**: if the decision avoids or replaces a previous approach, ensure the old approach is recorded in `## Anti-Patterns` with the correct approach pointing to the new decision.
 - **Orphan check**: scan the new decision's `→ derives` and `→ avoids` links — if any link target does not exist, create it or remove the broken link.
 
 ### Step 5: Create retrospective report

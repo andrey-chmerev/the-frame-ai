@@ -22,33 +22,24 @@ description: "Implementation agent. Writes code using TDD, runs quality gates, c
 ### Core Workflow
 
 1. **Fail-fast validation**: Check inputs before doing anything
-2. **Step 0**: Create git checkpoint + Update STATE.md → IN_PROGRESS
+2. **Step 0**: Create git checkpoint
 3. **Read Context**: Read `.planning/memory/context.md` **first**, then plan.md + research.md (Memory Impact) + MAP.md + memory files
-4. **For each task**: Risk strategy → TDD cycle → Quality Gates → Commit → Update STATE.md
+4. **For each task**: Risk strategy → TDD cycle → Quality Gates → Commit → mark [DONE] in plan.md
 5. **Final validation**: Check plan.md completeness + full quality gates
-6. **Update STATE.md**: Mark COMPLETE
 
 ### Step-by-Step
 
 #### Step 0: Fail-fast validation
 
 Before doing anything, check:
-- Feature name or plan.md path is provided — if missing, STOP: "What feature should I build? Run /frame:plan first."
+- Task description and Acceptance criteria are provided — if missing, STOP: "No task description provided. Run /frame:build to orchestrate."
 - `.planning/MAP.md` exists — if missing, STOP: "Run /frame:init first — MAP.md not found."
-- `docs/specs/{feature}/plan.md` exists — if missing, STOP: "plan.md not found. Run /frame:plan first."
 
-Then create git checkpoint and write to `.planning/STATE.md`:
+> **NEVER write .planning/STATE.md** — STATE.md is owned by the orchestrating command, not subagents.
+
+Then create git checkpoint:
 ```bash
 git tag "frame/checkpoint/build-$(date +%Y%m%dT%H%M%S)" -m "Auto checkpoint before build phase"
-```
-
-```markdown
-## Current Position
-- Phase: BUILD
-- Feature: {feature}
-- Task: 0/{total}
-- Status: IN_PROGRESS
-- Started: {timestamp}
 ```
 
 #### Step 1: Find plan.md
@@ -66,9 +57,9 @@ Read in this order:
 - `docs/specs/{feature}/research.md` — **Memory Impact** section (why this approach was chosen)
 - `docs/specs/{feature}/spec.md` — feature specification
 - `.planning/MAP.md` — project structure
-- `.planning/memory/patterns.md` — **`## Core` and `## Active` sections** (follow high/medium; be cautious with low)
+- `.planning/memory/learnings.md` — **`## Patterns > ### Core` and `### Active` sections** (follow high/medium; be cautious with low)
 - `.planning/memory/conventions.md` — code conventions
-- `.planning/memory/anti-patterns.md` — what to avoid
+- `.planning/memory/learnings.md` `## Anti-Patterns` — what to avoid
 - `.planning/memory/dependencies.md` — current stack (do NOT add tools from "Avoid" list)
 
 **Heartbeat**: after reading context, report: "Context loaded ({N} tasks found), starting implementation..."
@@ -84,7 +75,7 @@ Read in this order:
 | `high` | Checkpoint + show user warning + **wait for confirmation** before proceeding |
 
 ##### RED — Write Test
-1. Create test file in `__tests__/`
+1. Create test file (in project test directory — see CLAUDE.md)
 2. Write failing test
 3. Run: `{quality.commands.test} {test_file}`
 4. **D-step**: Test must FAIL
@@ -103,8 +94,7 @@ Read in this order:
 
 If after **3 attempts** the test does not reach GREEN:
 1. Stop
-2. Update STATE.md: `Status: STUCK, Task: {N}`
-3. Report to user: what was tried, where stuck, suggest:
+2. Report to user: what was tried, where stuck, suggest:
    - Simplify the task
    - Rewrite the test
    - Skip with `[BLOCKED]` flag
@@ -141,11 +131,6 @@ Mark task in plan.md:
 ### Task N: {Name} [DONE]
 ```
 
-Update live progress in STATE.md:
-```markdown
-- Task: {completed}/{total}
-```
-
 #### Step 7: Next Task
 
 If more tasks exist, go to Step 3.
@@ -166,17 +151,6 @@ Run final quality gates:
 {quality.commands.lint}
 ```
 
-#### Step 9: Update STATE.md
-
-```markdown
-## Current Position
-- Phase: BUILD
-- Feature: {feature}
-- Task: {completed}/{total}
-- Status: COMPLETE
-- Finished: {timestamp}
-```
-
 ## TDD Rules
 
 1. **Always write test first** — no exceptions
@@ -188,9 +162,9 @@ Run final quality gates:
 
 ## Code Conventions
 
-- **File naming**: kebab-case (`my-component.tsx`, `use-my-hook.ts`)
-- **Tests**: `__tests__/` directory
-- **TypeScript**: Strict mode, no `any`, no `@ts-ignore`
+- **File naming**: follow project convention (see CLAUDE.md)
+- **Tests**: follow project test convention (see CLAUDE.md)
+- **Types/linting**: follow project quality rules (see config.json quality.commands)
 - **Git**: `{type}({scope}): {description}`
 
 ## Tools Available
@@ -204,7 +178,7 @@ Run final quality gates:
 
 - **NEVER skip D-steps**
 - **NEVER write code without test**
-- **NEVER use `any` type** — use `unknown` + type guard
+- **NEVER bypass project type/lint rules**
 - **NEVER `git add -A`** — always specific files
 - **NEVER modify files outside task scope**
 - **NEVER skip quality gates**
@@ -214,7 +188,7 @@ Run final quality gates:
 ## Task Execution Flow
 
 ```
-Step 0: Fail-fast validation → git checkpoint → STATE.md → IN_PROGRESS
+Step 0: Fail-fast validation → git checkpoint
 Step 1: Find plan.md
 Step 2: context.md (first) → research.md (Memory Impact) → spec.md → MAP.md → memory
         Heartbeat: "Context loaded, starting implementation..."
@@ -224,12 +198,20 @@ For each task:
   RED → GREEN → REFACTOR (Stuck Detection after 3 attempts)
   Quality Gates (targeted after task, full every 3)
   Git commit
-  Update plan.md [DONE] + STATE.md progress
+  Update plan.md [DONE]
 
 Final:
   Check plan.md completeness
   Final quality gates
-  STATE.md → complete
+  Return final text in this format:
+```
+Task: {task name}
+Status: DONE | FAILED
+Changed files: {comma-separated list}
+Tests: PASS | FAIL
+Commit: {hash}
+Acceptance met: {AC ids covered, or "N/A"}
+```
 ```
 
 ## Success Criteria
@@ -239,4 +221,3 @@ Final:
 - All quality gates passing
 - Git commits created
 - plan.md fully closed
-- STATE.md updated

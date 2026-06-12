@@ -1,11 +1,16 @@
 ---
-description: "Implement planned tasks using TDD — runs quality gates and creates checkpoints"
+description: "Implement planned tasks using TDD — auto-detects sequential or parallel execution from plan.md"
+argument-hint: "[feature]"
+allowed-tools: [Read, Write, Edit, Bash]
 ---
 # /frame:build -- Implementation per plan.md
 
-> Use for 1–3 tasks (sequential TDD). For 4+ independent tasks → `/frame:wave`
+Reads plan.md, executes tasks with TDD and quality gates. Parallelism is determined by plan.md `Parallel:` labels — no flags needed.
 
-Reads plan.md, executes TDD cycle for each task, runs quality gates.
+### Routing
+
+- (no args) — feature from `.planning/STATE.md`; if empty, find last plan.md with unclosed tasks; if multiple candidates, show list and ask
+- `{feature}` — build a specific feature by name
 
 ## Instructions
 
@@ -28,86 +33,126 @@ Update `.planning/STATE.md`:
 
 ### Step 1: Find plan.md
 
-- `find docs/specs -name "plan.md" | head -5`
-- Read plan.md and identify all tasks
+```bash
+find docs/specs -name "plan.md" | head -5
+```
 
-### Step 2: Read Context
+Read `docs/specs/{feature}/plan.md`. If not found — STOP: "plan.md not found. Run /frame:plan first."
+
+### Step 2: Determine execution mode
+
+Check `.planning/STATE.md`:
+- `Status: REVIEW_FAILED` → **Fix mode**: read `docs/specs/{feature}/review.md` → Action Items, create fix tasks in plan.md under `## Fix Tasks (review {date})`, then execute using the same algorithm below. Each fix task references its review finding ID.
+- Normal plan → proceed with Step 3.
+
+### Step 3: Read Context
 
 Read before implementing:
 - `docs/specs/{feature}/research.md` — **Memory Impact** section (why this approach was chosen)
 - `docs/specs/{feature}/spec.md` — feature specification
 - `.planning/MAP.md` — project architecture
-- `.planning/memory/patterns.md` — Core + Active patterns
+- `.planning/memory/learnings.md` — `## Patterns` Core + Active sections
 - `.planning/memory/conventions.md` — code conventions
-- `.planning/memory/anti-patterns.md` — what to avoid
+- `.planning/memory/learnings.md` `## Anti-Patterns` — what to avoid
 - `.planning/memory/dependencies.md` — stack + Avoid list
 
-### Step 3: For EACH task in plan.md
+**Heartbeat**: after reading context, report: "Context loaded ({N} tasks found), starting implementation..."
 
-#### 3.0: Risk Strategy
+### Step 4: Execute waves from plan.md
 
-Check the task's `Risk` field:
-- `Risk: low` → standard TDD cycle
-- `Risk: medium` → create checkpoint: `git tag frame/checkpoint/task-{N}`
-- `Risk: high` → checkpoint + show user warning, **wait for confirmation** before proceeding
+For each wave defined in plan.md:
 
-#### 3.1: TDD Cycle -- RED
+#### Wave has 1 task OR `Parallel: no`
 
-Write the TEST:
-- Create test file in `__tests__/`
-- Write a failing test
-- Run: `{quality.commands.test} {test_file}`
-- **D-step**: Test must FAIL (RED verified)
+Execute inline (sequential TDD cycle — see Step 4.1 below).
 
-#### 3.2: TDD Cycle -- GREEN
+#### Wave has ≥2 tasks AND `Parallel: yes`
 
-Write the CODE:
-- Implement the feature (minimal to pass the test)
-- Run: `{quality.commands.test} {test_file}`
-- **D-step**: Test must PASS (GREEN verified)
+Launch one `builder` subagent per task, one message, `isolation: "worktree"`, max 5 concurrent.
 
-#### 3.3: TDD Cycle -- REFACTOR
+Each subagent receives:
+- Task description + Files + Acceptance criteria
+- Relevant conventions (from conventions.md)
+- Anti-patterns to avoid
+- Instructions: return final text with list of changed files + test status + commit hash
 
-Refactor (if needed):
-- Improve code structure
-- Run: `{quality.commands.test} {test_file}`
-- **D-step**: Test must PASS
+After all subagents complete → **wave quality gates**:
+```bash
+{quality.commands.typecheck}
+{quality.commands.test}
+{quality.commands.lint}
+```
 
-#### Stuck Detection
+If wave gates FAIL → retry only the failed tasks (max 2 retries). If still failing:
+```bash
+git tag "frame/wave-failure-$(date +%Y%m%dT%H%M%S)"
+```
+Update STATE.md: `Status: WAVE_FAILED`. Report to user. Do NOT auto-rollback previous waves.
+
+#### If plan.md has no `Parallel:` labels (older plan)
+
+Determine parallelism from `Dependencies` + `Files` overlap: tasks with no shared files and no cross-dependencies → `Parallel: yes`, otherwise → `Parallel: no`.
+
+#### Step 4.1: Inline TDD cycle
+
+##### Risk Strategy
+
+| Risk | Action |
+|------|--------|
+| `low` | Standard TDD cycle |
+| `medium` | Create checkpoint: `git tag frame/checkpoint/task-{N}` |
+| `high` | Checkpoint + show warning + **wait for user confirmation** |
+
+##### RED — Write Test
+
+1. Create test file in project test directory
+2. Write failing test
+3. Run: `{quality.commands.test} {test_file}`
+4. **D-step**: Test must FAIL
+
+##### GREEN — Write Code
+
+1. Implement minimal code to pass the test
+2. Run: `{quality.commands.test} {test_file}`
+3. **D-step**: Test must PASS
+
+##### REFACTOR — Clean Up
+
+1. Refactor if needed
+2. Run: `{quality.commands.test} {test_file}`
+3. **D-step**: Test must PASS
+
+##### Stuck Detection
 
 If after **3 attempts** the test does not reach GREEN:
 1. Stop
-2. Update STATE.md: `Status: STUCK, Task: {N}`
-3. Report to user: what was tried, where stuck, suggest:
+2. Report to user: what was tried, where stuck, suggest:
    - Simplify the task
    - Rewrite the test
    - Skip with `[BLOCKED]` flag
 
-#### 3.4: Quality Gates (tiered)
+##### Quality Gates (tiered)
 
-**After each task** — fast check:
-- `{quality.commands.test} {test_file}` — only this task's test
-
-**Every 3 tasks or after a logical wave** — full gates:
-- `{quality.commands.typecheck}`
-- `{quality.commands.test}` (all tests)
-- `{quality.commands.lint}`
-- **D-step**: All checks must pass
-
-#### 3.5: Git Commit
-
-- `git add {specific_files}`
-- `git commit -m "{type}({scope}): {description}"`
-- **D-step**: Commit succeeds
-
-#### 3.6: Auto-checkpoint (if enabled)
-
-If `workflow.autoCheckpoint === true` in `.frame/config.json`:
+**After each task** — fast:
 ```bash
-git tag "frame/checkpoint/task-{N}-$(date +%Y%m%dT%H%M%S)" -m "Auto checkpoint after task {N}"
+{quality.commands.test} {test_file}
 ```
 
-#### 3.6: Update Status
+**Every 3 tasks or after a logical wave** — full:
+```bash
+{quality.commands.typecheck}
+{quality.commands.test}
+{quality.commands.lint}
+```
+
+##### Git Commit
+
+```bash
+git add {specific_files}
+git commit -m "{type}({scope}): {description}"
+```
+
+##### Mark Done
 
 Mark task in plan.md:
 ```markdown
@@ -118,11 +163,6 @@ Update progress in STATE.md:
 ```markdown
 - Task: {completed}/{total}
 ```
-
-### Step 4: Next task?
-
-- More tasks remain → return to Step 3
-- All tasks done → proceed to Step 5
 
 ### Step 5: Check plan.md completeness
 
@@ -139,6 +179,7 @@ If unclosed tasks exist — return and complete them or report to user.
 {quality.commands.test}
 {quality.commands.typecheck}
 {quality.commands.lint}
+{quality.commands.build}
 ```
 
 **D-step**: All checks must pass.
@@ -148,13 +189,13 @@ If unclosed tasks exist — return and complete them or report to user.
 **Detect UI tasks**: any task changed files with `.tsx`, `.vue`, `.css`, `component`, `page`, `layout`, `style`.
 
 If UI tasks exist AND Playwright MCP is available:
-1. `browser_navigate: {dev server URL}`
-2. `browser_screenshot`
+1. Navigate to dev server URL
+2. Take screenshot
 3. Compare with spec from `docs/specs/{feature}/spec.md`
 4. **PASS** → proceed to Step 7
 5. **FAIL** → describe problem, fix, re-run quality gates, re-verify
 
-If Playwright MCP is not available — skip and note: "UI not verified (no browser tool)".
+If Playwright MCP is not available — skip and note: "UI not verified (no browser tool)."
 
 ### Step 7: Update STATE.md (COMPLETE)
 
@@ -167,6 +208,10 @@ If Playwright MCP is not available — skip and note: "UI not verified (no brows
 - Finished: {timestamp}
 ```
 
+Next step: `/frame:review`
+
+---
+
 ## Rules
 
 - **Never skip D-steps** — every step is verified
@@ -176,6 +221,8 @@ If Playwright MCP is not available — skip and note: "UI not verified (no brows
 - **Risk: high requires confirmation** — wait for user response
 - **Never use type `any`** — use `unknown` + type guard
 - **Never modify files outside the task scope** — stay within task boundaries
+- **Parallelism from plan, not flags** — plan.md `Parallel: yes/no` is the source of truth
+- **Max 5 subagents per wave** — concurrency cap
 
 ## Result
 

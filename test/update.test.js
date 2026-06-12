@@ -12,7 +12,9 @@ function makeFakeInstall(dir) {
   mkdirSync(join(dir, '.claude', 'hooks'), { recursive: true });
   writeFileSync(join(dir, '.frame', 'config.json'), '{"language":"en"}');
   writeFileSync(join(dir, '.frame', '.frame-version'), '0.0.1');
-  // Protected file with custom content
+  // User-customised content. No manifest.json is present, so when update() runs
+  // it will find no recorded installed-hash for this file and will skip overwriting
+  // it (manifest-based protection: current hash != installed hash → skip unless --force).
   writeFileSync(join(dir, '.frame', 'config.json'), '{"language":"ru","custom":true}');
 }
 
@@ -23,8 +25,8 @@ test('update does not overwrite protected config.json', async () => {
     const { update } = await import('../src/update.js');
     await update(dir);
     const config = JSON.parse(readFileSync(join(dir, '.frame', 'config.json'), 'utf-8'));
-    // config.json is in PROTECTED_FILES — update should not touch it
-    assert.equal(config.custom, true, 'protected config.json must not be overwritten');
+    // update() must not overwrite a user-modified file (manifest-hash protection)
+    assert.equal(config.custom, true, 'user-modified config.json must not be overwritten');
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

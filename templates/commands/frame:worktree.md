@@ -209,6 +209,24 @@ Update STATE.md:
 +======================================================================+
 ```
 
+## Native Isolation: worktree (for parallel subagents)
+
+When spawning multiple subagents via the Agent tool for parallel work, use the `isolation: "worktree"` parameter instead of manual worktree management:
+
+```
+Agent(task: "...", isolation: "worktree")
+```
+
+This gives each subagent its own git worktree automatically:
+- No `git worktree add/remove` commands needed
+- No STATE.md race conditions between parallel agents
+- No file conflicts between subagents writing to the same file
+- Worktree is cleaned up automatically after the subagent completes
+
+**Use `/frame:worktree create` when**: you want a long-lived worktree you will open in a second terminal and work in interactively.
+
+**Use `isolation: "worktree"` in Agent tool when**: you are orchestrating parallel subagents from `/frame:build --parallel` or `/frame:build --review-team`.
+
 ## Rules
 
 - **WorktreeBase**: `../` -- sibling directories

@@ -1,3 +1,8 @@
+---
+title: Conventions
+description: Code conventions and standards discovered during /frame:init scan
+---
+
 # Conventions
 
 Code conventions and standards discovered during /frame:init scan.
@@ -16,4 +21,4 @@ Code conventions and standards discovered during /frame:init scan.
 
 ## Git Commit Format
 
-`{type}({scope}): {description}` — types: feat, fix, refactor, test, docs, chore
+See CLAUDE.md for the canonical git commit format.

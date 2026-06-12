@@ -20,12 +20,12 @@ import { doctor } from './doctor.js';
 const PLANNING_DIRS = [
   '.planning/memory',
   '.planning/pause-history',
+  '.planning/sessions',
   '.planning/reports/daily',
   '.planning/reports/deps',
   '.planning/reports/sprint',
   '.planning/reports/cleanup',
-  '.planning/reports/performance',
-  '.planning/reports/security',
+  '.planning/reports/audit',
   '.planning/forensics',
   'docs/specs/archive',
 ];

@@ -1,5 +1,6 @@
 ---
 description: "Initialize project: scan codebase, fill MAP.md, STATE.md, and memory files"
+allowed-tools: [Read, Write, Edit, Bash]
 ---
 # /frame:init -- Project Initialization & Refresh
 

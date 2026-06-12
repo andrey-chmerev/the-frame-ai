@@ -15,12 +15,10 @@ function makeHealthyInstall(dir) {
     ['CLAUDE.md', '# test'],
     ['.frame/config.json', '{"language":"en"}'],
     ['.frame/.frame-version', '0.1.0'],
-    ['.claude/settings.local.json', '{}'],
+    // doctor.js checks for .claude/settings.json (not settings.local.json)
+    ['.claude/settings.json', '{}'],
     ['.planning/STATE.md', ''],
     ['.planning/MAP.md', ''],
-    ['.planning/ROADMAP.md', ''],
-    ['.planning/CONTEXT.md', ''],
-    ['.planning/pause-state.json', '{}'],
   ];
   for (const [f, c] of files) writeFileSync(join(dir, f), c);
 
@@ -32,25 +30,51 @@ function makeHealthyInstall(dir) {
   }
 }
 
-test('doctor detects missing required directory', async () => {
+test('doctor reports errors when required directory is missing', async () => {
   const dir = mkdtempSync(join(tmpdir(), 'frame-doctor-'));
   try {
     makeHealthyInstall(dir);
     rmSync(join(dir, '.planning', 'memory'), { recursive: true });
     const { doctor } = await import('../src/doctor.js');
-    // Should not throw — doctor reports errors but doesn't exit
-    await assert.doesNotReject(() => doctor(dir));
+    const result = await doctor(dir);
+    assert.ok(result.errors > 0, `expected at least one error, got ${result.errors}`);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
 });
 
-test('doctor runs without errors on healthy install', async () => {
+test('doctor reports errors when required file is missing', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'frame-doctor-missing-file-'));
+  try {
+    makeHealthyInstall(dir);
+    rmSync(join(dir, '.claude', 'settings.json'));
+    const { doctor } = await import('../src/doctor.js?v=2');
+    const result = await doctor(dir);
+    assert.ok(result.errors > 0, `expected at least one error when settings.json is missing, got ${result.errors}`);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('doctor returns zero errors on healthy install', async () => {
   const dir = mkdtempSync(join(tmpdir(), 'frame-doctor-ok-'));
   try {
     makeHealthyInstall(dir);
-    const { doctor } = await import('../src/doctor.js');
-    await assert.doesNotReject(() => doctor(dir));
+    const { doctor } = await import('../src/doctor.js?v=3');
+    const result = await doctor(dir);
+    assert.equal(result.errors, 0, `expected 0 errors, got ${result.errors}`);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('doctor result has warnings property', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'frame-doctor-warnings-'));
+  try {
+    makeHealthyInstall(dir);
+    const { doctor } = await import('../src/doctor.js?v=4');
+    const result = await doctor(dir);
+    assert.ok(typeof result.warnings === 'number', 'result.warnings should be a number');
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

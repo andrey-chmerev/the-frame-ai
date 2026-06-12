@@ -1,6 +1,7 @@
 ---
 description: "Plan and execute a database or schema migration with rollback safety"
 argument-hint: "<migration description>"
+allowed-tools: [Read, Write, Edit, Bash]
 ---
 # /frame:migrate -- Migration with Rollback Plan
 
@@ -73,7 +74,7 @@ Execute step by step, verifying after each step:
 1. Apply changes
 2. /frame:health  (quality gates)
 3. If OK -> continue
-4. If FAIL -> /frame:rollback
+4. If FAIL -> /frame:checkpoint rollback
 ```
 
 **For `db` type**: ensure a `down` script exists before running `up`.
@@ -97,7 +98,7 @@ git commit -m "refactor(migration): migrate {from} to {to}"
 ## Rules
 
 - **Checkpoint before migration** — via `/frame:checkpoint`, not manually
-- **Rollback via `/frame:rollback`** — not manually
+- **Rollback via `/frame:checkpoint rollback`** — not manually
 - **Quality gates via `/frame:health`** — no hardcoded commands
 - **Step by step** — not everything at once
 - **For `db` migrations** — `down` script is mandatory

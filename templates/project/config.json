@@ -19,6 +19,10 @@
     "build": "required"
   },
 
+  "devServer": {
+    "url": "http://localhost:3000"
+  },
+
   "soloMode": {
     "autoContextPruning": true,
     "timeBoxing": { "defaultMinutes": 30 }

@@ -1,6 +1,7 @@
 ---
 description: "Trim and archive memory files, removing stale and low-confidence entries"
 allowed-tools: [Read, Write, Bash]
+disable-model-invocation: true
 ---
 # /frame:cleanup-memory -- Memory Cleanup
 
@@ -10,13 +11,13 @@ Cleans and updates memory files.
 
 Run memory and artifact cleanup.
 
-### Step 1: Split patterns into Core and Archive
+### Step 1: Maintain learnings.md — Patterns section
 
-Scan `.planning/memory/patterns.md` and apply the following rules:
+Scan `.planning/memory/learnings.md` `## Patterns` and apply the following rules:
 
 #### Promote to Core
 
-Move patterns from the `## Active` section to `## Core` if they meet **any** of:
+Move patterns from `### Active` to `### Core` if they meet **any** of:
 - `confidence: high` (confirmed 5+ times)
 - `confidence: medium` with `confirmed: >= 3` **and** `last:` within the last 90 days
 
@@ -24,31 +25,27 @@ Core patterns are the default approaches that the Planner reads for decision-mak
 
 #### Stale-mark active patterns
 
-Scan patterns in `## Active` where `last:` is older than 90 days. Add `[stale]` to the header — do not delete:
+Scan patterns in `### Active` where `last:` is older than 90 days. Add `[stale]` to the header — do not delete:
 ```markdown
-## Redis Sessions [stale, confidence: high, confirmed: 8x, added: 2025-11-01, last: 2025-12-10]
+### Redis Sessions [stale, confidence: high, confirmed: 8x, added: 2025-11-01, last: 2025-12-10]
 ```
 When a stale pattern is confirmed again, remove the `[stale]` tag and update `last:`.
 
 #### Archive low-confidence patterns
 
-Move patterns with `confidence: low` and `last:` older than 60 days to the `## Archived` section. If their `confirmed` count is now >= 2, promote to `medium` first.
+Move patterns with `confidence: low` and `last:` older than 60 days to `### Archived`. If their `confirmed` count is now >= 2, promote to `medium` first.
 
-### Step 2: Trim metrics.md
+#### Retention cap (20 per section)
 
-Keep only the last 4 weeks of data in `.planning/memory/metrics.md`.
+If any section exceeds 20 entries, move the oldest (by `last:` date) to `### Archived`.
 
-### Step 3: Trim wins.md
+### Step 2: Trim learnings.md — Decisions section
 
-Keep only the last 10 entries in `.planning/memory/wins.md`.
+Keep only the last 20 entries in `.planning/memory/learnings.md` `## Decisions`. Move older ones to the `### Archived` subsection at the bottom of that section.
 
-### Step 4: Trim decisions.md
+### Step 3: Stale-mark learnings.md — Anti-Patterns section
 
-Keep only the last 20 entries in `.planning/memory/decisions.md`. Move older ones to an `## Archived` section at the bottom.
-
-### Step 5: Stale-mark anti-patterns.md
-
-Scan `.planning/memory/anti-patterns.md`. For any entry not referenced in the last 90 days, add `[stale]` to its header — do not delete.
+Scan `.planning/memory/learnings.md` `## Anti-Patterns`. For any entry not referenced in the last 90 days, add `[stale]` to its header — do not delete.
 
 ### Step 6: Archive old specs
 
@@ -70,11 +67,9 @@ Create `.planning/reports/cleanup/{date}.md`:
 # Memory Cleanup -- {date}
 
 ## Actions
-- [x] Core/Archive split: reviewed (N promoted, N stale-marked, N archived)
-- [x] Metrics: trimmed to 4 weeks
-- [x] Wins: trimmed to 10 entries
-- [x] Decisions: trimmed to 20 entries
-- [x] Anti-patterns: stale-marked (N)
+- [x] learnings.md Patterns: Core/Archive split (N promoted, N stale-marked, N archived)
+- [x] learnings.md Decisions: trimmed to 20 entries
+- [x] learnings.md Anti-patterns: stale-marked (N)
 - [x] Specs archived: N
 - [x] MAP.md: verified (N missing)
 
