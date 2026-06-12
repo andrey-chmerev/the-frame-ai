@@ -52,7 +52,7 @@ SCAN_DIR="${ARGUMENTS:-"."}"
 
 **AWS:**
 ```bash
-grep -rn -E '(AKIA[0-9A-Z]{16}|(?i)aws[_-]?secret[_-]?access[_-]?key\s*[:=]\s*['"'"'"]?[a-zA-Z0-9/+=]{40})' \
+grep -rn -iE '(AKIA[0-9A-Z]{16}|aws[_-]?secret[_-]?access[_-]?key\s*[:=]\s*['"'"'"]?[a-zA-Z0-9/+=]{40})' \
   --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" \
   --include="*.py" --include="*.go" --include="*.env" --include="*.yaml" --include="*.yml" \
   --include="*.json" --include="*.toml" --include="*.conf" \
@@ -83,7 +83,7 @@ grep -rn -E '-----BEGIN (RSA |EC |DSA |OPENSSH )?PRIVATE KEY' \
 
 **Generic secrets (API keys, passwords):**
 ```bash
-grep -rn -E '(?i)(api[_-]?key|apikey|secret[_-]?key|access[_-]?key|auth[_-]?token)\s*[:=]\s*['"'"'"][a-zA-Z0-9_\-]{16,}['"'"'"]' \
+grep -rn -iE '(api[_-]?key|apikey|secret[_-]?key|access[_-]?key|auth[_-]?token)\s*[:=]\s*['"'"'"][a-zA-Z0-9_\-]{16,}['"'"'"]' \
   --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" \
   --include="*.py" --include="*.go" --include="*.java" --include="*.rb" \
   "$SCAN_DIR" 2>/dev/null | grep -v node_modules | grep -v '.git/' | grep -v test | grep -v mock | head -30
@@ -91,7 +91,7 @@ grep -rn -E '(?i)(api[_-]?key|apikey|secret[_-]?key|access[_-]?key|auth[_-]?toke
 
 **Connection strings:**
 ```bash
-grep -rn -E '(?i)(mysql|postgres(ql)?|mongodb(\+srv)?|redis|amqp)://[^\s'"'"'"]+' \
+grep -rn -iE '(mysql|postgres(ql)?|mongodb(\+srv)?|redis|amqp)://[^\s'"'"'"]+' \
   --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" \
   --include="*.py" --include="*.go" --include="*.env" --include="*.yaml" --include="*.yml" \
   "$SCAN_DIR" 2>/dev/null | grep -v node_modules | grep -v '.git/' | grep -v '\.example' | head -20

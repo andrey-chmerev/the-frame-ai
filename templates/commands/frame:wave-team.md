@@ -85,8 +85,8 @@ Launch review agents **in parallel** via Agent tool. Which agents to launch:
 
 | Agent | Always? | Trigger |
 |-------|---------|---------|
-| security-reviewer | yes | — |
-| performance-reviewer | yes | — |
+| security | yes | — |
+| performance-auditor | yes | — |
 | tests-reviewer | yes | — |
 | conventions-reviewer | yes | — |
 

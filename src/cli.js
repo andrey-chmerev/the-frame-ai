@@ -8,11 +8,11 @@ const HELP = `
 FRAME — Framework for AI-Assisted Solo Development v${VERSION}
 
 Usage:
-  the-frame init [target-dir]     Install FRAME into a project
-  the-frame update [target-dir]   Update FRAME files in a project
-  the-frame doctor [target-dir]   Check FRAME installation health
-  the-frame version               Show CLI version
-  the-frame help                  Show this help message
+  the-frame-ai init [target-dir]     Install FRAME into a project
+  the-frame-ai update [target-dir]   Update FRAME files in a project
+  the-frame-ai doctor [target-dir]   Check FRAME installation health
+  the-frame-ai version               Show CLI version
+  the-frame-ai help                  Show this help message
 
 Options:
   --lang <code>   Set response language (e.g. en, ru, zh). Overrides FRAME_LANG env var.
@@ -20,13 +20,13 @@ Options:
   --copilot       (update only) Enable GitHub Copilot Chat support (adds .vscode/*.prompt.md).
 
 Examples:
-  npx the-frame init              Install in current directory
-  npx the-frame init ../my-app    Install in specific directory
-  npx the-frame init --lang ru    Install with Russian language preset
-  npx the-frame update            Update in current directory
-  npx the-frame update --dry-run  Preview update without applying
-  npx the-frame update --copilot  Enable Copilot Chat support on existing install
-  npx the-frame doctor            Check health in current directory
+  npx the-frame-ai init              Install in current directory
+  npx the-frame-ai init ../my-app    Install in specific directory
+  npx the-frame-ai init --lang ru    Install with Russian language preset
+  npx the-frame-ai update            Update in current directory
+  npx the-frame-ai update --dry-run  Preview update without applying
+  npx the-frame-ai update --copilot  Enable Copilot Chat support on existing install
+  npx the-frame-ai doctor            Check health in current directory
 `;
 
 function parseFlags(args) {

@@ -65,32 +65,32 @@ Scan for leaked secrets using grep. Run each pattern group and collect results.
 
 **AWS Secrets:**
 ```bash
-grep -rn --include="*.{ts,tsx,js,jsx,py,go,rs,java,rb,php,env,yaml,yml,json,toml,conf,cfg,ini}" \
-  -E '(AKIA[0-9A-Z]{16}|(?i)aws[_-]?secret[_-]?access[_-]?key\s*[:=]\s*['\''"]?[a-zA-Z0-9/+=]{40}|(?i)aws[_-]?session[_-]?token\s*[:=])' . 2>/dev/null | grep -v node_modules | grep -v '.git/' | head -20
+grep -rn --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" --include="*.py" --include="*.go" --include="*.rs" --include="*.java" --include="*.rb" --include="*.php" --include="*.env" --include="*.yaml" --include="*.yml" --include="*.json" --include="*.toml" --include="*.conf" --include="*.cfg" --include="*.ini" \
+  -iE '(AKIA[0-9A-Z]{16}|aws[_-]?secret[_-]?access[_-]?key\s*[:=]\s*['\''"]?[a-zA-Z0-9/+=]{40}|aws[_-]?session[_-]?token\s*[:=])' . 2>/dev/null | grep -v node_modules | grep -v '.git/' | head -20
 ```
 
 **GitHub Tokens:**
 ```bash
-grep -rn --include="*.{ts,tsx,js,jsx,py,go,rs,java,rb,php,yaml,yml,json,toml,conf}" \
+grep -rn --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" --include="*.py" --include="*.go" --include="*.rs" --include="*.java" --include="*.rb" --include="*.php" --include="*.yaml" --include="*.yml" --include="*.json" --include="*.toml" --include="*.conf" \
   -E '(ghp_[A-Za-z0-9]{36}|gho_[A-Za-z0-9]{36}|ghu_[A-Za-z0-9]{36}|ghr_[A-Za-z0-9]{36}|github_pat_[A-Za-z0-9_]{82}|glpat-[A-Za-z0-9_-]{20,})' . 2>/dev/null | grep -v node_modules | grep -v '.git/' | head -20
 ```
 
 **Stripe Keys:**
 ```bash
-grep -rn --include="*.{ts,tsx,js,jsx,py,go,rs,java,yaml,yml,json,toml,conf}" \
+grep -rn --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" --include="*.py" --include="*.go" --include="*.rs" --include="*.java" --include="*.yaml" --include="*.yml" --include="*.json" --include="*.toml" --include="*.conf" \
   -E '(sk_live_[0-9a-zA-Z]{24,99}|sk_test_[0-9a-zA-Z]{24,99}|rk_(live|test)_[0-9a-zA-Z]{24,99})' . 2>/dev/null | grep -v node_modules | grep -v '.git/' | head -20
 ```
 
 **Slack Tokens:**
 ```bash
-grep -rn --include="*.{ts,tsx,js,jsx,py,go,yaml,yml,json,toml,conf}" \
+grep -rn --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" --include="*.py" --include="*.go" --include="*.yaml" --include="*.yml" --include="*.json" --include="*.toml" --include="*.conf" \
   -E '(xoxb-[0-9]{10,}-[a-zA-Z0-9-]+|xoxp-[0-9]{10,}-[a-zA-Z0-9-]+|xapp-[0-9]-[A-Za-z0-9-]+-[a-z0-9]{32,})' . 2>/dev/null | grep -v node_modules | grep -v '.git/' | head -20
 ```
 
 **Generic Secrets:**
 ```bash
-grep -rn --include="*.{ts,tsx,js,jsx,py,go,rs,java,rb,php,yaml,yml,json,toml,conf,cfg,ini}" \
-  -E '(?i)(api[_-]?key|apikey|app[_-]?key|secret[_-]?key|access[_-]?key)\s*[:=]\s*['\''"]\s*[a-zA-Z0-9_\-]{16,}\s*['\''"]' . 2>/dev/null | grep -v node_modules | grep -v '.git/' | grep -v 'test' | grep -v 'mock' | head -30
+grep -rn --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" --include="*.py" --include="*.go" --include="*.rs" --include="*.java" --include="*.rb" --include="*.php" --include="*.yaml" --include="*.yml" --include="*.json" --include="*.toml" --include="*.conf" --include="*.cfg" --include="*.ini" \
+  -iE '(api[_-]?key|apikey|app[_-]?key|secret[_-]?key|access[_-]?key)\s*[:=]\s*['\''"]\s*[a-zA-Z0-9_\-]{16,}\s*['\''"]' . 2>/dev/null | grep -v node_modules | grep -v '.git/' | grep -v 'test' | grep -v 'mock' | head -30
 ```
 
 **Private Keys:**
@@ -100,8 +100,8 @@ grep -rn -E '-----BEGIN (RSA |EC |DSA |OPENSSH )?PRIVATE KEY( BLOCK)?-----' . 2>
 
 **Connection Strings:**
 ```bash
-grep -rn --include="*.{ts,tsx,js,jsx,py,go,rs,java,yaml,yml,json,toml,conf,env}" \
-  -E '(?i)(mysql|postgres(ql)?|mongodb(\+srv)?|redis|amqp)://[^\s'\''"]+' . 2>/dev/null | grep -v node_modules | grep -v '.git/' | grep -v '\.example' | head -20
+grep -rn --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" --include="*.py" --include="*.go" --include="*.rs" --include="*.java" --include="*.yaml" --include="*.yml" --include="*.json" --include="*.toml" --include="*.conf" --include="*.env" \
+  -iE '(mysql|postgres(ql)?|mongodb(\+srv)?|redis|amqp)://[^\s'\''"]+' . 2>/dev/null | grep -v node_modules | grep -v '.git/' | grep -v '\.example' | head -20
 ```
 
 **JWT Tokens (hardcoded):**
@@ -111,7 +111,7 @@ grep -rn -E 'eyJ[A-Za-z0-9_-]+\.eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+' . 2>/dev/null
 
 **npm / PyPI Tokens:**
 ```bash
-grep -rn --include="*.{ts,tsx,js,jsx,py,yaml,yml,json,toml,conf}" \
+grep -rn --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" --include="*.py" --include="*.yaml" --include="*.yml" --include="*.json" --include="*.toml" --include="*.conf" \
   -E '(npm_[A-Za-z0-9]{36}|pypi-[A-Za-z0-9_-]{160,})' . 2>/dev/null | grep -v node_modules | grep -v '.git/' | head -10
 ```
 
@@ -133,22 +133,22 @@ For each finding, classify severity:
 **A01 — Broken Access Control:**
 ```bash
 # IDOR: endpoints using user-supplied IDs without ownership check
-grep -rn --include="*.{ts,tsx,js,jsx,py,go,rs,java,rb,php}" \
+grep -rn --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" --include="*.py" --include="*.go" --include="*.rs" --include="*.java" --include="*.rb" --include="*.php" \
   -E '(req\.params\.|req\.query\.|request\.GET\[|request\.POST\[|path\.parameter)' . 2>/dev/null | grep -v node_modules | grep -v '.git/' | grep -v test | head -20
 
 # Missing auth middleware
-grep -rn --include="*.{ts,tsx,js,jsx,py,go,rs,java,rb,php}" \
+grep -rn --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" --include="*.py" --include="*.go" --include="*.rs" --include="*.java" --include="*.rb" --include="*.php" \
   -E '(app\.(get|post|put|delete|patch)\s*\(|@(Get|Post|Put|Delete|Patch)Mapping|@app\.route|func.*Handler)' . 2>/dev/null | grep -v node_modules | grep -v '.git/' | grep -vi 'login\|auth\|register\|health' | head -20
 ```
 
 **A02 — Cryptographic Failures:**
 ```bash
 # Weak hashing
-grep -rn --include="*.{ts,tsx,js,jsx,py,go,rs,java,rb,php}" \
+grep -rn --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" --include="*.py" --include="*.go" --include="*.rs" --include="*.java" --include="*.rb" --include="*.php" \
   -E '(md5|sha1|createHash\(['\''"]md5['\''"]\)|createHash\(['\''"]sha1['\''"]\))' . 2>/dev/null | grep -v node_modules | grep -v '.git/' | grep -v test | head -10
 
 # Hardcoded JWT secrets
-grep -rn --include="*.{ts,tsx,js,jsx,py,go,rs,java}" \
+grep -rn --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" --include="*.py" --include="*.go" --include="*.rs" --include="*.java" \
   -E '(jwt\.sign|jwt\.verify|JWT_SECRET|jwt_secret)\s*\(' . 2>/dev/null | grep -v node_modules | grep -v '.git/' | grep -v test | head -10
 ```
 
@@ -157,46 +157,46 @@ grep -rn --include="*.{ts,tsx,js,jsx,py,go,rs,java}" \
 SQL Injection:
 ```bash
 # String concatenation in queries
-grep -rn --include="*.{ts,tsx,js,jsx,py,go,rs,java,rb,php}" \
+grep -rn --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" --include="*.py" --include="*.go" --include="*.rs" --include="*.java" --include="*.rb" --include="*.php" \
   -E '(query\s*\+|query\s*=\s*.*\+|execute\s*\(\s*['\''"`].*\+|\$\{.*\}.*SELECT|\$\{.*\}.*INSERT|\$\{.*\}.*UPDATE|\$\{.*\}.*DELETE|f['\''"].*SELECT.*\{|f['\''"].*INSERT.*\{)' . 2>/dev/null | grep -v node_modules | grep -v '.git/' | grep -v test | head -20
 
 # Raw queries with user input
-grep -rn --include="*.{ts,tsx,js,jsx,py,go,rs,java}" \
+grep -rn --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" --include="*.py" --include="*.go" --include="*.rs" --include="*.java" \
   -E '(raw\s*\(|sequelize\.query|db\.query|cursor\.execute|\.raw\()' . 2>/dev/null | grep -v node_modules | grep -v '.git/' | grep -v test | head -20
 ```
 
 Command Injection:
 ```bash
 # Dangerous exec patterns
-grep -rn --include="*.{ts,tsx,js,jsx,py,go,rs,java,rb,php}" \
+grep -rn --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" --include="*.py" --include="*.go" --include="*.rs" --include="*.java" --include="*.rb" --include="*.php" \
   -E '(child_process\.exec\(|os\.system\(|subprocess\.call\(.*shell\s*=\s*True|exec\(|eval\(|Runtime\.getRuntime\(\)\.exec)' . 2>/dev/null | grep -v node_modules | grep -v '.git/' | grep -v test | head -20
 ```
 
 Path Traversal:
 ```bash
 # User-controlled file operations
-grep -rn --include="*.{ts,tsx,js,jsx,py,go,rs,java,rb,php}" \
+grep -rn --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" --include="*.py" --include="*.go" --include="*.rs" --include="*.java" --include="*.rb" --include="*.php" \
   -E '(readFile|readfile|open|createReadStream|fs\.read|path\.join.*req\.|path\.join.*request\.|sendFile|download)' . 2>/dev/null | grep -v node_modules | grep -v '.git/' | grep -v test | head -20
 ```
 
 **A05 — Security Misconfiguration:**
 ```bash
 # Debug mode in production
-grep -rn --include="*.{ts,tsx,js,jsx,py,go,yaml,yml,json,toml,env}" \
+grep -rn --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" --include="*.py" --include="*.go" --include="*.yaml" --include="*.yml" --include="*.json" --include="*.toml" --include="*.env" \
   -E '(DEBUG\s*=\s*true|debug\s*:\s*true|debug\s*=\s*True|NODE_ENV.*development|FLASK_DEBUG)' . 2>/dev/null | grep -v node_modules | grep -v '.git/' | grep -v test | grep -v example | head -10
 
 # Verbose error handling
-grep -rn --include="*.{ts,tsx,js,jsx,py,go,rs,java,rb,php}" \
+grep -rn --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" --include="*.py" --include="*.go" --include="*.rs" --include="*.java" --include="*.rb" --include="*.php" \
   -E '(stack\s*\.\s*trace|err\.stack|exception\.trace|printStackTrace|res\.send\(err\)|response\.send\(error\))' . 2>/dev/null | grep -v node_modules | grep -v '.git/' | grep -v test | head -10
 ```
 
 **A08 — Insecure Deserialization:**
 ```bash
-grep -rn --include="*.{py,java,rb,php}" \
+grep -rn --include="*.py" --include="*.java" --include="*.rb" --include="*.php" \
   -E '(pickle\.loads|yaml\.load\(|marshal\.loads|unserialize\(|BinaryFormatter|ObjectInputStream)' . 2>/dev/null | grep -v node_modules | grep -v '.git/' | grep -v test | head -10
 
 # eval on user data in JS
-grep -rn --include="*.{ts,tsx,js,jsx}" \
+grep -rn --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" \
   -E '(eval\(|new Function\(|setTimeout\([^,]*\+|setInterval\([^,]*\+)' . 2>/dev/null | grep -v node_modules | grep -v '.git/' | grep -v test | head -10
 ```
 
@@ -207,41 +207,41 @@ grep -rn --include="*.{ts,tsx,js,jsx}" \
 **A03 — XSS (DOM-based):**
 ```bash
 # Dangerous DOM sinks
-grep -rn --include="*.{ts,tsx,js,jsx,vue,svelte}" \
+grep -rn --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" --include="*.vue" --include="*.svelte" \
   -E '(innerHTML|outerHTML|document\.write|document\.writeln|\.html\(|insertAdjacentHTML|dangerouslySetInnerHTML|v-html|\[innerHTML\])' . 2>/dev/null | grep -v node_modules | grep -v '.git/' | grep -v test | head -20
 
 # User-controlled sources
-grep -rn --include="*.{ts,tsx,js,jsx,vue,svelte}" \
+grep -rn --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" --include="*.vue" --include="*.svelte" \
   -E '(location\.href|location\.search|location\.hash|document\.referrer|window\.name|document\.URL|event\.data|postMessage)' . 2>/dev/null | grep -v node_modules | grep -v '.git/' | grep -v test | head -20
 ```
 
 **CSRF:**
 ```bash
 # Check for CSRF token usage
-grep -rn --include="*.{ts,tsx,js,jsx,py,go,java,rb,php,html}" \
+grep -rn --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" --include="*.py" --include="*.go" --include="*.java" --include="*.rb" --include="*.php" --include="*.html" \
   -E '(csrf|_token|xsrf|anti-forgery|csrfmiddlewaretoken)' . 2>/dev/null | grep -v node_modules | grep -v '.git/' | grep -v test | head -10
 ```
 
 **Insecure Storage:**
 ```bash
 # Tokens in localStorage/sessionStorage
-grep -rn --include="*.{ts,tsx,js,jsx,vue,svelte}" \
+grep -rn --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" --include="*.vue" --include="*.svelte" \
   -E '(localStorage\.(setItem|getItem)|sessionStorage\.(setItem|getItem))' . 2>/dev/null | grep -v node_modules | grep -v '.git/' | grep -v test | head -10
 
 # Cookies without security flags
-grep -rn --include="*.{ts,tsx,js,jsx,py,go,java,rb,php}" \
+grep -rn --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" --include="*.py" --include="*.go" --include="*.java" --include="*.rb" --include="*.php" \
   -E '(document\.cookie|Set-Cookie|set-cookie|setCookie|cookie\s*=)' . 2>/dev/null | grep -v node_modules | grep -v '.git/' | grep -v test | head -10
 ```
 
 **Open Redirects:**
 ```bash
-grep -rn --include="*.{ts,tsx,js,jsx,py,go,java,rb,php}" \
+grep -rn --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" --include="*.py" --include="*.go" --include="*.java" --include="*.rb" --include="*.php" \
   -E '(redirect\(|res\.redirect|response\.redirect|window\.location\s*=|window\.location\.href\s*=|window\.open\()' . 2>/dev/null | grep -v node_modules | grep -v '.git/' | grep -v test | head -10
 ```
 
 **Clickjacking:**
 ```bash
-grep -rn --include="*.{ts,tsx,js,jsx,py,go,java,rb,php,conf}" \
+grep -rn --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" --include="*.py" --include="*.go" --include="*.java" --include="*.rb" --include="*.php" --include="*.conf" \
   -E '(X-Frame-Options|frame-ancestors|X-FRAME-OPTIONS)' . 2>/dev/null | grep -v node_modules | grep -v '.git/' | head -5
 ```
 
@@ -285,7 +285,7 @@ fi
 
 **Debug Endpoints:**
 ```bash
-grep -rn --include="*.{ts,tsx,js,jsx,py,go,java,rb,php}" \
+grep -rn --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" --include="*.py" --include="*.go" --include="*.java" --include="*.rb" --include="*.php" \
   -E '(/debug|/actuator|/__debug__|/phpinfo|/server-status|/admin|graphql.*introspect)' . 2>/dev/null | grep -v node_modules | grep -v '.git/' | grep -v test | head -10
 ```
 
@@ -305,7 +305,7 @@ Only run this step if AI/LLM patterns are detected in the project.
 
 **Detect AI usage:**
 ```bash
-grep -rl --include="*.{ts,tsx,js,jsx,py,go,rs}" \
+grep -rl --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" --include="*.py" --include="*.go" --include="*.rs" \
   -E '(anthropic|openai|langchain|llama|ollama|claude|gpt|chatgpt|prompt|completion)' . 2>/dev/null | grep -v node_modules | grep -v '.git/' | grep -v test | head -20
 ```
 
@@ -314,31 +314,31 @@ If AI patterns found, check:
 **Prompt Injection:**
 ```bash
 # User input directly in prompts
-grep -rn --include="*.{ts,tsx,js,jsx,py}" \
+grep -rn --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" --include="*.py" \
   -E '(messages.*user.*content.*req\.|messages.*user.*content.*request\.|prompt.*\$\{|prompt.*\{.*req\.)' . 2>/dev/null | grep -v node_modules | grep -v '.git/' | grep -v test | head -10
 ```
 
 **LLM Output in Dangerous Sinks:**
 ```bash
 # LLM output in SQL
-grep -rn --include="*.{ts,tsx,js,jsx,py}" \
+grep -rn --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" --include="*.py" \
   -E '(execute.*response|query.*completion|execute.*output)' . 2>/dev/null | grep -v node_modules | grep -v '.git/' | grep -v test | head -10
 
 # LLM output rendered as HTML
-grep -rn --include="*.{ts,tsx,js,jsx,py}" \
+grep -rn --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" --include="*.py" \
   -E '(innerHTML.*response|html.*completion|render.*output)' . 2>/dev/null | grep -v node_modules | grep -v '.git/' | grep -v test | head -10
 ```
 
 **Excessive LLM Permissions:**
 ```bash
 # LLM with tool access to sensitive operations
-grep -rn --include="*.{ts,tsx,js,jsx,py}" \
+grep -rn --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" --include="*.py" \
   -E '(tools.*database|tools.*write|tools.*exec|function_calling.*db|function_calling.*exec)' . 2>/dev/null | grep -v node_modules | grep -v '.git/' | grep -v test | head -10
 ```
 
 **System Prompt in Source:**
 ```bash
-grep -rn --include="*.{ts,tsx,js,jsx,py,json,yaml,yml}" \
+grep -rn --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" --include="*.py" --include="*.json" --include="*.yaml" --include="*.yml" \
   -E '(system.*prompt|SYSTEM_PROMPT|systemPrompt)' . 2>/dev/null | grep -v node_modules | grep -v '.git/' | grep -v test | grep -v node_modules | head -10
 ```
 

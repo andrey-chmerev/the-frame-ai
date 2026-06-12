@@ -131,7 +131,7 @@ FRAME — AI-सहायता प्राप्त एकल विकास 
 
 **स्वचालित जांच**: `/frame:build`, `/frame:fast`, `/frame:wave` और `/frame:debug` में — अगर कार्य UI फ़ाइलों (`.tsx`, `.vue`, `.css`, `component`, `page`) को छूता है — quality gates के बाद ब्राउज़र जांच स्वचालित रूप से चलती है।
 
-**Playwright MCP आवश्यक है** — `npx the-frame init` या `npx the-frame update` पर frontend project प्रश्न का "y" उत्तर देने पर स्वचालित रूप से जोड़ा जाता है।
+**Playwright MCP आवश्यक है** — `npx the-frame-ai init` या `npx the-frame-ai update` पर frontend project प्रश्न का "y" उत्तर देने पर स्वचालित रूप से जोड़ा जाता है।
 
 ### सुरक्षा: लॉन्च से पहले ऑडिट
 

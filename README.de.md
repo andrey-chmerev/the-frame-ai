@@ -131,7 +131,7 @@ Der Befehl **prüft** nur — er behebt nicht automatisch. Wenn er ein Problem f
 
 **Automatische Prüfung**: in `/frame:build`, `/frame:fast`, `/frame:wave` und `/frame:debug` — wenn die Aufgabe UI-Dateien berührt (`.tsx`, `.vue`, `.css`, `component`, `page`) — wird die Browser-Prüfung automatisch nach den Quality Gates ausgeführt.
 
-**Erfordert Playwright MCP** — wird automatisch bei `npx the-frame init` oder `npx the-frame update` hinzugefügt, wenn die Frage zum Frontend-Projekt mit "y" beantwortet wird.
+**Erfordert Playwright MCP** — wird automatisch bei `npx the-frame-ai init` oder `npx the-frame-ai update` hinzugefügt, wenn die Frage zum Frontend-Projekt mit "y" beantwortet wird.
 
 ### Sicherheit: Audit vor dem Launch
 

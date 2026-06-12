@@ -1,7 +1,7 @@
 import { join } from 'node:path';
 import { readdirSync, writeFileSync, readFileSync } from 'node:fs';
 import { TEMPLATES_DIR, VERSION, log, logSuccess } from './manifest.js';
-import { copyDir, makeExecutable, fileExists, applyVars, writeFile, ensureDir, mergeVscodeSettings, mergeClaudeSettings, mergeVscodeMcp } from './utils.js';
+import { copyDir, makeExecutable, fileExists, applyVars, writeFile, ensureDir, mergeVscodeSettings, mergeFrameSettings, writeMcpConfig, mergeVscodeMcp } from './utils.js';
 import { promptFrontend } from './languages.js';
 
 
@@ -111,9 +111,12 @@ export async function update(target, flags = {}) {
 
   // 5. Apply Playwright MCP if frontend
   if (frontendDecided) {
-    mergeClaudeSettings(join(target, '.claude', 'settings.json'));
+    writeMcpConfig(join(target, '.mcp.json'));
     if (config.copilot) mergeVscodeMcp(join(target, '.vscode', 'mcp.json'));
   }
+
+  // 5b. Always re-merge hooks and permissions into settings.json
+  mergeFrameSettings(join(target, '.claude', 'settings.json'));
 
   // 5. Write new version
   writeFileSync(join(target, '.frame', '.frame-version'), VERSION, 'utf-8');

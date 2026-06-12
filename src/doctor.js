@@ -16,7 +16,7 @@ const REQUIRED_FILES = [
   'CLAUDE.md',
   '.frame/config.json',
   '.frame/.frame-version',
-  '.claude/settings.local.json',
+  '.claude/settings.json',
   '.planning/STATE.md',
   '.planning/MAP.md',
   '.planning/pause-state.json',

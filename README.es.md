@@ -131,7 +131,7 @@ El comando solo **verifica** — no corrige automáticamente. Si encuentra un pr
 
 **Verificación automática**: en `/frame:build`, `/frame:fast`, `/frame:wave` y `/frame:debug` — si la tarea toca archivos de UI (`.tsx`, `.vue`, `.css`, `component`, `page`) — la verificación del navegador se ejecuta automáticamente después de los quality gates.
 
-**Requiere Playwright MCP** — se añade automáticamente en `npx the-frame init` o `npx the-frame update` si respondes "y" a la pregunta sobre proyecto frontend.
+**Requiere Playwright MCP** — se añade automáticamente en `npx the-frame-ai init` o `npx the-frame-ai update` si respondes "y" a la pregunta sobre proyecto frontend.
 
 ### Seguridad: auditoría antes del lanzamiento
 

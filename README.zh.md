@@ -131,7 +131,7 @@ FRAME — 面向 AI 辅助独立开发的框架
 
 **自动检查**：在 `/frame:build`、`/frame:fast`、`/frame:wave` 和 `/frame:debug` 中 — 如果任务涉及 UI 文件（`.tsx`、`.vue`、`.css`、`component`、`page`）— 浏览器检查会在 quality gates 后自动运行。
 
-**需要 Playwright MCP** — 在 `npx the-frame init` 或 `npx the-frame update` 时，如果对前端项目问题回答"y"，会自动添加。
+**需要 Playwright MCP** — 在 `npx the-frame-ai init` 或 `npx the-frame-ai update` 时，如果对前端项目问题回答"y"，会自动添加。
 
 ### 安全：发布前审计
 

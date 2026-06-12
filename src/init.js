@@ -10,7 +10,8 @@ import {
   writeFile,
   applyVars,
   mergeVscodeSettings,
-  mergeClaudeSettings,
+  mergeFrameSettings,
+  writeMcpConfig,
   mergeVscodeMcp,
 } from './utils.js';
 import { LANGUAGES, getLanguageInstruction, promptLanguage, promptConfig, promptCopilot, promptFrontend } from './languages.js';
@@ -24,9 +25,11 @@ const PLANNING_DIRS = [
   '.planning/reports/quality',
   '.planning/reports/sprint',
   '.planning/reports/cleanup',
+  '.planning/reports/performance',
+  '.planning/reports/security',
   '.planning/reviews',
-  '.planning/specs/archive',
   '.planning/forensics',
+  'docs/specs/archive',
 ];
 
 const CLAUDE_DIRS = [
@@ -36,16 +39,24 @@ const CLAUDE_DIRS = [
   '.claude/skills',
 ];
 
-// Files in templates/project/ that should be mapped to root-level destinations
+// Files in templates/project/ that should be mapped to specific destinations
 const ROOT_FILE_MAP = {
   'CLAUDE.md': 'CLAUDE.md',
-  'settings.local.json': '.claude/settings.local.json',
   'config.json': '.frame/config.json',
   'STATE.md': '.planning/STATE.md',
   'MAP.md': '.planning/MAP.md',
+  'ROADMAP.md': '.planning/ROADMAP.md',
+  'CONTEXT.md': '.planning/CONTEXT.md',
 };
 
-const SKIP_PROJECT_FILES = new Set(['CONTEXT.md']);
+// Directory prefix remapping: source prefix → destination prefix
+const DIR_PREFIX_MAP = {
+  'memory/': '.planning/memory/',
+  'specs/': 'docs/specs/',
+};
+
+// Files in templates/project/ to skip (not install)
+const SKIP_PROJECT_FILES = new Set(['settings.local.json']);
 
 
 export async function init(target, flags = {}) {
@@ -90,8 +101,8 @@ export async function init(target, flags = {}) {
   // 2b. Frontend: Playwright MCP
   const frontend = await promptFrontend(flags.yes);
   if (frontend) {
-    mergeClaudeSettings(join(target, '.claude', 'settings.json'));
-    logSuccess(`Playwright MCP → .claude/settings.json`);
+    writeMcpConfig(join(target, '.mcp.json'));
+    logSuccess(`Playwright MCP → .mcp.json`);
   }
 
   // 2c. Copilot Chat support
@@ -153,12 +164,18 @@ export async function init(target, flags = {}) {
     if (ROOT_FILE_MAP[relPath]) {
       destPath = join(target, ROOT_FILE_MAP[relPath]);
     } else {
-      destPath = join(target, relPath);
+      const prefixEntry = Object.entries(DIR_PREFIX_MAP).find(([p]) => relPath.startsWith(p));
+      if (prefixEntry) {
+        destPath = join(target, prefixEntry[1] + relPath.slice(prefixEntry[0].length));
+      } else {
+        destPath = join(target, relPath);
+      }
     }
 
     ensureDir(join(destPath, '..'));
     const content = readFileSync(srcPath, 'utf-8');
-    const replaced = relPath.startsWith('specs/_template/') ? content : applyVars(content, vars, qualityVars);
+    const noVars = relPath.startsWith('specs/_template/') || relPath.startsWith('specs/') && relPath.includes('_template/');
+    const replaced = noVars ? content : applyVars(content, vars, qualityVars);
     writeFile(destPath, replaced);
     fileCount++;
   }
@@ -172,11 +189,16 @@ export async function init(target, flags = {}) {
   // 8. Save resolved config (with user's stack choices + language)
   const configPath = join(target, '.frame', 'config.json');
   if (fileExists(configPath)) {
+    resolvedConfig.project = projectName;
     resolvedConfig.language = language;
     resolvedConfig.copilot = copilot;
     resolvedConfig.frontend = frontend;
     writeFile(configPath, JSON.stringify(resolvedConfig, null, 2));
   }
+
+  // 8b. Write hooks and permissions to shared settings.json (merge, not overwrite)
+  mergeFrameSettings(join(target, '.claude', 'settings.json'));
+  logSuccess(`Hooks + permissions → .claude/settings.json`);
 
   // 9. Inject language instruction into CLAUDE.md
   const claudeMdPath = join(target, 'CLAUDE.md');
@@ -196,11 +218,11 @@ export async function init(target, flags = {}) {
   log(`  Planning:  files in .planning/`);
   log(`  Config:    .frame/config.json`);
   if (copilot) log(`  Copilot:   ${commandCount} prompts in .vscode/`);
-  if (frontend) log(`  Playwright MCP: .claude/settings.json${copilot ? ' + .vscode/mcp.json' : ''}`);
+  if (frontend) log(`  Playwright MCP: .mcp.json${copilot ? ' + .vscode/mcp.json' : ''}`);
   log('');
 
   // 11. Auto-run doctor
-  log('\n--- Проверка установки ---');
+  log('\n--- Installation check ---');
   await doctor(target);
 
   log('  Next steps:');

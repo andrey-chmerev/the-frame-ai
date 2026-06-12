@@ -129,7 +129,7 @@ Research → Plan → Build → Review → Ship → Reflect
 
 **Автоматическая проверка**: в `/frame:build`, `/frame:fast`, `/frame:wave` и `/frame:debug` — если задача затрагивает UI-файлы (`.tsx`, `.vue`, `.css`, `component`, `page`) — браузерная проверка запускается автоматически после quality gates.
 
-**Требует Playwright MCP** — добавляется автоматически при `npx the-frame init` или `npx the-frame update` если ответить "y" на вопрос про фронтенд-проект.
+**Требует Playwright MCP** — добавляется автоматически при `npx the-frame-ai init` или `npx the-frame-ai update` если ответить "y" на вопрос про фронтенд-проект.
 
 ### Безопасность: аудит перед запуском
 
@@ -242,7 +242,7 @@ FRAME даёт:
 git init && git commit --allow-empty -m "init"
 
 # Установить FRAME
-npx the-frame init
+npx the-frame-ai init
 
 # Открой Claude Code в этом проекте и введи:
 /frame:init    # сканирует кодовую базу, заполняет MAP.md
@@ -395,10 +395,10 @@ FRAME настраивается через `.frame/config.json`. Ключевы
 ## CLI
 
 ```bash
-npx the-frame init [целевая-папка]     # Установить FRAME
-npx the-frame update [целевая-папка]   # Обновить команды, агентов, хуки
-npx the-frame doctor [целевая-папка]   # Проверить здоровье установки
-npx the-frame version                  # Показать версию CLI
+npx the-frame-ai init [целевая-папка]     # Установить FRAME
+npx the-frame-ai update [целевая-папка]   # Обновить команды, агентов, хуки
+npx the-frame-ai doctor [целевая-папка]   # Проверить здоровье установки
+npx the-frame-ai version                  # Показать версию CLI
 ```
 
 `update` обновляет только команды, агентов и хуки. Файлы проекта (STATE.md, MAP.md, memory/ и т.д.) никогда не перезаписываются.

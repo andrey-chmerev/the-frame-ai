@@ -1,9 +1,10 @@
 {
+  "_note": "FRAME hooks and permissions are written to .claude/settings.json during init. This file is provided as a reference template only.",
   "permissions": {
     "allow": [
-      "npx tsc *",
-      "npx vitest *",
-      "npx eslint *",
+      "Bash(npx tsc:*)",
+      "Bash(npx vitest:*)",
+      "Bash(npx eslint:*)",
       "WebSearch",
       "WebFetch"
     ]
@@ -15,22 +16,22 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash .claude/hooks/safety-net.sh"
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/safety-net.sh\""
           },
           {
             "type": "command",
-            "command": "bash .claude/hooks/git-safety.sh"
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/git-safety.sh\""
           }
         ]
       }
     ],
     "PostToolUse": [
       {
-        "matcher": "Write|Edit",
+        "matcher": "Write|Edit|NotebookEdit",
         "hooks": [
           {
             "type": "command",
-            "command": "bash .claude/hooks/quality-gate.sh",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/quality-gate.sh\"",
             "async": true
           }
         ]
@@ -41,7 +42,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash .claude/hooks/session-init.sh"
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/session-init.sh\""
           }
         ]
       }

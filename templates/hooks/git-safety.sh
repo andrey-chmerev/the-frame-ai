@@ -20,10 +20,10 @@ if echo "$COMMAND" | grep -qiE 'git\s+push.*(--force|-f)' && ! echo "$COMMAND" |
 fi
 
 if echo "$COMMAND" | grep -qiE 'git\s+reset\s+--hard'; then
-  if [ "${FRAME_INTERNAL}" = "1" ]; then
+  if echo "$COMMAND" | grep -q 'frame/checkpoint/'; then
     exit 0
   fi
-  deny "FRAME Git Safety: git reset --hard blocked. Use git restore or git stash instead."
+  deny "FRAME Git Safety: git reset --hard blocked. Use git restore or git stash instead. To rollback to a checkpoint, use /frame:rollback."
 fi
 
 if echo "$COMMAND" | grep -qiE 'git\s+add\s+(-A|\.)'; then

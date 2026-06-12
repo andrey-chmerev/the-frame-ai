@@ -69,13 +69,66 @@ const PLAYWRIGHT_MCP = {
   args: ['@playwright/mcp@latest'],
 };
 
-export function mergeClaudeSettings(settingsPath) {
+// Writes Playwright MCP to .mcp.json (project root) — the correct location for project MCPs
+export function writeMcpConfig(mcpPath) {
+  let config = {};
+  if (existsSync(mcpPath)) {
+    try { config = JSON.parse(readFileSync(mcpPath, 'utf-8')); } catch {}
+  }
+  config.mcpServers = config.mcpServers ?? {};
+  config.mcpServers.playwright = PLAYWRIGHT_MCP;
+  writeFileSync(mcpPath, JSON.stringify(config, null, 2), 'utf-8');
+}
+
+const FRAME_PERMISSIONS = [
+  'Bash(npx tsc:*)',
+  'Bash(npx vitest:*)',
+  'Bash(npx eslint:*)',
+  'WebSearch',
+  'WebFetch',
+];
+
+const FRAME_HOOKS = {
+  PreToolUse: [
+    {
+      matcher: 'Bash',
+      hooks: [
+        { type: 'command', command: 'bash "$CLAUDE_PROJECT_DIR/.claude/hooks/safety-net.sh"' },
+        { type: 'command', command: 'bash "$CLAUDE_PROJECT_DIR/.claude/hooks/git-safety.sh"' },
+      ],
+    },
+  ],
+  PostToolUse: [
+    {
+      matcher: 'Write|Edit|NotebookEdit',
+      hooks: [
+        { type: 'command', command: 'bash "$CLAUDE_PROJECT_DIR/.claude/hooks/quality-gate.sh"', async: true },
+      ],
+    },
+  ],
+  SessionStart: [
+    {
+      hooks: [
+        { type: 'command', command: 'bash "$CLAUDE_PROJECT_DIR/.claude/hooks/session-init.sh"' },
+      ],
+    },
+  ],
+};
+
+// Merges FRAME hooks and permissions into .claude/settings.json (shared, git-tracked)
+export function mergeFrameSettings(settingsPath) {
   let settings = {};
   if (existsSync(settingsPath)) {
     try { settings = JSON.parse(readFileSync(settingsPath, 'utf-8')); } catch {}
   }
-  settings.mcpServers = settings.mcpServers ?? {};
-  settings.mcpServers.playwright = PLAYWRIGHT_MCP;
+  settings.permissions = settings.permissions ?? {};
+  settings.permissions.allow = settings.permissions.allow ?? [];
+  for (const perm of FRAME_PERMISSIONS) {
+    if (!settings.permissions.allow.includes(perm)) {
+      settings.permissions.allow.push(perm);
+    }
+  }
+  settings.hooks = FRAME_HOOKS;
   writeFileSync(settingsPath, JSON.stringify(settings, null, 2), 'utf-8');
 }
 

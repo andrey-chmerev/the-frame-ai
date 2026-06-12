@@ -131,7 +131,7 @@ Claude Codeで一人でプロダクトを作っていて、チームのように
 
 **自動チェック**：`/frame:build`、`/frame:fast`、`/frame:wave`、`/frame:debug` で — タスクがUIファイル（`.tsx`、`.vue`、`.css`、`component`、`page`）に触れる場合 — ブラウザチェックがquality gatesの後に自動的に実行されます。
 
-**Playwright MCPが必要** — `npx the-frame init` または `npx the-frame update` 時にフロントエンドプロジェクトの質問に"y"と答えると自動的に追加されます。
+**Playwright MCPが必要** — `npx the-frame-ai init` または `npx the-frame-ai update` 時にフロントエンドプロジェクトの質問に"y"と答えると自動的に追加されます。
 
 ### セキュリティ：リリース前の監査
 
