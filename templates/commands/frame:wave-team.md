@@ -1,3 +1,6 @@
+---
+description: "Build with inline QA team: run wave tasks with parallel security and perf review"
+---
 # /frame:wave-team -- Build with Inline QA Team
 
 > Like `/frame:wave` but after each task a team of review agents checks the result and Orchestrator fixes issues before moving on.
@@ -9,7 +12,7 @@
 ### Step 0: Checkpoint + Update STATE.md
 
 ```bash
-git tag "frame/checkpoint/wave-team-$(date +%s)" -m "Auto checkpoint before wave-team"
+git tag "frame/checkpoint/wave-team-$(date +%Y%m%dT%H%M%S)" -m "Auto checkpoint before wave-team"
 ```
 
 Update `.planning/STATE.md`:

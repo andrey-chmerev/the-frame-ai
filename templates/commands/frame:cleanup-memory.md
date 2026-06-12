@@ -1,3 +1,7 @@
+---
+description: "Trim and archive memory files, removing stale and low-confidence entries"
+allowed-tools: [Read, Write, Bash]
+---
 # /frame:cleanup-memory -- Memory Cleanup
 
 Cleans and updates memory files.

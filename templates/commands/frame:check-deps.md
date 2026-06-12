@@ -1,3 +1,7 @@
+---
+description: "Audit project dependencies for outdated packages, vulnerabilities, and bloat"
+allowed-tools: [Read, Bash]
+---
 # /frame:check-deps -- Dependency Watch
 
 Checks for outdated dependencies and vulnerabilities. Run before every `/frame:ship` and weekly.

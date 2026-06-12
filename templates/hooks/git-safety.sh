@@ -15,18 +15,24 @@ ask() {
   exit 0
 }
 
-if echo "$COMMAND" | grep -qiE 'git\s+push.*(--force|-f)' && ! echo "$COMMAND" | grep -q 'force-with-lease'; then
-  deny "FRAME Git Safety: Force push blocked. Use regular push. If you must force push, do it manually."
+# Block force push: match --force or -f only as standalone flags (not as substrings in branch names)
+# -f must be preceded by whitespace or start-of-string to avoid false positives like my-fix, --follow-tags
+if echo "$COMMAND" | grep -qiE 'git(\s+-\S+)*\s+push' && ! echo "$COMMAND" | grep -q 'force-with-lease'; then
+  if echo "$COMMAND" | grep -qE '(^|\s)(--force|-f)(\s|$)' || echo "$COMMAND" | grep -qE '\+[a-zA-Z0-9_/.-]+:'; then
+    deny "FRAME Git Safety: Force push blocked. Use regular push or --force-with-lease. If you must force push, do it manually."
+  fi
 fi
 
-if echo "$COMMAND" | grep -qiE 'git\s+reset\s+--hard'; then
+# Block git reset --hard unless targeting a FRAME checkpoint tag
+if echo "$COMMAND" | grep -qiE 'git(\s+-\S+)*\s+reset\s+--hard'; then
   if echo "$COMMAND" | grep -q 'frame/checkpoint/'; then
     exit 0
   fi
   deny "FRAME Git Safety: git reset --hard blocked. Use git restore or git stash instead. To rollback to a checkpoint, use /frame:rollback."
 fi
 
-if echo "$COMMAND" | grep -qiE 'git\s+add\s+(-A|\.)'; then
+# Ask before staging all files
+if echo "$COMMAND" | grep -qiE 'git(\s+-\S+)*\s+add\s+(-A|--all|\.)(\s|$)'; then
   ask "FRAME Git Safety: FRAME recommends using specific files instead of git add -A. Are you sure you want to add all files?"
 fi
 

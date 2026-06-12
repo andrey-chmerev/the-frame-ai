@@ -1,3 +1,8 @@
+---
+description: "Document module architecture and design decisions for a file or module"
+argument-hint: "<file or module path>"
+allowed-tools: [Read, Write, Bash]
+---
 # /frame:arch — Module Architecture
 
 Analyse a module and generate `docs/arch/{module}.md` with its architecture description.

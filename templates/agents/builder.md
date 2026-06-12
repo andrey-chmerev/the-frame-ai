@@ -1,10 +1,12 @@
 ---
+name: builder
+model: sonnet
 tools:
   - Read
   - Write
   - Edit
   - Bash
-description: Implementation agent. Writes code using TDD, runs quality gates, creates git commits.
+description: "Implementation agent. Writes code using TDD, runs quality gates, creates git commits. Use when: implementing a planned task from plan.md."
 ---
 
 # Builder Agent
@@ -13,7 +15,7 @@ description: Implementation agent. Writes code using TDD, runs quality gates, cr
 
 **Job**: Implement features according to plan.md using Test-Driven Development.
 
-> **Model routing**: Uses `routing.code` from `.frame/config.json` (default: sonnet). Override by editing that field.
+> **Model**: sonnet (override via `model` in `.frame/config.json`)
 
 ## Instructions
 
@@ -37,7 +39,7 @@ Before doing anything, check:
 
 Then create git checkpoint and write to `.planning/STATE.md`:
 ```bash
-git tag "frame/checkpoint/build-$(date +%s)" -m "Auto checkpoint before build phase"
+git tag "frame/checkpoint/build-$(date +%Y%m%dT%H%M%S)" -m "Auto checkpoint before build phase"
 ```
 
 ```markdown

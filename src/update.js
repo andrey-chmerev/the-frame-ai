@@ -1,7 +1,21 @@
 import { join } from 'node:path';
-import { readdirSync, writeFileSync, readFileSync } from 'node:fs';
+import { readdirSync, writeFileSync, readFileSync, existsSync } from 'node:fs';
 import { TEMPLATES_DIR, VERSION, log, logSuccess } from './manifest.js';
-import { copyDir, makeExecutable, fileExists, applyVars, writeFile, ensureDir, mergeVscodeSettings, mergeFrameSettings, writeMcpConfig, mergeVscodeMcp } from './utils.js';
+import {
+  copyDir,
+  makeExecutable,
+  fileExists,
+  applyVars,
+  writeFile,
+  ensureDir,
+  mergeVscodeSettings,
+  mergeFrameSettings,
+  writeMcpConfig,
+  mergeVscodeMcp,
+  hashContent,
+  readManifest,
+  writeManifest,
+} from './utils.js';
 import { promptFrontend } from './languages.js';
 
 
@@ -24,6 +38,11 @@ export async function update(target, flags = {}) {
     Object.entries(config.quality?.commands ?? {}).map(([k, v]) => [`quality.commands.${k}`, v])
   );
 
+  // Load manifest of files installed by FRAME (to detect user-modified files)
+  const manifestPath = join(target, '.frame', 'manifest.json');
+  const oldManifest = readManifest(manifestPath);
+  const newManifest = {};
+
   if (flags.dryRun) {
     log(`\nFRAME dry-run: ${installedVersion} → ${VERSION}\n`);
     log('Files that would be updated:');
@@ -36,9 +55,38 @@ export async function update(target, flags = {}) {
     let total = 0;
     for (const { src, label } of sections) {
       const files = readdirSync(src).filter((f) => !f.startsWith('.'));
-      files.forEach((f) => log(`  ~ ${label}${f}`));
-      total += files.length;
+      files.forEach((f) => {
+        const destKey = `${label}${f}`;
+        const destFull = join(target, destKey);
+        const templateContent = applyVars(readFileSync(join(src, f), 'utf-8'), vars, qualityVars);
+        const newHash = hashContent(templateContent);
+        if (existsSync(destFull)) {
+          const currentHash = hashContent(readFileSync(destFull, 'utf-8'));
+          const installedHash = oldManifest[destKey];
+          if (currentHash !== installedHash && installedHash !== undefined) {
+            log(`  ? ${destKey} (user-modified — would skip; use --force to overwrite)`);
+          } else {
+            log(`  ~ ${destKey}`);
+          }
+        } else {
+          log(`  + ${destKey} (new)`);
+        }
+        total++;
+      });
     }
+
+    // Detect orphans (in manifest but not in new templates)
+    const allNewKeys = new Set(
+      sections.flatMap(({ src, label }) =>
+        readdirSync(src).filter((f) => !f.startsWith('.')).map((f) => `${label}${f}`)
+      )
+    );
+    const orphans = Object.keys(oldManifest).filter((k) => !allNewKeys.has(k));
+    if (orphans.length > 0) {
+      log('\n  Orphaned files (renamed/removed in framework, user copy remains):');
+      orphans.forEach((o) => log(`  ! ${o}`));
+    }
+
     if (config.copilot || flags.copilot) {
       const files = readdirSync(join(TEMPLATES_DIR, 'commands')).filter((f) => f.endsWith('.md'));
       files.forEach((f) => log(`  ~ .github/prompts/${f.replace(/\.md$/, '.prompt.md')}`));
@@ -61,36 +109,67 @@ export async function update(target, flags = {}) {
   }
 
   let updated = 0;
+  let skipped = 0;
+
+  // Helper: update a single framework file respecting manifest
+  function updateFile(destPath, destKey, content) {
+    const newHash = hashContent(content);
+    newManifest[destKey] = newHash;
+    if (existsSync(destPath)) {
+      const currentHash = hashContent(readFileSync(destPath, 'utf-8'));
+      const installedHash = oldManifest[destKey];
+      // Skip if user has modified the file (current differs from what we installed)
+      if (installedHash !== undefined && currentHash !== installedHash && !flags.force) {
+        log(`  skip ${destKey} (user-modified)`);
+        skipped++;
+        return;
+      }
+    }
+    writeFile(destPath, content);
+    updated++;
+  }
 
   // 1. Update commands
   const commandsSrc = join(TEMPLATES_DIR, 'commands');
   const commandsDest = join(target, '.claude', 'commands');
-  copyDir(commandsSrc, commandsDest);
-  for (const f of readdirSync(commandsDest).filter((f) => f.endsWith('.md'))) {
-    const p = join(commandsDest, f);
-    writeFile(p, applyVars(readFileSync(p, 'utf-8'), vars, qualityVars));
+  ensureDir(commandsDest);
+  for (const f of readdirSync(commandsSrc).filter((f) => f.endsWith('.md'))) {
+    const content = applyVars(readFileSync(join(commandsSrc, f), 'utf-8'), vars, qualityVars);
+    const destKey = `.claude/commands/${f}`;
+    updateFile(join(commandsDest, f), destKey, content);
   }
-  updated += readdirSync(commandsSrc).filter((f) => f.endsWith('.md')).length;
+
+  // Detect orphaned command files
+  for (const f of readdirSync(commandsDest).filter((f) => f.endsWith('.md'))) {
+    const key = `.claude/commands/${f}`;
+    if (key in oldManifest && !existsSync(join(commandsSrc, f))) {
+      log(`  orphan ${key} (removed from framework; delete manually if no longer needed)`);
+    }
+  }
 
   // 2. Update agents
   const agentsSrc = join(TEMPLATES_DIR, 'agents');
   const agentsDest = join(target, '.claude', 'agents');
-  copyDir(agentsSrc, agentsDest);
-  for (const f of readdirSync(agentsDest).filter((f) => f.endsWith('.md'))) {
-    const p = join(agentsDest, f);
-    writeFile(p, applyVars(readFileSync(p, 'utf-8'), vars, qualityVars));
+  ensureDir(agentsDest);
+  for (const f of readdirSync(agentsSrc).filter((f) => f.endsWith('.md'))) {
+    const content = applyVars(readFileSync(join(agentsSrc, f), 'utf-8'), vars, qualityVars);
+    const destKey = `.claude/agents/${f}`;
+    updateFile(join(agentsDest, f), destKey, content);
   }
-  updated += readdirSync(agentsSrc).filter((f) => f.endsWith('.md')).length;
 
-  // 3. Update hooks
+  // 3. Update hooks (always overwrite — hooks are infrastructure, not user-editable)
   const hooksSrc = join(TEMPLATES_DIR, 'hooks');
   const hooksDest = join(target, '.claude', 'hooks');
-  copyDir(hooksSrc, hooksDest);
-  const hookFiles = readdirSync(hooksSrc);
-  for (const hook of hookFiles) {
-    makeExecutable(join(hooksDest, hook));
+  ensureDir(hooksDest);
+  for (const hook of readdirSync(hooksSrc)) {
+    const srcPath = join(hooksSrc, hook);
+    const destPath = join(hooksDest, hook);
+    const content = readFileSync(srcPath, 'utf-8');
+    writeFile(destPath, content);
+    makeExecutable(destPath);
+    newManifest[`.claude/hooks/${hook}`] = hashContent(content);
+    updated++;
   }
-  updated += hookFiles.length;
 
   // 4. Update Copilot prompts
   if (config.copilot || flags.copilot) {
@@ -118,10 +197,11 @@ export async function update(target, flags = {}) {
   // 5b. Always re-merge hooks and permissions into settings.json
   mergeFrameSettings(join(target, '.claude', 'settings.json'));
 
-  // 5. Write new version
+  // 6. Write new version and updated manifest
   writeFileSync(join(target, '.frame', '.frame-version'), VERSION, 'utf-8');
+  writeManifest(manifestPath, newManifest);
 
-  logSuccess(`Updated: ${updated} framework files`);
+  logSuccess(`Updated: ${updated} framework files${skipped > 0 ? ` (${skipped} user-modified files skipped; use --force to overwrite)` : ''}`);
 
   log(`\nFRAME updated: v${installedVersion} → v${VERSION}\n`);
 }

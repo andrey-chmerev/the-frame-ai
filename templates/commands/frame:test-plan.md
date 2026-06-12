@@ -1,3 +1,8 @@
+---
+description: "Generate a manual user acceptance checklist for the current feature"
+argument-hint: "<feature or scope>"
+allowed-tools: [Read, Bash]
+---
 # /frame:test-plan -- Manual User Acceptance Checklist
 
 Generates a human-readable checklist of what YOU, as a user, should go and verify by hand after a feature is built. Not code tests (those are written during the task) — this is the "go click through it like a real user" list before shipping.

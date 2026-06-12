@@ -1,3 +1,7 @@
+---
+description: "Execute a quick task end-to-end without full research/plan cycle"
+argument-hint: "<task description>"
+---
 # /frame:fast -- Quick Task
 
 Executes a quick task without the full workflow: mini Research -> mini Plan -> Build.

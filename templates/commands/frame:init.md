@@ -1,3 +1,6 @@
+---
+description: "Initialize project: scan codebase, fill MAP.md, STATE.md, and memory files"
+---
 # /frame:init -- Project Initialization & Refresh
 
 > **This is a slash command** — run it inside Claude Code after `npx the-frame init` has already installed the framework.

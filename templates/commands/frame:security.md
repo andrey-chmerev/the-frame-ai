@@ -1,3 +1,7 @@
+---
+description: "Security audit: secrets, OWASP Top 10, infrastructure, AI/LLM risks"
+argument-hint: "[<scope>]"
+---
 # /frame:security -- Security Audit
 
 Deep security audit: secrets, OWASP Top 10, infrastructure, AI/LLM risks.

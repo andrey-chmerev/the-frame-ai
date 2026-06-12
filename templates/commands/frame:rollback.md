@@ -1,3 +1,8 @@
+---
+description: "Roll back to a FRAME checkpoint with confirmation"
+argument-hint: "[<checkpoint-tag>]"
+allowed-tools: [Read, Bash]
+---
 # /frame:rollback -- Rollback to Checkpoint
 
 Roll back to the last or a specific checkpoint with confirmation.

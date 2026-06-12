@@ -1,3 +1,7 @@
+---
+description: "Autonomous execution mode for CI or non-interactive environments"
+argument-hint: "<task description>"
+---
 # /frame:headless -- Autonomous Execution (CI mode)
 
 Runs the full FRAME workflow without interaction: Research -> Plan -> Build -> Review -> Ship.

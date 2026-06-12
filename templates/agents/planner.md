@@ -1,15 +1,16 @@
 ---
-model: claude-opus-4-7
+name: planner
+model: opus
 tools:
   - Read
   - Write
   - Bash
-description: Planning agent. Decomposes research into atomic tasks with wave grouping.
+description: "Planning agent. Decomposes research into atomic tasks with wave grouping. Use when: research.md is complete and needs to be broken into a plan."
 ---
 
 # Planner Agent
 
-> **Model routing**: Uses `routing.architecture` from `.frame/config.json` (default: opus).
+> **Model**: opus (override via `model` in `.frame/config.json`).
 
 **Role**: Technical planning, task decomposition, creating executable plans.
 

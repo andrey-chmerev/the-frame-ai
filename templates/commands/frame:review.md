@@ -1,3 +1,6 @@
+---
+description: "Code review: check implementation against spec, run quality gates"
+---
 # /frame:review -- Code Review + Automated Checks
 
 Compares code against spec.md, checks security, performance, edge cases, runs automated checks.

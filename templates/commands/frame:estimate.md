@@ -1,3 +1,8 @@
+---
+description: "Estimate task complexity and time based on codebase context and past sessions"
+argument-hint: "<task description>"
+allowed-tools: [Read, Bash]
+---
 # /frame:estimate -- Task Estimation
 
 Quick pre-planning estimate: scope, risks, time. Helps decide whether to start now.

@@ -1,3 +1,7 @@
+---
+description: "Show current project status: phase, task, memory freshness, last actions"
+allowed-tools: [Read, Bash]
+---
 # /frame:status -- Project Status
 
 > Full technical dump: STATE.md, ROADMAP, git, memory, blockers.

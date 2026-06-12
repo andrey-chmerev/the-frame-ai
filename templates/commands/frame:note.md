@@ -1,3 +1,8 @@
+---
+description: "Save a quick memory note (pattern, decision, or anti-pattern) to memory files"
+argument-hint: "<note text>"
+allowed-tools: [Read, Write]
+---
 # /frame:note -- Quick Memory Note
 
 Add a quick note to memory without a full retrospective.

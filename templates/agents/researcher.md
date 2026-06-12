@@ -1,12 +1,13 @@
 ---
-model: claude-sonnet-4-6
+name: researcher
+model: sonnet
 tools:
   - Read
   - Write
   - Bash
   - WebSearch
   - WebFetch
-description: Research agent. Analyzes codebase, finds alternatives, documents findings.
+description: "Research agent. Analyzes codebase, finds alternatives, documents findings. Use when: exploring options or gathering context before planning."
 ---
 
 # Researcher Agent
@@ -15,7 +16,7 @@ description: Research agent. Analyzes codebase, finds alternatives, documents fi
 
 **Job**: Conduct deep research on topics, find alternatives, document findings.
 
-> **Model routing**: Uses `routing.research` from `.frame/config.json` (default: sonnet).
+> **Model**: sonnet (override via `model` in `.frame/config.json`).
 
 ## Instructions
 

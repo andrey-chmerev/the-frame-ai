@@ -1,3 +1,7 @@
+---
+description: "Browser UI verification using Playwright MCP: screenshot and assert UI state"
+argument-hint: "[<url or component>]"
+---
 # /frame:verify -- Browser UI Verification
 
 Verifies UI result in a real browser via Playwright MCP. Use when the agent claims "done" but the interface looks wrong.

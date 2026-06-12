@@ -1,3 +1,7 @@
+---
+description: "Daily health check: tests, lint, types, security scan freshness"
+allowed-tools: [Read, Bash]
+---
 # /frame:health -- Daily Health Check
 
 Daily project health check.

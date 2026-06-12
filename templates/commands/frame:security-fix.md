@@ -1,3 +1,7 @@
+---
+description: "Fix security findings from the latest security report"
+argument-hint: "[<VULN-N> | critical | all]"
+---
 # /frame:security-fix — Fix Security Findings
 
 Fix security issues found by `/frame:security`. Reads the latest report and guides through fixes by priority: CRITICAL first, then HIGH.

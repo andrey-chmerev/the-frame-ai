@@ -1,8 +1,8 @@
 ---
 name: performance-auditor
-model: claude-sonnet-4-6
-tools: [Read, Grep, Glob, Bash, WebSearch, Agent]
-description: "Performance auditor agent. Detects stack, researches current perf issues for that stack, runs deep audit, writes PERF_REPORT.md. Never edits code."
+model: sonnet
+tools: [Read, Write, Grep, Glob, Bash, WebSearch]
+description: "Performance auditor agent. Detects stack, researches current perf issues, runs deep audit, writes PERF_REPORT.md. Never edits application code. Use when: auditing perf before ship or on demand."
 ---
 
 # Performance Auditor Agent

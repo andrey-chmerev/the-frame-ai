@@ -1,3 +1,7 @@
+---
+description: "Domain research: analyze codebase, find alternatives, document findings"
+argument-hint: "<topic or question>"
+---
 # /frame:research -- Domain Research
 
 Analyzes the request, searches for alternatives, explores the codebase, creates research.md with Memory Impact.

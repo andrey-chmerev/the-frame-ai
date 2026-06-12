@@ -1,3 +1,7 @@
+---
+description: "Sprint planning check: review ROADMAP, estimate remaining tasks, flag blockers"
+allowed-tools: [Read, Bash]
+---
 # /frame:sprint-check -- Sprint Planning Check
 
 Checks ROADMAP progress and velocity.

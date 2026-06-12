@@ -1,3 +1,7 @@
+---
+description: "Analyze performance budget: bundle size, runtime metrics, baseline comparison"
+argument-hint: "[bundle | baseline | compare]"
+---
 # /frame:performance -- Performance Budget
 
 Performance monitoring and bundle analysis.
@@ -129,7 +133,7 @@ Target values:
 
 ### Step 5: Create report
 
-Create `.planning/reports/performance/performance-{date}.md`:
+Create `.planning/reports/performance/PERF_REPORT.md`:
 
 ```markdown
 # Performance Report -- {date}
@@ -170,7 +174,7 @@ If new optimization patterns were confirmed:
 ## Current Position
 - Phase: REVIEW
 - Status: Performance audit complete — {PASS|WARNING|FAIL}
-- Report: .planning/reports/performance/performance-{date}.md
+- Report: .planning/reports/performance/PERF_REPORT.md
 ```
 
 ---

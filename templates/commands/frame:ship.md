@@ -1,3 +1,6 @@
+---
+description: "Prepare and create a git commit and pull request after review passes"
+---
 # /frame:ship -- Git + PR
 
 Prepares a git commit, optionally pushes and creates a PR.

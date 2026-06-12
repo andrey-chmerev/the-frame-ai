@@ -1,3 +1,6 @@
+---
+description: "Deep performance audit: stack detection, code analysis, writes PERF_REPORT.md"
+---
 # /frame:perf-audit -- Performance Audit
 
 Deep performance audit: detects stack, researches current issues, scans code, writes PERF_REPORT.md.

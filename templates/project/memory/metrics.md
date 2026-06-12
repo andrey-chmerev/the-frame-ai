@@ -1,22 +1,16 @@
 {
   "name": "Metrics",
-  "description": "Project baseline metrics and task type analysis"
+  "description": "Session log for factual time tracking"
 }
 
 # Metrics
 
-<!-- Updated automatically by /frame:retrospective -->
+<!-- Written by session-init.sh (start) and /frame:ship (finish). Do not fill in manually. -->
 
-## Overall
-- Total tasks completed: 0
-- Average time per task: 0 min
-- Success rate: 0%
+## Session Log
 
-## Task Type Analysis
+| Date | Task | Start | End | Duration |
+|------|------|-------|-----|----------|
 
-| Type | Count | Avg Time | Anti-pattern Rate |
-|------|-------|----------|-------------------|
-| feature | 0 | 0h | 0% |
-| bug | 0 | 0h | 0% |
-| refactor | 0 | 0h | 0% |
-| other | 0 | 0h | 0% |
+<!-- session-init writes a new row on start; /frame:ship fills End + Duration on completion. -->
+<!-- Duration is computed from real timestamps — never estimate or invent values here. -->

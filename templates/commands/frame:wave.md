@@ -1,3 +1,6 @@
+---
+description: "Execute multiple tasks in parallel waves with dependency ordering"
+---
 # /frame:wave -- Parallel Task Execution
 
 > Use for 4+ independent tasks (parallel subagents). For 1–3 tasks → `/frame:build`

@@ -1,3 +1,7 @@
+---
+description: "Fix performance issues from PERF_REPORT.md — critical issues by default"
+argument-hint: "[all | critical | high | <PERF-N>]"
+---
 # /frame:perf-fix -- Performance Fix
 
 Fix performance issues from PERF_REPORT.md. Reads the report, proposes fixes, asks confirmation, applies.

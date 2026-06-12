@@ -13,6 +13,8 @@ import {
   mergeFrameSettings,
   writeMcpConfig,
   mergeVscodeMcp,
+  hashContent,
+  writeManifest,
 } from './utils.js';
 import { LANGUAGES, getLanguageInstruction, promptLanguage, promptConfig, promptCopilot, promptFrontend } from './languages.js';
 import { doctor } from './doctor.js';
@@ -87,6 +89,7 @@ export async function init(target, flags = {}) {
   const vars = { PROJECT_NAME: projectName, LANGUAGE: language };
 
   // 2. Copy commands and apply quality.commands substitution
+  const manifestEntries = {};
   const commandsSrc = join(TEMPLATES_DIR, 'commands');
   const commandsDest = join(target, '.claude', 'commands');
   copyDir(commandsSrc, commandsDest);
@@ -94,6 +97,7 @@ export async function init(target, flags = {}) {
     const p = join(commandsDest, f);
     const replaced = applyVars(readFileSync(p, 'utf-8'), vars, qualityVars);
     writeFile(p, replaced);
+    manifestEntries[`.claude/commands/${f}`] = hashContent(replaced);
   }
   const commandCount = readdirSync(commandsSrc).filter((f) => f.endsWith('.md')).length;
   logSuccess(`${commandCount} commands → .claude/commands/`);
@@ -129,6 +133,7 @@ export async function init(target, flags = {}) {
     const p = join(agentsDest, f);
     const replaced = applyVars(readFileSync(p, 'utf-8'), vars, qualityVars);
     writeFile(p, replaced);
+    manifestEntries[`.claude/agents/${f}`] = hashContent(replaced);
   }
   const agentCount = readdirSync(agentsSrc).filter((f) => f.endsWith('.md')).length;
   logSuccess(`${agentCount} agents → .claude/agents/`);
@@ -140,6 +145,8 @@ export async function init(target, flags = {}) {
   const hookFiles = readdirSync(hooksSrc);
   for (const hook of hookFiles) {
     makeExecutable(join(hooksDest, hook));
+    const content = readFileSync(join(hooksDest, hook), 'utf-8');
+    manifestEntries[`.claude/hooks/${hook}`] = hashContent(content);
   }
   logSuccess(`${hookFiles.length} hooks → .claude/hooks/`);
 
@@ -180,8 +187,9 @@ export async function init(target, flags = {}) {
     fileCount++;
   }
 
-  // 7. Write version tracking
+  // 7. Write version tracking and manifest
   writeFile(join(target, '.frame', '.frame-version'), VERSION);
+  writeManifest(join(target, '.frame', 'manifest.json'), manifestEntries);
   logSuccess(`${fileCount} project files generated`);
   logSuccess(`Version ${VERSION} recorded`);
   logSuccess(`Language: ${langLabel}`);

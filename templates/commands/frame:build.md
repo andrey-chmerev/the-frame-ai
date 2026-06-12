@@ -1,3 +1,6 @@
+---
+description: "Implement planned tasks using TDD — runs quality gates and creates checkpoints"
+---
 # /frame:build -- Implementation per plan.md
 
 > Use for 1–3 tasks (sequential TDD). For 4+ independent tasks → `/frame:wave`
@@ -10,7 +13,7 @@ Reads plan.md, executes TDD cycle for each task, runs quality gates.
 
 Create checkpoint before starting:
 ```bash
-git tag "frame/checkpoint/build-$(date +%s)" -m "Auto checkpoint before build phase"
+git tag "frame/checkpoint/build-$(date +%Y%m%dT%H%M%S)" -m "Auto checkpoint before build phase"
 ```
 
 Update `.planning/STATE.md`:
@@ -101,7 +104,7 @@ If after **3 attempts** the test does not reach GREEN:
 
 If `workflow.autoCheckpoint === true` in `.frame/config.json`:
 ```bash
-git tag "frame/checkpoint/task-{N}-$(date +%s)" -m "Auto checkpoint after task {N}"
+git tag "frame/checkpoint/task-{N}-$(date +%Y%m%dT%H%M%S)" -m "Auto checkpoint after task {N}"
 ```
 
 #### 3.6: Update Status

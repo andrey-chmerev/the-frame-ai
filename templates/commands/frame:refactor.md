@@ -1,3 +1,7 @@
+---
+description: "Refactor code with test coverage verification and checkpoint safety"
+argument-hint: "<refactor scope>"
+---
 # /frame:refactor -- Refactoring with Test Coverage
 
 Analyzes an area, plans the refactor, executes with TDD, checks quality gates.
@@ -10,7 +14,7 @@ Refactor: **$ARGUMENTS**
 
 Create checkpoint before starting:
 ```bash
-git tag "frame/checkpoint/refactor-$(date +%s)" -m "Auto checkpoint before refactor"
+git tag "frame/checkpoint/refactor-$(date +%Y%m%dT%H%M%S)" -m "Auto checkpoint before refactor"
 ```
 
 Update `.planning/STATE.md` before any work:

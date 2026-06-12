@@ -1,3 +1,8 @@
+---
+description: "Manage git worktrees for parallel task execution without context switching"
+argument-hint: "[create | list | cleanup | <task-name>]"
+allowed-tools: [Bash]
+---
 # /frame:worktree -- Git Worktrees
 
 Manage isolated git worktrees for parallel work.

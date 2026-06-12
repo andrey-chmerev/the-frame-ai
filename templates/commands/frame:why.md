@@ -1,3 +1,8 @@
+---
+description: "Search decision history to explain why something was built a certain way"
+argument-hint: "<keyword, path, or concept>"
+allowed-tools: [Read, Bash, Grep]
+---
 # /frame:why -- Search Decision History
 
 Find why a decision was made. Searches memory and git history.

@@ -1,3 +1,7 @@
+---
+description: "Show a quick context digest: current phase, task, and recent decisions"
+allowed-tools: [Read, Bash]
+---
 # /frame:context -- Quick Context Digest
 
 > Shows a compact re-entry digest (git activity, current task, next step).

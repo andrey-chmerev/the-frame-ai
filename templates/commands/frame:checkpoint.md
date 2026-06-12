@@ -1,3 +1,8 @@
+---
+description: "Manage git checkpoints: list, create, or clean up frame/checkpoint/* tags"
+argument-hint: "[list | create | cleanup]"
+allowed-tools: [Bash]
+---
 # /frame:checkpoint -- Git Checkpoints
 
 > **When to use manually**: before a risky change that isn't covered by an automatic checkpoint

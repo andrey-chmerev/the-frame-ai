@@ -1,3 +1,7 @@
+---
+description: "Decompose a feature into atomic tasks with wave grouping and risk assessment"
+argument-hint: "<feature description>"
+---
 # /frame:plan -- Feature Planning
 
 Takes research.md, validates it, reads memory, breaks into atomic tasks with complexity, risk, dependencies and waves.

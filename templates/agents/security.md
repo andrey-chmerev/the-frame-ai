@@ -1,8 +1,8 @@
 ---
 name: security
-model: claude-sonnet-4-6
-tools: [Read, Grep, Glob, Bash, Agent]
-description: "Security auditor agent. Scans code for vulnerabilities, secrets, OWASP violations. Never edits code."
+model: sonnet
+tools: [Read, Write, Grep, Glob, Bash]
+description: "Security auditor agent. Scans code for vulnerabilities, secrets, OWASP violations. Writes security report. Never edits application code. Use when: auditing before ship or on demand."
 ---
 
 # Security Agent

@@ -1,3 +1,7 @@
+---
+description: "Get unblocked: diagnose blockers, suggest next actions, reset mental model"
+allowed-tools: [Read, Bash]
+---
 # /frame:unstuck -- Get Unblocked
 
 When you're stuck on a task, feature, or decision and don't know how to proceed.

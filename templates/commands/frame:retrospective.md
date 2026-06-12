@@ -1,3 +1,7 @@
+---
+description: "Write retrospective, update memory files with learnings and patterns"
+allowed-tools: [Read, Write, Bash]
+---
 # /frame:retrospective -- Retrospective + Memory Update
 
 Analyzes completed task, updates memory files, creates a retrospective report.
@@ -125,20 +129,11 @@ If the task went well, add:
 
 #### metrics.md
 
-Update metrics. Recalculate task type aggregates:
-```markdown
-## Overall
-- Total tasks completed: {N}
-- Average time per task: {N} min
-- Success rate: {N}%
+Append one row to the Session Log table with real timestamps only.
+If start time is unknown, leave Start/End blank. Do NOT estimate or invent durations.
 
-## Task Type Analysis
-| Type | Count | Avg Time | Anti-pattern Rate |
-|------|-------|----------|-------------------|
-| feature | {N} | {N}h | {N}% |
-| bug | {N} | {N}h | {N}% |
-| refactor | {N} | {N}h | {N}% |
-| other | {N} | {N}h | {N}% |
+```markdown
+| {date} | {task description} | {start time or —} | {end time or —} | {duration or —} |
 ```
 
 ### Step 4b: Cross-link memory files

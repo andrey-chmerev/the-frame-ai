@@ -1,3 +1,7 @@
+---
+description: "Add a task to the current plan.md without interrupting work"
+argument-hint: "<task description>"
+---
 # /frame:add-task -- Add Task to Current Plan
 
 Quickly adds a task to the current plan.md without interrupting work.

@@ -1,3 +1,7 @@
+---
+description: "Resume work from pause-state.json — restore context and continue"
+allowed-tools: [Read, Write, Bash]
+---
 # /frame:resume -- Resume Work
 
 Restores state from the last /frame:pause.

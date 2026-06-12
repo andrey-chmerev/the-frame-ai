@@ -1,3 +1,7 @@
+---
+description: "Morning briefing — project status, today's priorities, and blockers"
+allowed-tools: [Read, Bash]
+---
 # /frame:daily -- Morning Briefing
 
 > **Start here** after any break. This is your single entry point — replaces `/frame:where` and `/frame:status` for daily use.

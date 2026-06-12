@@ -1,3 +1,7 @@
+---
+description: "Plan and execute a database or schema migration with rollback safety"
+argument-hint: "<migration description>"
+---
 # /frame:migrate -- Migration with Rollback Plan
 
 Executes a migration with a plan and rollback strategy.

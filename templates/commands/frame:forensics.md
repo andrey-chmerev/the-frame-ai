@@ -1,3 +1,7 @@
+---
+description: "Deep debugging session for issues that resisted normal debugging"
+argument-hint: "<issue description>"
+---
 # /frame:forensics -- Deep Debugging
 
 Systematic root cause analysis with logs, git history, and monitoring.

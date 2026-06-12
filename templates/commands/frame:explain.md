@@ -1,3 +1,8 @@
+---
+description: "Explain why code looks the way it does by searching decision history"
+argument-hint: "<code pattern or concept>"
+allowed-tools: [Read, Bash, Grep]
+---
 # /frame:explain -- Explain Code Decision History
 
 Why does this code look the way it does? Surfaces decisions, patterns, and history behind a file or function.

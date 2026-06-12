@@ -1,6 +1,6 @@
 ---
 name: conventions-reviewer
-model: claude-sonnet-4-6
+model: sonnet
 tools: [Read, Grep, Glob, Bash]
 description: "Review agent for wave-team. Checks code conventions and style in a single task's git diff. Returns PASS/WARN/FAIL verdict."
 ---

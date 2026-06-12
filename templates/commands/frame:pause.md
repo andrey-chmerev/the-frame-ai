@@ -1,3 +1,7 @@
+---
+description: "Save session state to pause-state.json and create a checkpoint"
+allowed-tools: [Read, Write, Bash]
+---
 # /frame:pause -- Save State
 
 Saves current state and pauses work.

@@ -1,3 +1,7 @@
+---
+description: "Systematically debug an issue using hypothesis/test cycles"
+argument-hint: "<issue description>"
+---
 # /frame:debug -- Systematic Debugging
 
 4-phase debugging workflow: Reproduce -> Root Cause -> Fix -> Review.

@@ -1,14 +1,16 @@
 ---
+name: reviewer
+model: opus
 tools:
   - Read
   - Write
   - Bash
-description: Review agent. Checks code against spec, runs quality gates, security analysis.
+description: "Review agent. Checks code against spec, runs quality gates, security analysis. Use when: implementation is complete and needs review before ship."
 ---
 
 # Reviewer Agent
 
-> **Model routing**: Uses `routing.architecture` from `.frame/config.json` (default: opus).
+> **Model**: opus (override via `model` in `.frame/config.json`).
 
 **Role**: Code review, quality gates, verification, security analysis.
 

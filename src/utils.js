@@ -9,6 +9,7 @@ import {
 } from 'node:fs';
 
 import { join } from 'node:path';
+import { createHash } from 'node:crypto';
 
 export function ensureDir(dir) {
   mkdirSync(dir, { recursive: true });
@@ -55,10 +56,34 @@ export function fileExists(path) {
   return existsSync(path);
 }
 
+export function hashContent(content) {
+  return createHash('sha256').update(content, 'utf-8').digest('hex');
+}
+
+export function readManifest(manifestPath) {
+  if (!existsSync(manifestPath)) return {};
+  try {
+    return JSON.parse(readFileSync(manifestPath, 'utf-8'));
+  } catch {
+    return {};
+  }
+}
+
+export function writeManifest(manifestPath, manifest) {
+  writeFileSync(manifestPath, JSON.stringify(manifest, null, 2), 'utf-8');
+}
+
 export function mergeVscodeSettings(settingsPath) {
   let settings = {};
   if (existsSync(settingsPath)) {
-    try { settings = JSON.parse(readFileSync(settingsPath, 'utf-8')); } catch {}
+    const raw = readFileSync(settingsPath, 'utf-8');
+    try {
+      settings = JSON.parse(raw);
+    } catch {
+      // JSONC or unparseable — preserve file, skip merge
+      process.stderr.write(`[FRAME] mergeVscodeSettings: could not parse ${settingsPath}, skipping merge\n`);
+      return;
+    }
   }
   settings['chat.promptFiles'] = true;
   writeFileSync(settingsPath, JSON.stringify(settings, null, 2), 'utf-8');
@@ -73,7 +98,13 @@ const PLAYWRIGHT_MCP = {
 export function writeMcpConfig(mcpPath) {
   let config = {};
   if (existsSync(mcpPath)) {
-    try { config = JSON.parse(readFileSync(mcpPath, 'utf-8')); } catch {}
+    const raw = readFileSync(mcpPath, 'utf-8');
+    try {
+      config = JSON.parse(raw);
+    } catch {
+      process.stderr.write(`[FRAME] writeMcpConfig: could not parse ${mcpPath}, skipping merge\n`);
+      return;
+    }
   }
   config.mcpServers = config.mcpServers ?? {};
   config.mcpServers.playwright = PLAYWRIGHT_MCP;
@@ -119,7 +150,14 @@ const FRAME_HOOKS = {
 export function mergeFrameSettings(settingsPath) {
   let settings = {};
   if (existsSync(settingsPath)) {
-    try { settings = JSON.parse(readFileSync(settingsPath, 'utf-8')); } catch {}
+    const raw = readFileSync(settingsPath, 'utf-8');
+    try {
+      settings = JSON.parse(raw);
+    } catch {
+      // Unparseable settings.json — preserve file, skip merge to avoid data loss
+      process.stderr.write(`[FRAME] mergeFrameSettings: could not parse ${settingsPath}, skipping merge\n`);
+      return;
+    }
   }
   settings.permissions = settings.permissions ?? {};
   settings.permissions.allow = settings.permissions.allow ?? [];
@@ -135,7 +173,13 @@ export function mergeFrameSettings(settingsPath) {
 export function mergeVscodeMcp(mcpPath) {
   let config = {};
   if (existsSync(mcpPath)) {
-    try { config = JSON.parse(readFileSync(mcpPath, 'utf-8')); } catch {}
+    const raw = readFileSync(mcpPath, 'utf-8');
+    try {
+      config = JSON.parse(raw);
+    } catch {
+      process.stderr.write(`[FRAME] mergeVscodeMcp: could not parse ${mcpPath}, skipping merge\n`);
+      return;
+    }
   }
   config.servers = config.servers ?? {};
   config.servers.playwright = PLAYWRIGHT_MCP;

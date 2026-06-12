@@ -1,3 +1,7 @@
+---
+description: "Check FRAME installation health — verify paths, config, and hook registration"
+allowed-tools: [Read, Bash]
+---
 # /frame:doctor -- FRAME Health Check
 
 Diagnoses all FRAME systems and outputs a report.

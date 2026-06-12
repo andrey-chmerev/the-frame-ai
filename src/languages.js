@@ -122,8 +122,10 @@ export async function promptConfig(defaultConfig, yes = false) {
   Object.values(MODEL_DESCRIPTIONS).forEach((d, i) => console.log(`  ${i + 1}) ${d}`));
   const modelAnswer = (await ask(rl, '\n  Enter number [1-2] (or press Enter for opus): ')).trim().toLowerCase();
   if (modelAnswer === '2' || modelAnswer === 'sonnet') {
-    // Note: model preference is stored for future use when agent routing is implemented
+    config.model = 'sonnet';
     console.log('\x1b[32m✓\x1b[0m Model preference: sonnet');
+  } else {
+    config.model = 'opus';
   }
 
   rl.close();
