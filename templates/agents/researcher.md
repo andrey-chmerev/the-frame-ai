@@ -1,6 +1,6 @@
 ---
 name: researcher
-model: sonnet
+model: opus
 tools:
   - Read
   - Write
@@ -16,7 +16,7 @@ description: "Research agent. Analyzes codebase or web for alternatives and cont
 
 **Job**: Receive a scoped brief from the orchestrating command (codebase scope or web scope), conduct focused research, return findings as final text.
 
-> **Model**: sonnet (override via `model` in `.frame/config.json`).
+> **Model**: opus.
 > **NEVER write .planning/STATE.md** — STATE.md is owned by the orchestrating command, not subagents.
 
 ## Instructions

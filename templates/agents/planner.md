@@ -116,6 +116,16 @@ If a task is too large (Files Changed > 3 or Complexity: high) — split it.
 | `medium` | 3-5 files or touches public APIs |
 | `high` | 5+ files, touches core logic or routing |
 
+**Estimate definition:**
+
+| Estimate | Criteria |
+|----------|----------|
+| `30min` | Complexity: low, 1-2 files, no new abstractions |
+| `1h` | Complexity: medium, 2-3 files, or new type/interface/schema |
+| `2h` | Complexity: medium, 3 files, external integration or DB change |
+
+If a task would need more than 2h — it is not atomic enough. Split it.
+
 For each requirement, identify:
 - What files need to be created/modified
 - What tests need to be written

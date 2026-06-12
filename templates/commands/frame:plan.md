@@ -83,6 +83,16 @@ If task too large (>3 files or Complexity: high) — split it.
 | `medium` | 3–5 files or touches public APIs |
 | `high` | 5+ files, touches core logic or routing |
 
+**Estimate definition**:
+
+| Estimate | Criteria |
+|----------|----------|
+| `30min` | Complexity: low, 1–2 files, no new abstractions |
+| `1h` | Complexity: medium, 2–3 files, or new type/interface/schema |
+| `2h` | Complexity: medium, 3 files, external integration or DB change |
+
+If a task would need more than 2h — it is not atomic. Split it.
+
 Each task gets:
 - `Acceptance: AC2, AC5` — which ACs it covers
 - `Findings: ` — empty for feature tasks (used in Mode B)
