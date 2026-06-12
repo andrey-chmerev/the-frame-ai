@@ -74,11 +74,6 @@ const STACK_PRESETS = {
   rust: { typecheck: 'cargo check', test: 'cargo test', lint: 'cargo clippy', build: 'cargo build' },
 };
 
-const MODEL_DESCRIPTIONS = {
-  opus: 'opus   — best quality, slower (recommended for architecture/security)',
-  sonnet: 'sonnet — faster, good for most tasks',
-};
-
 export async function promptConfig(defaultConfig, yes = false) {
   if (!process.stdin.isTTY || yes) return defaultConfig;
 
@@ -116,16 +111,6 @@ export async function promptConfig(defaultConfig, yes = false) {
       const val = (await ask(rl, `  ${key} command [${current}]: `)).trim();
       if (val) config.quality.commands[key] = val;
     }
-  }
-
-  console.log('\n? Preferred model for agents:\n');
-  Object.values(MODEL_DESCRIPTIONS).forEach((d, i) => console.log(`  ${i + 1}) ${d}`));
-  const modelAnswer = (await ask(rl, '\n  Enter number [1-2] (or press Enter for opus): ')).trim().toLowerCase();
-  if (modelAnswer === '2' || modelAnswer === 'sonnet') {
-    config.model = 'sonnet';
-    console.log('\x1b[32m✓\x1b[0m Model preference: sonnet');
-  } else {
-    config.model = 'opus';
   }
 
   rl.close();
