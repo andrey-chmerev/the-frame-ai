@@ -42,9 +42,19 @@ PHASE=$(grep "^- Phase:" "$STATE_FILE" 2>/dev/null | head -1 | sed 's/.*Phase: /
 FEATURE=$(grep "^- Feature:" "$STATE_FILE" 2>/dev/null | head -1 | sed 's/.*Feature: //')
 TASK=$(grep "^- Task:" "$STATE_FILE" 2>/dev/null | head -1 | sed 's/.*Task: //')
 
+# STATE.md bloat check — history blocks accumulate and are never trimmed automatically.
+# Threshold: 200 lines (a healthy STATE.md is the current block + a few history blocks).
+STATE_BLOAT_THRESHOLD=200
+STATE_LINES=$(wc -l < "$STATE_FILE" 2>/dev/null | tr -d ' ')
+STATE_WARN=""
+if [ "${STATE_LINES:-0}" -gt "$STATE_BLOAT_THRESHOLD" ]; then
+  STATE_WARN="⚠ FRAME: STATE.md has grown to ${STATE_LINES} lines — run /frame:cleanup-memory to archive old history blocks."
+fi
+
 # < 2 hours: one-liner
 if [ "$ELAPSED" -lt 7200 ]; then
   echo "FRAME | Phase: ${PHASE:-?} | Feature: ${FEATURE:-?} | Task: ${TASK:-?}"
+  [ -n "$STATE_WARN" ] && echo "$STATE_WARN"
   exit 0
 fi
 
@@ -60,6 +70,7 @@ if [ "$ELAPSED" -lt 86400 ]; then
   echo "  Recent commits:"
   git log --oneline -3 2>/dev/null | sed 's/^/    /'
   echo ""
+  [ -n "$STATE_WARN" ] && echo "  $STATE_WARN" && echo ""
   exit 0
 fi
 
@@ -87,5 +98,6 @@ git log --oneline -5 2>/dev/null | sed 's/^/    /'
 echo ""
 echo "Commands: /frame:status, /frame:context, /frame:daily, /frame:fast"
 echo ""
+[ -n "$STATE_WARN" ] && echo "$STATE_WARN" && echo ""
 
 exit 0
