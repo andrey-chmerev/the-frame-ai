@@ -15,7 +15,8 @@ If you're building a product alone with Claude Code and want to work like a team
 | Losing context between sessions | Project memory and automatic state dump on session start |
 | Chaos in tasks and priorities | 6-phase workflow: Research → Plan → Build → Review → Ship → Reflect |
 | Fear of breaking something important | Safety hooks block destructive commands before they run |
-| Repetitive routine tasks | 28 ready-made commands for the full development cycle |
+| Repetitive routine tasks | 29 ready-made commands for the full development cycle |
+| Slow, one-by-one fixes after review | `/frame:fix` — closes review findings in parallel, one fixer per file |
 | Complex features with dependencies | Parallel subagents for independent tasks (wave-based planning) |
 | No structure for solo work | Roadmap, STATE.md, MAP.md — always know where you are and what's next |
 | Shipping code with security holes | `/frame:audit` — unified security, performance, and dependency audit before deploy |
@@ -39,7 +40,8 @@ Run `/frame:research <topic>` — Claude explores the codebase and external sour
 `/frame:build` reads the `Parallel:` labels from plan.md and automatically decides whether to run tasks sequentially or in parallel worktrees. No flags needed. Stuck — `/frame:unstuck`. Found a bug — `/frame:debug`.
 
 **Review** — check before deploying
-`/frame:review` runs automated checks and a 6-panel review (spec compliance, security, performance, business logic, tests, conventions) on the diff.
+`/frame:review` runs automated checks and a 6-panel review (spec compliance, security, performance, business logic, tests, conventions) on the diff. FAIL findings are verified adversarially in parallel.
+If review requests changes, `/frame:fix` closes the findings in parallel — one fixer subagent per file, light findings skip the TDD ceremony, one quality-gate run at the end.
 
 **Ship** — deploy and record
 `/frame:ship` commits, optional push/PR, and updates project memory.
@@ -186,7 +188,8 @@ claude -p "/frame:audit quick" --allowedTools "Bash,Read,Write,Grep"
 FRAME provides:
 
 - **6-phase workflow**: Research → Plan → Build → Review → Ship → Reflect
-- **28 commands**: from quick tasks to full feature development cycle
+- **29 commands**: from quick tasks to full feature development cycle
+- **Parallel review fixes**: `/frame:fix` closes findings file-by-file in one pass — no worktrees, no per-fix ceremony
 - **10 AI agents**: Researcher, Planner, Builder, Reviewer, Auditor, Devil's Advocate, Security, Performance Auditor, Tests Reviewer, Conventions Reviewer
 - **Safety Hooks**: block destructive operations, enforce quality gates
 - **Git Safety**: checkpoints, rollback, worktrees, pause/resume
@@ -255,6 +258,7 @@ These commands cover 90% of solo dev work:
 | Command | When to use |
 |---------|-------------|
 | `/frame:build` | Implement plan with TDD — auto-detects sequential vs parallel from plan |
+| `/frame:fix [REV-N ...]` | Close review findings in parallel — one fixer per file, single gates run |
 | `/frame:fast <task>` | Quick task under 30 minutes |
 | `/frame:debug <issue>` | Systematic bug investigation with git archaeology |
 | `/frame:debug --deep` | Deep forensic investigation (parallel investigators, 5-why, timeline) |
@@ -334,6 +338,7 @@ These commands cover 90% of solo dev work:
 | `/frame:debug` | Systematically debug an issue — or run deep forensic investigation with 5-why analysis | `[--deep] <SEC-N|issue description>` |
 | `/frame:doctor` | Check FRAME installation health — verify paths, config, and hook registration | — |
 | `/frame:fast` | Execute a quick task end-to-end without full research/plan cycle | `<task description>` |
+| `/frame:fix` | Close review findings in parallel — groups findings by file, spawns one fixer per non-conflicting group, single gates run at the end | `[feature] [REV-N ...]` |
 | `/frame:health` | Daily health check: tests, lint, types, security scan freshness — or sprint velocity check | `[sprint]` |
 | `/frame:init` | Initialize project: scan codebase, fill MAP.md, STATE.md, and memory files | — |
 | `/frame:migrate` | Plan and execute a database or schema migration with rollback safety | `<migration description>` |
@@ -415,7 +420,7 @@ npx the-frame-ai version               # Show CLI version
 
 ```
 .claude/
-  commands/          # 28 FRAME commands
+  commands/          # 29 FRAME commands
   agents/            # 10 AI agents
   hooks/             # 5 safety hooks
 .frame/

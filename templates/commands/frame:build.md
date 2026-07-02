@@ -16,10 +16,12 @@ Reads plan.md, executes tasks with TDD and quality gates. Parallelism is determi
 
 ### Step 0: Checkpoint + Update STATE.md (IN_PROGRESS)
 
-Create checkpoint before starting:
+Create checkpoint before starting (feature-scoped tag — avoids collisions across parallel worktrees):
 ```bash
-git tag "frame/checkpoint/build-$(date +%Y%m%dT%H%M%S)" -m "Auto checkpoint before build phase"
+git tag "frame/checkpoint/build-{feature}-$(date +%Y%m%dT%H%M%S)" -m "Auto checkpoint before build phase"
 ```
+
+This is the **only** build checkpoint. Subagents spawned in Step 4 do **not** create their own tags.
 
 Update `.planning/STATE.md`:
 ```markdown
@@ -42,7 +44,7 @@ Read `docs/specs/{feature}/plan.md`. If not found — STOP: "plan.md not found. 
 ### Step 2: Determine execution mode
 
 Check `.planning/STATE.md`:
-- `Status: REVIEW_FAILED` → **Fix mode**: read `docs/specs/{feature}/review.md` → Action Items, create fix tasks in plan.md under `## Fix Tasks (review {date})`, then execute using the same algorithm below. Each fix task references its review finding ID.
+- `Status: REVIEW_FAILED` → **prefer `/frame:fix`** for closing review findings — it groups findings by file and fixes them in parallel without the full plan/TDD ceremony. Suggest it: "Review failed with {N} findings. Run `/frame:fix` to close them in parallel." Only continue here in **build fix-mode** when the fixes are large/architectural (findings pile into the same shared files, or require re-planning): read `docs/specs/{feature}/review.md` → Action Items, create fix tasks in plan.md under `## Fix Tasks (review {date})` **with `Files:`, `Wave:`, and a `Parallel:` label on each wave** (otherwise Step 4 can't parallelize them), then execute using the algorithm below. Each fix task references its review finding ID.
 - Normal plan → proceed with Step 3.
 
 ### Step 3: Read Context
@@ -60,6 +62,8 @@ Read before implementing:
 
 ### Step 4: Execute waves from plan.md
 
+**Before any wave — confirm high-risk tasks once.** Scan the whole plan for `Risk: high` tasks. If any exist, list them and **ask the user once**: "These tasks are high-risk: {list}. Proceed with all, or hold some?" Subagents cannot ask mid-run, so all confirmation happens here, up front. Tasks you spawn later are treated as already confirmed.
+
 For each wave defined in plan.md:
 
 #### Wave has 1 task OR `Parallel: no`
@@ -68,22 +72,32 @@ Execute inline (sequential TDD cycle — see Step 4.1 below).
 
 #### Wave has ≥2 tasks AND `Parallel: yes`
 
-Launch one `builder` subagent per task, one message, `isolation: "worktree"`, max 5 concurrent.
+The planner already guarantees **no two tasks in a wave touch the same file** (frame:plan.md Step A4). So parallel builders can safely share the working tree — **no worktree isolation needed** in the normal case.
 
-Each subagent receives:
-- Task description + Files + Acceptance criteria
-- Relevant conventions (from conventions.md)
-- Anti-patterns to avoid
-- Instructions: return final text with list of changed files + test status + commit hash
+Launch one `builder` subagent per task, one message, max 5 concurrent. Pass each subagent **`Mode: single-task`**.
 
-After all subagents complete → **wave quality gates**:
+Each subagent receives a self-contained brief (it does NOT read memory/context itself):
+- **Mode: single-task** — do only this task; don't scan plan.md, don't loop, don't checkpoint, don't edit plan.md/STATE.md, don't commit
+- Task description + Files + Acceptance criteria + Risk (already confirmed if high)
+- Relevant conventions (extract the 3-5 applicable rules from conventions.md — don't make the agent read the file)
+- Anti-patterns to avoid (the applicable ones from learnings.md)
+- Instructions: implement + run the targeted test for your file(s); return final text with changed files + test status (no commit hash — orchestrator commits)
+
+**Isolation exception**: only if a wave's tasks *could* still touch a shared file (e.g. a barrel/index, a config, a lock file the planner couldn't fully separate) — spawn those with `isolation: "worktree"` and, after each returns, bring its work into the current branch with `git cherry-pick {hash}` before running wave gates. Default path (file-disjoint tasks) needs none of this.
+
+After all subagents complete → **wave commit + quality gates** (orchestrator, in the shared tree):
 ```bash
+# commit each task's changes (specific files from the subagent reports)
+git add {files_from_reports}
+git commit -m "{type}({scope}): {wave description}"
+
 {quality.commands.typecheck}
 {quality.commands.test}
 {quality.commands.lint}
 ```
+Then mark each completed task `[DONE]` in plan.md (orchestrator owns plan.md — subagents never touch it).
 
-If wave gates FAIL → retry only the failed tasks (max 2 retries). If still failing:
+If wave gates FAIL → retry only the failed tasks (re-spawn single-task, max 2 retries). If still failing:
 ```bash
 git tag "frame/wave-failure-$(date +%Y%m%dT%H%M%S)"
 ```
@@ -223,6 +237,10 @@ Next step: `/frame:review`
 - **Never modify files outside the task scope** — stay within task boundaries
 - **Parallelism from plan, not flags** — plan.md `Parallel: yes/no` is the source of truth
 - **Max 5 subagents per wave** — concurrency cap
+- **Shared tree by default** — file-disjoint wave tasks need no worktree; use `isolation: "worktree"` + `cherry-pick` only for the shared-file exception
+- **Orchestrator owns commits, plan.md, STATE.md, checkpoints** — single-task subagents own none of these
+- **Confirm high-risk once, up front** — never rely on a subagent to wait for the user
+- **Review fixes → prefer `/frame:fix`** — build fix-mode is only for large/architectural changes
 
 ## Result
 

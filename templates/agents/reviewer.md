@@ -164,7 +164,7 @@ Create `docs/specs/{feature}/review.md`:
 
 Return as final text:
 - **PASS**: "Review approved. {N} warnings (non-blocking). Ready for /frame:ship."
-- **FAIL**: "Review failed. {N} critical issues. Fix via /frame:build. See: docs/specs/{feature}/review.md → Action Items"
+- **FAIL**: "Review failed. {N} critical issues. Fix via /frame:fix (parallel), or /frame:build for large changes. See: docs/specs/{feature}/review.md → Action Items"
 
 ## Review Checklist
 

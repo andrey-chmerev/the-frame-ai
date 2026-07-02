@@ -111,11 +111,17 @@ Launch all panel agents in one message (parallel). Each receives:
 
 ### Step 4: Verification pass
 
-For each **FAIL** finding from the panel:
-1. Open the referenced file at the given line
-2. Attempt to refute the finding: is there validation higher in the stack? Is the condition reachable? Is this a test file?
-3. **Not refuted** → `Verified: yes` — confirmed FAIL
-4. **Refuted** → downgrade to WARN with note `unverified — see appendix`
+Verify **FAIL** findings adversarially, in parallel — launch `devils-advocate` subagents in refute mode, **batches of ≤5** (same pattern as `/frame:audit` Step 3). Each subagent receives one finding + the referenced file content, and tries to refute it:
+- Is there validation higher in the stack?
+- Is the condition reachable?
+- Is this a test/example file?
+- Output: `{ refuted: boolean, reason: string }` — default `refuted: false` unless there is concrete evidence.
+
+Then:
+- **Not refuted** → `Verified: yes` — confirmed FAIL
+- **Refuted** → downgrade to WARN with note `unverified — see appendix`
+
+If there are ≤2 FAIL findings, verifying inline (without subagents) is fine — the parallel path is for larger batches.
 
 Confirmed FAIL findings block ship.
 
@@ -173,7 +179,7 @@ Base: {BASE commit or tag}
 approve | request changes
 
 ## Action Items
-{For each FAIL finding — numbered, actionable. Build fix-mode reads this section.}
+{For each FAIL finding — numbered, actionable. `/frame:fix` (and build fix-mode) read this section. Each item should carry its finding's File and Effort so the fixer can group and scope the work.}
 1. [REV-1] Fix {issue} in {file}:{line}
 2. ...
 
@@ -211,7 +217,7 @@ approve | request changes
 ```
 ❌ Review failed. {N} critical issues.
    Fixes: docs/specs/{feature}/review.md → Action Items
-   Run /frame:build to fix.
+   Run /frame:fix to close them in parallel (or /frame:build for large/architectural changes).
 ```
 
 ---
