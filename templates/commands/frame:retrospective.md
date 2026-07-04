@@ -70,6 +70,8 @@ Use the real duration in the retrospective report instead of an estimate.
 
 ### Step 4: Update Memory
 
+**Worktree rule**: check `git rev-parse --git-common-dir`. If the output contains `worktrees/`, you are in a linked worktree (parallel task) — do **NOT** write to shared memory files (`.planning/memory/*`): parallel branches editing them guarantees merge conflicts at /frame:integrate. Instead append all patterns/anti-patterns/decisions from this retrospective to `docs/specs/{feature}/learnings.md` (per-feature file, unique to this branch — conflict-free). `/frame:integrate` merges it into shared memory. Worktree-local `.planning/STATE.md` updates are fine — they live on the feature branch and /frame:integrate resolves them in main's favor. Then skip to Step 5.
+
 Update the relevant memory files:
 
 #### context.md

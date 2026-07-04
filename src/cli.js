@@ -51,13 +51,25 @@ export async function run(args) {
     case 'init': {
       const { flags, rest: r } = parseFlags(rest);
       const target = resolveTarget(r);
-      await init(target, flags);
+      try {
+        await init(target, flags);
+      } catch (err) {
+        console.error(`\x1b[31m✗\x1b[0m Init failed midway: ${err.message}`);
+        console.error('  The installation may be incomplete. Remove .claude/, .planning/ and .frame/ from the target project and re-run init.');
+        process.exit(1);
+      }
       break;
     }
     case 'update': {
       const { flags, rest: r } = parseFlags(rest);
       const target = resolveTarget(r);
-      await update(target, flags);
+      try {
+        await update(target, flags);
+      } catch (err) {
+        console.error(`\x1b[31m✗\x1b[0m Update failed midway: ${err.message}`);
+        console.error('  Update is idempotent — fix the cause and re-run `npx the-frame-ai update`.');
+        process.exit(1);
+      }
       break;
     }
     case 'doctor': {

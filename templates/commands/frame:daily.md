@@ -20,8 +20,8 @@ One-call daily standup: what was done, what's next, any blockers.
 ### Step 1: Git activity (yesterday)
 
 ```bash
-git log --oneline --since="yesterday" --until="now"
-git log --oneline --since="2 days ago" --until="yesterday"
+git log --oneline --since="yesterday" --until="now" -n 30
+git log --oneline --since="2 days ago" --until="yesterday" -n 30
 ```
 
 ### Step 2: Read planning files
@@ -48,6 +48,14 @@ If `SECURITY_STATUS=never` or `DAYS_AGO >= 7` → add to briefing output:
 ```
 ⚠️  Security: {never run | last run {N} days ago} — consider /frame:audit quick
 ```
+
+### Step 2.7: Parallel board (if present)
+
+```bash
+[ -f .planning/BOARD.md ] && grep -c "| active |" .planning/BOARD.md || echo "NO_BOARD"
+```
+
+If the board exists and has `active` rows, read `.planning/BOARD.md` and add a section to the briefing (one line per active task: feature, phase, progress). If all active tasks are at REVIEW/TEST + approve — the action item becomes `/frame:integrate`.
 
 ### Step 3: Check open tasks
 
@@ -76,6 +84,10 @@ Count `[ ]` (open) vs `[x]` (done) tasks.
 ║  Next up:                                ║
 ║    {next unchecked task or next phase}   ║
 ╠══════════════════════════════════════════╣
+║  Parallel:  {active board rows or omit}  ║
+║    auth     BUILD   4/7                  ║
+║    billing  REVIEW  approve              ║
+╠══════════════════════════════════════════╣
 ║  Blockers:  {blockers or "None"}         ║
 ╠══════════════════════════════════════════╣
 ║  Security:  {last audit date or "⚠️ never run"} ║
@@ -93,6 +105,7 @@ After the briefing box, always output one line:
 ```
 
 Pick the command based on context:
+- Board active tasks all at REVIEW/TEST + approve → `/frame:integrate`
 - Has open tasks in plan.md → `/frame:build`
 - No plan.md yet → `/frame:research` or `/frame:fast`
 - Has blockers → `/frame:unstuck`
@@ -128,7 +141,7 @@ grep -i "BLOCKED" docs/specs/*/plan.md 2>/dev/null | head -10
 git status
 git log --oneline -5
 git diff HEAD~3 --stat 2>/dev/null || git diff --stat
-git log --oneline --since="3 days ago"
+git log --oneline --since="3 days ago" -n 50
 ```
 
 ### Step F3: Output full status

@@ -39,7 +39,14 @@ export async function update(target, flags = {}) {
     installedVersion = readFileSync(versionPath, 'utf-8').trim();
   }
 
-  const config = JSON.parse(readFileSync(join(target, '.frame', 'config.json'), 'utf-8'));
+  let config;
+  try {
+    config = JSON.parse(readFileSync(join(target, '.frame', 'config.json'), 'utf-8'));
+  } catch (err) {
+    console.error(`\x1b[31m✗\x1b[0m .frame/config.json is not valid JSON: ${err.message}`);
+    console.log('Fix the file (or restore it from git) and re-run update. `/frame:doctor` can help diagnose.');
+    return;
+  }
   const vars = { PROJECT_NAME: config.project ?? '', LANGUAGE: config.language ?? '' };
   const qualityVars = Object.fromEntries(
     Object.entries(config.quality?.commands ?? {}).map(([k, v]) => [`quality.commands.${k}`, v])
@@ -110,6 +117,13 @@ export async function update(target, flags = {}) {
     writeFileSync(join(target, '.frame', 'config.json'), JSON.stringify(config, null, 2), 'utf-8');
   }
 
+  // Migration (v0.18.0): parallel work support — config section with defaults
+  if (!config.parallel) {
+    config.parallel = { maxWorktrees: 3, mergeStrategy: 'merge' };
+    writeFileSync(join(target, '.frame', 'config.json'), JSON.stringify(config, null, 2), 'utf-8');
+    log('  + config.json: added "parallel" section (maxWorktrees: 3, mergeStrategy: merge)');
+  }
+
   let updated = 0;
   let skipped = 0;
 
@@ -156,6 +170,9 @@ export async function update(target, flags = {}) {
 
   // Ensure audit reports directory exists (added in v0.14.0)
   ensureDir(join(target, '.planning', 'reports', 'audit'));
+
+  // Ensure integration reports directory exists (added in v0.18.0)
+  ensureDir(join(target, '.planning', 'reports', 'integration'));
 
   // 2. Update agents
   const agentsSrc = join(TEMPLATES_DIR, 'agents');

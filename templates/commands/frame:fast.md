@@ -13,6 +13,8 @@ Execute the quick task: **$ARGUMENTS**
 
 ### Step 0: Initialize (10 sec)
 
+**Save the current position first**: read `.planning/STATE.md` and remember the existing `## Current Position` block — a fast task is a side quest and must not hijack pipeline state (e.g. `Phase: INTEGRATE — ready to ship` would block /frame:ship if lost). You will restore it in Step 4.
+
 Write to `.planning/STATE.md`:
 ```markdown
 ## Current Position
@@ -39,6 +41,26 @@ Determine:
 - What test to write (if needed)
 - Which verification command to use
 
+### Step 2.5: Parallel-safety check (only if BOARD.md exists)
+
+```bash
+[ -f .planning/BOARD.md ] && grep "| active |" .planning/BOARD.md || echo "NO_ACTIVE_TASKS"
+```
+
+If there are active parallel tasks, compare the files you are about to change with each active feature's file list. Read it from BOARD.md's `## Touched Files (cache)` section (one read, no plan-walking). Fallback if the section is missing (older board): each feature's `## Touched Files` from `docs/specs/{feature}/plan.md`, or the union of its tasks' `Files:` fields.
+
+**Overlap found** → stop and ask once:
+```
+⚠️ {file} is also being changed by feature "{X}" (worktree ../{project}-{X}).
+   1) Fix it in that worktree instead — the fix ships with the feature, zero merge risk (best when the bug is in the feature's area)
+   2) Fix here in main — regression test becomes MANDATORY so /frame:integrate gates catch it if the feature's merge undoes the fix
+   3) Defer until {X} is integrated
+```
+
+If option 2 → the fix MUST include a regression test (overrides "tests optional") and the commit message must contain `hotfix`: `fix({scope}): {description} [hotfix]` — /frame:integrate uses this marker for conflict protection.
+
+**No overlap** → proceed silently; a plain main-branch fix merges cleanly by construction.
+
 ### Step 3: Build (2-5 min)
 
 Execute:
@@ -63,14 +85,13 @@ If Playwright MCP is not available — skip this step and note: "UI not verified
 
 ### Step 4: Update STATE.md and wins
 
-Update `.planning/STATE.md`:
+**Restore the saved position** from Step 0 and append one line about this task:
 ```markdown
 ## Current Position
-- Phase: BUILD
-- Feature: {task description}
-- Status: Fast task completed
-- Last fast task: {date} — {task description}
+{the block saved in Step 0, unchanged}
+- Last fast task: {date} — {task description} (commit {hash})
 ```
+(If Step 0 found no meaningful prior position — fresh project, SETUP phase — write `Phase: BUILD / Status: Fast task completed` instead.)
 
 If a new anti-pattern was discovered, add it to `.planning/memory/learnings.md` `## Anti-Patterns`.
 
@@ -83,7 +104,9 @@ fast: {task} — {files changed} file(s) changed, {tests} tests added, commit {h
 
 - **Fast** — entire task ≤30 min; scope check at Step 0, hard stop if over
 - **Minimal ceremony** — only MAP.md + Anti-Patterns; no full memory read
-- **Tests optional** — only if logic changed
+- **Tests optional** — only if logic changed; **EXCEPT**: fix overlapping an active parallel feature → regression test mandatory + `[hotfix]` in commit message
+- **Board check before editing** — with active parallel tasks, warn on file overlap before touching anything
+- **Side quest, not a phase change** — previous `## Current Position` is saved and restored; fast never hijacks pipeline state
 - **Quality gates mandatory** — typecheck + test + lint
 - **Specific files** — never `git add -A`
 - **Escalate by fact** — if you discover mid-task that it's larger than 30 min, stop and redirect to `/frame:build`

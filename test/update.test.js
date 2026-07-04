@@ -43,3 +43,19 @@ test('update fails gracefully when FRAME not installed', async () => {
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test('update fails gracefully on malformed config.json', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'frame-badjson-'));
+  try {
+    makeFakeInstall(dir);
+    writeFileSync(join(dir, '.frame', 'config.json'), '{"language": "en", // broken');
+    const { update } = await import('../src/update.js?v=2');
+    // Must not throw — log a readable error and return without touching files
+    await assert.doesNotReject(() => update(dir));
+    // config.json must be left as-is for the user to fix
+    const raw = readFileSync(join(dir, '.frame', 'config.json'), 'utf-8');
+    assert.ok(raw.includes('// broken'), 'malformed config.json must not be overwritten');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

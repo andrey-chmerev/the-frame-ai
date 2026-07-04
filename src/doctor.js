@@ -21,12 +21,21 @@ const REQUIRED_FILES = [
   '.planning/MAP.md',
 ];
 
-const HOOK_FILES = [
-  '.claude/hooks/safety-net.sh',
-  '.claude/hooks/git-safety.sh',
-  '.claude/hooks/quality-gate.sh',
-  '.claude/hooks/session-init.sh',
-];
+// Derived from templates/hooks/ so new hooks are checked automatically
+function getHookFiles() {
+  const hooksDir = join(TEMPLATES_DIR, 'hooks');
+  if (!fileExists(hooksDir)) {
+    return [
+      '.claude/hooks/safety-net.sh',
+      '.claude/hooks/git-safety.sh',
+      '.claude/hooks/quality-gate.sh',
+      '.claude/hooks/session-init.sh',
+    ];
+  }
+  return readdirSync(hooksDir)
+    .filter((f) => f.endsWith('.sh'))
+    .map((f) => `.claude/hooks/${f}`);
+}
 
 export async function doctor(target) {
   log('\nFRAME Doctor — Checking installation health...\n');
@@ -85,7 +94,7 @@ export async function doctor(target) {
 
   // Hooks executability
   log('\nHooks:');
-  for (const hook of HOOK_FILES) {
+  for (const hook of getHookFiles()) {
     const fullPath = join(target, hook);
     if (!fileExists(fullPath)) {
       logError(`  ${hook} — MISSING`);

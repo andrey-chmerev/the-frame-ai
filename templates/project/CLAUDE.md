@@ -37,6 +37,8 @@ This project uses FRAME (Framework for AI-Assisted Solo Development).
 - `/frame:plan <feature>` — plan feature
 - `/frame:build` — implement with TDD
 - `/frame:review` — code review
+- `/frame:parallel` — parallel feature work in worktrees (start/status/stop)
+- `/frame:integrate` — merge parallel features with gates + cross-feature review
 - `/frame:security` — security audit (secrets, OWASP, infra, AI)
 - `/frame:ship` — git + PR
 - `/frame:debug <issue>` — systematic debugging
@@ -45,6 +47,7 @@ This project uses FRAME (Framework for AI-Assisted Solo Development).
 
 **Key files**:
 - `.planning/STATE.md` — current position
+- `.planning/BOARD.md` — parallel task board (created by /frame:parallel)
 - `.planning/MAP.md` — project map
 - `.planning/ROADMAP.md` — roadmap
 - `.frame/config.json` — FRAME configuration

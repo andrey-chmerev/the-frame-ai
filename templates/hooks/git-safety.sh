@@ -23,6 +23,22 @@ if echo "$COMMAND" | grep -qiE 'git(\s+-\S+)*\s+push' && ! echo "$COMMAND" | gre
   fi
 fi
 
+# Ask before pushing into main/master via refspec (e.g. `git push origin feature:main`)
+# Regular `git push` of the current branch is untouched — this only catches cross-branch refspecs.
+if echo "$COMMAND" | grep -qiE 'git(\s+-\S+)*\s+push' && echo "$COMMAND" | grep -qE '[^ :+]+:(refs/heads/)?(main|master)(\s|$)'; then
+  ask "FRAME Git Safety: this push targets main/master via refspec (another branch pushed into main). Prefer pushing the branch itself and merging via PR or /frame:integrate. Push anyway?"
+fi
+
+# Block commit while the quality gate is red (frame-gate-status is written by quality-gate.sh
+# into the per-worktree git dir — outside the working tree, so it never dirties `git status`)
+if echo "$COMMAND" | grep -qiE 'git(\s+-\S+)*\s+commit'; then
+  GATE_STATUS_FILE="$(git rev-parse --git-dir 2>/dev/null)/frame-gate-status"
+  if [ -f "$GATE_STATUS_FILE" ] && head -1 "$GATE_STATUS_FILE" 2>/dev/null | grep -q '^fail'; then
+    GATE_FILE=$(sed -n '2p' "$GATE_STATUS_FILE" 2>/dev/null)
+    deny "FRAME Git Safety: quality gate is red (last failure: ${GATE_FILE:-typecheck/lint}). Fix the reported errors — the gate turns green after the next clean check on a changed file. (Fixed outside Claude? Clear manually: rm $GATE_STATUS_FILE)"
+  fi
+fi
+
 # Block git reset --hard unless targeting a FRAME checkpoint tag
 if echo "$COMMAND" | grep -qiE 'git(\s+-\S+)*\s+reset\s+--hard'; then
   if echo "$COMMAND" | grep -q 'frame/checkpoint/'; then

@@ -95,10 +95,10 @@ fi
 
 ```bash
 command_count=$(ls .claude/commands/frame:*.md 2>/dev/null | wc -l | tr -d ' ')
-if [ "$command_count" -ge 30 ]; then
+if [ "$command_count" -ge 31 ]; then
   echo "Commands: $command_count — OK"
 elif [ "$command_count" -ge 1 ]; then
-  echo "Commands: $command_count — WARNING (expected ≥30)"
+  echo "Commands: $command_count — WARNING (expected ≥31, run npx the-frame-ai update)"
 else
   echo "Commands: $command_count — INCOMPLETE (no commands found)"
 fi
@@ -141,6 +141,24 @@ echo "Uncommitted changes: $git_status"
 echo "Recent commits:"
 git log --oneline -5 2>/dev/null
 ```
+
+### 11. Parallel board consistency (if BOARD.md exists)
+
+```bash
+if [ -f .planning/BOARD.md ]; then
+  echo "--- BOARD.md active rows vs git worktrees ---"
+  # features listed as active on the board
+  grep "| active |" .planning/BOARD.md | awk -F'|' '{gsub(/ /,"",$2); print $2}'
+  # actual feature worktrees
+  git worktree list | grep "feature/" || echo "(no feature worktrees)"
+else
+  echo "BOARD.md: not present (no parallel tasks — OK)"
+fi
+```
+
+Compare the two lists:
+- Board row `active` but no matching worktree → **WARNING**: "orphaned board row {feature} — run /frame:parallel status (marks it orphaned) or /frame:parallel stop {feature}"
+- Worktree `feature/*` exists but not on the board → **INFO**: "manual worktree {name} not tracked by the board (created via /frame:worktree — fine, or re-register with /frame:parallel start)"
 
 ## Output Format
 

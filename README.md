@@ -15,7 +15,8 @@ If you're building a product alone with Claude Code and want to work like a team
 | Losing context between sessions | Project memory and automatic state dump on session start |
 | Chaos in tasks and priorities | 6-phase workflow: Research → Plan → Build → Review → Ship → Reflect |
 | Fear of breaking something important | Safety hooks block destructive commands before they run |
-| Repetitive routine tasks | 29 ready-made commands for the full development cycle |
+| Repetitive routine tasks | 31 ready-made commands for the full development cycle |
+| Waiting for one feature to finish before starting the next | `/frame:parallel` — each feature in its own worktree, `/frame:integrate` merges them back with quality gates |
 | Slow, one-by-one fixes after review | `/frame:fix` — closes review findings in parallel, one fixer per file |
 | Complex features with dependencies | Parallel subagents for independent tasks (wave-based planning) |
 | No structure for solo work | Roadmap, STATE.md, MAP.md — always know where you are and what's next |
@@ -37,7 +38,7 @@ Run `/frame:research <topic>` — Claude explores the codebase and external sour
 `/frame:plan audit` creates a fix plan from the latest audit report.
 
 **Build** — implement
-`/frame:build` reads the `Parallel:` labels from plan.md and automatically decides whether to run tasks sequentially or in parallel worktrees. No flags needed. Stuck — `/frame:unstuck`. Found a bug — `/frame:debug`.
+`/frame:build` handles two kinds of parallelism automatically, no flags. **Between features**: if another feature is already being built, build offers to set it up in its own git worktree — you never call `/frame:parallel` by hand. **Within a feature**: it reads the `Parallel:` labels from plan.md and runs independent wave tasks concurrently. Stuck — `/frame:unstuck`. Found a bug — `/frame:debug`.
 
 **Review** — check before deploying
 `/frame:review` runs automated checks and a 6-panel review (spec compliance, security, performance, business logic, tests, conventions) on the diff. FAIL findings are verified adversarially in parallel.
@@ -73,7 +74,7 @@ If review requests changes, `/frame:fix` closes the findings in parallel — one
 
 /frame:build
 # → reads Parallel: labels from plan.md
-#   Wave 1: runs tasks in parallel worktrees (automatically)
+#   Wave 1: runs its tasks concurrently (file-disjoint, shared tree)
 #   Wave 2: runs sequentially (depends on Wave 1 output)
 
 /frame:review
@@ -82,6 +83,45 @@ If review requests changes, `/frame:fix` closes the findings in parallel — one
 
 /frame:ship
 # → commit, optional push/PR, project memory updated
+```
+
+### Two features in parallel: auth and billing
+
+```
+# Terminal 1 (main) — first feature builds right here, no ceremony:
+/frame:research auth
+/frame:plan auth
+/frame:build auth         # main is your main line — builds here
+
+# Terminal 1 — start a SECOND feature while auth is still cooking:
+/frame:research billing
+/frame:plan billing
+/frame:build billing
+# → build sees auth is in flight and offers:
+#   "⚠️ auth is already being built. Set up an isolated worktree for billing? [Y/n]"
+# → Y: creates worktree ../project-billing + branch, checks file overlaps, registers on the board
+#   "Build it there: cd ../project-billing && claude → /frame:build billing"
+# You never type /frame:parallel — build routes it for you.
+
+# Terminal 2:
+cd ../project-billing && claude
+/frame:build billing      # builds in isolation
+/frame:review
+
+/frame:parallel status    # from main — see the board anytime
+# → BOARD: billing BUILD 4/7 tasks  (auth lives in main, the base)
+
+# When both features pass review (auth in main, billing in its worktree):
+/frame:integrate
+# → main is the base (carries auth); merges billing's branch into integrate/{date}
+# → full quality gates after EVERY merge
+# → cross-feature review of the combined diff (module interactions, config conflicts)
+# → per-feature learnings merged into shared memory
+# → report + "ready to ship"
+
+/frame:ship                      # from the integration branch
+/frame:parallel stop auth        # cleanup worktrees
+/frame:parallel stop billing
 ```
 
 ### Bug: users can't log in after password reset
@@ -188,7 +228,8 @@ claude -p "/frame:audit quick" --allowedTools "Bash,Read,Write,Grep"
 FRAME provides:
 
 - **6-phase workflow**: Research → Plan → Build → Review → Ship → Reflect
-- **29 commands**: from quick tasks to full feature development cycle
+- **31 commands**: from quick tasks to full feature development cycle
+- **Parallel feature work**: `/frame:parallel` runs each feature in its own git worktree with a task board; `/frame:integrate` merges them back with per-merge quality gates and cross-feature review
 - **Parallel review fixes**: `/frame:fix` closes findings file-by-file in one pass — no worktrees, no per-fix ceremony
 - **10 AI agents**: Researcher, Planner, Builder, Reviewer, Auditor, Devil's Advocate, Security, Performance Auditor, Tests Reviewer, Conventions Reviewer
 - **Safety Hooks**: block destructive operations, enforce quality gates
@@ -320,7 +361,10 @@ These commands cover 90% of solo dev work:
 
 | Command | When to use |
 |---------|-------------|
-| `/frame:worktree` | Isolated git worktree for parallel experiments |
+| `/frame:parallel start <feature>` | Launch a planned feature in its own worktree, track it on the board |
+| `/frame:parallel status` | See all parallel tasks: phase, progress, readiness |
+| `/frame:integrate` | Merge finished parallel features with gates + cross-feature review |
+| `/frame:worktree` | Isolated git worktree for parallel experiments (low-level) |
 </details>
 
 ## Full Command Reference
@@ -331,7 +375,7 @@ These commands cover 90% of solo dev work:
 | `/frame:add-task` | Add a task to the current plan.md without interrupting work | `<task description>` |
 | `/frame:arch` | Document module architecture and design decisions for a file or module | `<file or module path>` |
 | `/frame:audit` | Comprehensive project audit across 12 categories — security, performance, business logic, API, data, observability, deps, tests, infra, maintainability, a11y, privacy | `[category | quick] [scope-path] [--priv]` |
-| `/frame:build` | Implement planned tasks using TDD — auto-detects sequential or parallel execution from plan.md | `[feature]` |
+| `/frame:build` | Implement planned tasks using TDD — auto-routes to a worktree when another feature is already in flight, and auto-detects parallel waves from plan.md | `[feature]` |
 | `/frame:checkpoint` | Manage git checkpoints: list, create, rollback, or clean up frame/checkpoint/* tags | `[list | create | cleanup | rollback [<tag> | --soft]]` |
 | `/frame:cleanup-memory` | Trim and archive memory files, removing stale and low-confidence entries | — |
 | `/frame:daily` | Morning briefing — project status, today's priorities, and blockers | `[full]` |
@@ -341,8 +385,10 @@ These commands cover 90% of solo dev work:
 | `/frame:fix` | Close review findings in parallel — groups findings by file, spawns one fixer per non-conflicting group, single gates run at the end | `[feature] [REV-N ...]` |
 | `/frame:health` | Daily health check: tests, lint, types, security scan freshness — or sprint velocity check | `[sprint]` |
 | `/frame:init` | Initialize project: scan codebase, fill MAP.md, STATE.md, and memory files | — |
+| `/frame:integrate` | Merge all finished parallel features into one integration branch with quality gates and cross-feature review | `[feature ...]` |
 | `/frame:migrate` | Plan and execute a database or schema migration with rollback safety | `<migration description>` |
 | `/frame:note` | Save a quick memory note (pattern, decision, or anti-pattern) to memory files | `<note text>` |
+| `/frame:parallel` | Orchestrate parallel feature work across git worktrees — start tasks, view the board, stop tasks | `start <feature> | status | stop <feature>` |
 | `/frame:pause` | Save session state to pause-state.json and create a checkpoint | — |
 | `/frame:plan` | Decompose a feature into atomic tasks with wave grouping, traceability, and Parallel labels; or create a plan from audit findings | `<feature description> | audit [all]` |
 | `/frame:refactor` | Refactor code with test coverage verification and checkpoint safety | `<refactor scope>` |
@@ -383,8 +429,8 @@ FRAME installs 5 hooks into `.claude/hooks/`. They run automatically.
 | Hook | Trigger | What it does | To disable |
 |------|---------|--------------|------------|
 | `safety-net.sh` | Before Bash | Blocks `rm -rf` and `DROP TABLE/DATABASE` | Remove from `.claude/settings.json` |
-| `git-safety.sh` | Before Bash | Blocks force push, `reset --hard`, warns on `git add -A` | Remove from `.claude/settings.json` |
-| `quality-gate.sh` | After file write | Runs typecheck + lint on changed file | Remove from `.claude/settings.json` |
+| `git-safety.sh` | Before Bash | Blocks force push, `reset --hard`, commits while the quality gate is red; warns on `git add -A` and refspec pushes into main | Remove from `.claude/settings.json` |
+| `quality-gate.sh` | After file write | Runs typecheck + lint on changed file; records pass/fail so git-safety can block commits on red | Remove from `.claude/settings.json` |
 | `session-init.sh` | Session start | Shows current phase/task; full context dump if away > 24h | Remove from `.claude/settings.json` |
 | `pre-compact.sh` | Before context compaction | Saves timestamp to STATE.md before context is compressed | Remove from `.claude/settings.json` |
 
@@ -420,19 +466,21 @@ npx the-frame-ai version               # Show CLI version
 
 ```
 .claude/
-  commands/          # 29 FRAME commands
+  commands/          # 31 FRAME commands
   agents/            # 10 AI agents
   hooks/             # 5 safety hooks
 .frame/
   config.json        # FRAME configuration
 .planning/
   STATE.md           # Current position
+  BOARD.md           # Parallel task board (created by /frame:parallel)
   MAP.md             # Project map
   ROADMAP.md         # Roadmap
   memory/            # Project memory (context, conventions, dependencies, learnings)
   specs/             # Feature specs
   reports/
     audit/           # Audit reports (security, performance, deps, etc.)
+    integration/     # Integration reports from /frame:integrate
 ```
 
 ## Breaking Changes in v0.14.0

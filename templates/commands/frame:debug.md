@@ -31,6 +31,8 @@ Debug the problem: **$ARGUMENTS**
 
 ### Step 0a: Initialize STATE.md
 
+**Save the current position first**: read `.planning/STATE.md` and remember the existing `## Current Position` block — a debug session is a side quest and must not hijack pipeline state (e.g. `Phase: INTEGRATE — ready to ship`). You will restore it in Phase 4.
+
 Before starting, write to `.planning/STATE.md`:
 ```markdown
 - Phase: DEBUG
@@ -114,6 +116,15 @@ Update `.planning/STATE.md`: `Current Phase: 2/4`
 
 Update `.planning/STATE.md`: `Current Phase: 3/4`
 
+**Parallel-safety check (only if `.planning/BOARD.md` exists with active tasks)**: the root cause files are now known — compare them with each active feature's file list from BOARD.md's `## Touched Files (cache)` section (fallback for older boards: `## Touched Files` from `docs/specs/{feature}/plan.md`, or the union of its tasks' `Files:` fields). On overlap, ask once before fixing:
+```
+⚠️ {file} is also being changed by feature "{X}" (worktree ../{project}-{X}).
+   1) Fix it in that worktree — the fix ships with the feature, zero merge risk (best when the bug belongs to the feature's area)
+   2) Fix here in main — commit message must contain [hotfix]; the regression test (mandatory below) lets /frame:integrate gates catch it if the feature's merge undoes the fix
+   3) Defer until {X} is integrated
+```
+No overlap → proceed silently.
+
 1. **Write a regression test**:
    - A test that reproduces the bug
    - **D-step**: The test must FAIL (confirms the bug)
@@ -143,6 +154,7 @@ Update `.planning/STATE.md`: `Current Phase: 4/4`
    git add {files}
    git commit -m "fix({scope}): {description}"
    ```
+   (If the fix overlaps an active parallel feature — Phase 3 check — append ` [hotfix]` to the message.)
 
 3. **Update `.planning/memory/learnings.md` — `## Anti-Patterns` section**:
    ```markdown
@@ -153,13 +165,13 @@ Update `.planning/STATE.md`: `Current Phase: 4/4`
    - Regression test: {path to test}
    ```
 
-4. **Update `.planning/STATE.md`**:
+4. **Update `.planning/STATE.md`** — restore the position saved in Step 0a and append one line:
    ```markdown
    ## Current Position
-   - Phase: DEBUG
-   - Feature: {issue}
-   - Status: Bug fixed
+   {the block saved in Step 0a, unchanged}
+   - Last debug: {date} — {issue} fixed (commit {hash})
    ```
+   (If there was no meaningful prior position, write `Phase: DEBUG / Status: Bug fixed` instead.)
 
 > **Key principle**: the most valuable output of a debug session is not just the fixed code, but the captured knowledge.
 
@@ -173,7 +185,7 @@ Systematic root cause analysis with logs, git history, and 5-why methodology. Us
 
 ### Step D0: Initialize
 
-Write to `.planning/STATE.md`:
+**Save the current `## Current Position` block first** (side-quest rule — restored in Phase D5), then write to `.planning/STATE.md`:
 ```markdown
 - Phase: DEBUG (deep)
 - Issue: {description}
@@ -263,11 +275,9 @@ Create `.planning/forensics/{issue-id}.md`:
 
 Add to `.planning/memory/learnings.md` `## Anti-Patterns` if a new anti-pattern found. Add to `.planning/memory/learnings.md` `## Decisions` if an architectural decision is needed.
 
-Update `.planning/STATE.md`:
+Update `.planning/STATE.md` — restore the position saved at the start (same side-quest rule as default mode) and append:
 ```markdown
-- Phase: DEBUG (deep)
-- Issue: {issue}
-- Status: COMPLETED
+- Last debug (deep): {date} — {issue}, report in .planning/forensics/
 ```
 
 ---
@@ -279,7 +289,9 @@ Update `.planning/STATE.md`:
 - **Max 3 hypotheses** — rank by likelihood, check cheapest first; discard before forming next
 - **Reproduce first** — do not fix until you understand the problem
 - **D→P→D in Phase 2** — every hypothesis is confirmed by a deterministic step
-- **Regression test required** — so the bug does not return
+- **Regression test required** — so the bug does not return (and so /frame:integrate gates detect if a parallel feature's merge undoes the fix)
+- **Board check before fixing** — with active parallel tasks, warn on file overlap; overlapping main-side fixes get `[hotfix]` in the commit message
+- **Side quest, not a phase change** — previous `## Current Position` is saved and restored (all modes); debug never hijacks pipeline state
 - **Minimal fix** — do not change anything unnecessary
 - **Quality gates** — type check + tests before commit
 - **Write to learnings.md Anti-Patterns** — knowledge must not be lost

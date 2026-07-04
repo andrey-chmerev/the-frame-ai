@@ -25,6 +25,7 @@ Update `.planning/STATE.md` before starting:
 
 Read `.planning/STATE.md` and verify:
 - `Phase:` is `REVIEW` OR `TEST` ✓ (TEST = manual test plan was generated after review)
+- OR `Phase:` is `INTEGRATE` with `Status: COMPLETE` / `ready to ship` ✓ (parallel features merged via /frame:integrate — per-feature reviews already passed in worktrees)
 - `Status:` is `approve` OR `Shipped` OR contains `ready to ship` ✓ (not `request changes`)
 
 If conditions not met → **STOP**:
@@ -32,6 +33,7 @@ If conditions not met → **STOP**:
 ❌ Ship blocked. Review not completed or not approved.
    Current status: {status}
    Run /frame:review first (optionally /frame:test-plan before shipping).
+   (For parallel tasks: /frame:integrate must finish with "ready to ship".)
 ```
 
 Check `Audit Status` in STATE.md:
@@ -117,6 +119,8 @@ gh pr create --title "{title}" --body "{description}"
 ```
 
 ### Step 6.5: Update memory files
+
+**Worktree rule**: check `git rev-parse --git-common-dir`. If the output contains `worktrees/`, you are in a linked worktree — do **NOT** write to shared memory files (`.planning/memory/*`, `.planning/context.md`): parallel branches editing them guarantees merge conflicts. Instead append decisions/learnings to `docs/specs/{feature}/learnings.md` (per-feature, conflict-free); `/frame:integrate` merges them into shared memory later. Worktree-local `.planning/STATE.md` and plan.md edits are fine — commit them to the feature branch (e.g. `chore({feature}): update planning state`) so the tree stays clean; `/frame:integrate` resolves them in main's favor automatically. Skip the rest of this step.
 
 Update `.planning/context.md`:
 - `Current Focus` → remove the completed feature

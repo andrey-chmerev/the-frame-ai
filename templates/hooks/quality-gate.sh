@@ -42,8 +42,10 @@ run_cmd() {
 }
 
 FAILED=0
+RAN=0
 
 if [ -n "$TYPECHECK_CMD" ]; then
+  RAN=1
   OUTPUT=$(run_cmd "$TYPECHECK_CMD")
   if [ $? -ne 0 ]; then
     echo "FRAME Quality Gate: typecheck failed for $FILE_PATH" >&2
@@ -53,11 +55,24 @@ if [ -n "$TYPECHECK_CMD" ]; then
 fi
 
 if [ -n "$LINT_CMD" ]; then
+  RAN=1
   OUTPUT=$(run_cmd "$LINT_CMD")
   if [ $? -ne 0 ]; then
     echo "FRAME Quality Gate: lint issues in $FILE_PATH" >&2
     echo "$OUTPUT" >&2
     FAILED=1
+  fi
+fi
+
+# Record gate status so git-safety.sh can block `git commit` while the gate is red.
+# Lives in the git dir (per-worktree, outside the working tree) so it never dirties `git status`.
+# Only write when a check actually ran (never overwrite a real failure with a no-op pass).
+GATE_DIR=$(git rev-parse --git-dir 2>/dev/null)
+if [ "$RAN" -eq 1 ] && [ -n "$GATE_DIR" ] && [ -d "$GATE_DIR" ]; then
+  if [ $FAILED -eq 1 ]; then
+    printf 'fail\n%s\n%s\n' "$FILE_PATH" "$(date -u +"%Y-%m-%dT%H:%M:%SZ")" > "$GATE_DIR/frame-gate-status" 2>/dev/null
+  else
+    printf 'pass\n%s\n%s\n' "$FILE_PATH" "$(date -u +"%Y-%m-%dT%H:%M:%SZ")" > "$GATE_DIR/frame-gate-status" 2>/dev/null
   fi
 fi
 

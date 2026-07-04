@@ -26,6 +26,7 @@ const PLANNING_DIRS = [
   '.planning/reports/sprint',
   '.planning/reports/cleanup',
   '.planning/reports/audit',
+  '.planning/reports/integration',
   '.planning/forensics',
   'docs/specs/archive',
 ];
@@ -76,7 +77,15 @@ export async function init(target, flags = {}) {
     ensureDir(join(target, dir));
   }
 
-  const defaultConfig = JSON.parse(readFileSync(join(TEMPLATES_DIR, 'project', 'config.json'), 'utf-8'));
+  let defaultConfig;
+  try {
+    defaultConfig = JSON.parse(readFileSync(join(TEMPLATES_DIR, 'project', 'config.json'), 'utf-8'));
+  } catch (err) {
+    logError(`Cannot read templates/project/config.json: ${err.message}`);
+    logError('The the-frame-ai package looks corrupted — reinstall it: npx the-frame-ai@latest init');
+    process.exitCode = 1;
+    return;
+  }
   const resolvedConfig = await promptConfig(defaultConfig, flags.yes);
   const qualityVars = Object.fromEntries(
     Object.entries(resolvedConfig.quality.commands).map(([k, v]) => [`quality.commands.${k}`, v])

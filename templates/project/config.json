@@ -35,6 +35,11 @@
 
   "_advanced_comment": "=== ADVANCED — safe to leave as-is ===",
 
+  "parallel": {
+    "maxWorktrees": 3,
+    "mergeStrategy": "merge"
+  },
+
   "workflow": {
     "tdd": true,
     "autoCommit": false,

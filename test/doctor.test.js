@@ -1,8 +1,12 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, rmSync, mkdirSync, writeFileSync, chmodSync } from 'node:fs';
+import { mkdtempSync, rmSync, mkdirSync, writeFileSync, chmodSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
+
+// Mirror doctor.js: the expected hook set is whatever ships in templates/hooks/
+const TEMPLATE_HOOKS = readdirSync(new URL('../templates/hooks', import.meta.url))
+  .filter((f) => f.endsWith('.sh'));
 
 function makeHealthyInstall(dir) {
   const dirs = [
@@ -22,8 +26,7 @@ function makeHealthyInstall(dir) {
   ];
   for (const [f, c] of files) writeFileSync(join(dir, f), c);
 
-  const hooks = ['safety-net.sh', 'git-safety.sh', 'quality-gate.sh', 'session-init.sh'];
-  for (const h of hooks) {
+  for (const h of TEMPLATE_HOOKS) {
     const p = join(dir, '.claude', 'hooks', h);
     writeFileSync(p, '#!/bin/bash\nexit 0');
     chmodSync(p, 0o755);
@@ -63,6 +66,20 @@ test('doctor returns zero errors on healthy install', async () => {
     const { doctor } = await import('../src/doctor.js?v=3');
     const result = await doctor(dir);
     assert.equal(result.errors, 0, `expected 0 errors, got ${result.errors}`);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('doctor reports errors when a hook from templates/hooks is missing', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'frame-doctor-hook-'));
+  try {
+    makeHealthyInstall(dir);
+    // Remove the newest hook — a hardcoded doctor list would miss this
+    rmSync(join(dir, '.claude', 'hooks', 'pre-compact.sh'));
+    const { doctor } = await import('../src/doctor.js?v=5');
+    const result = await doctor(dir);
+    assert.ok(result.errors > 0, `expected an error for a missing templates-listed hook, got ${result.errors}`);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

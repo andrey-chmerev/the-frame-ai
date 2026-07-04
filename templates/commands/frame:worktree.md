@@ -7,6 +7,8 @@ allowed-tools: [Bash]
 
 Manage isolated git worktrees for parallel work.
 
+> **Low-level tool.** For parallel work on *planned features* prefer the orchestration layer: `/frame:parallel start <feature>` — it creates the worktree, checks file overlaps between features, and registers the task on `.planning/BOARD.md`; `/frame:integrate` merges everything back with quality gates. Use `/frame:worktree` directly for ad-hoc experiments and manual worktree management.
+
 ## Instructions
 
 Command: **$ARGUMENTS**

@@ -18,8 +18,9 @@ Takes research.md (Mode A) or an audit report (Mode B), validates it, reads memo
 ### Step 0: Checkpoint + STATE.md
 
 ```bash
-git tag "frame/checkpoint/plan-$(date +%Y%m%dT%H%M%S)" -m "Auto checkpoint before plan phase"
+git tag "frame/checkpoint/plan-{feature}-$(date +%Y%m%dT%H%M%S)" -m "Auto checkpoint before plan phase"
 ```
+(Feature-scoped tag — avoids collisions when several features are planned across parallel worktrees.)
 
 Update `.planning/STATE.md`:
 ```markdown
@@ -200,6 +201,11 @@ Create `docs/specs/{feature}/plan.md`:
 
 ...
 
+## Touched Files
+<!-- aggregated union of all Files: fields — used by /frame:parallel start for cross-feature overlap checks -->
+- `path/to/file.ts`
+- `path/to/other.ts`
+
 ## Exit Criteria
 - [ ] `{quality.commands.typecheck}` passes with 0 errors
 - [ ] `{quality.commands.test}` — all tests pass
@@ -297,6 +303,7 @@ Show: count of Critical/High addressed, skipped Medium (if any), next step: `/fr
 - **Risk on every task** — Builder must see risks upfront
 - **Test on every task** — every task is verified
 - **No file conflicts** within one wave
+- **Touched Files section always present** — /frame:parallel needs it for cross-feature overlap checks
 - **Never edit code** — only create spec.md and plan.md
 
 ## Result

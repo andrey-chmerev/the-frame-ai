@@ -1,11 +1,13 @@
 ---
-description: "Implement planned tasks using TDD — auto-detects sequential or parallel execution from plan.md"
+description: "Implement planned tasks using TDD — auto-routes to a worktree when another feature is already in flight, and auto-detects parallel waves from plan.md"
 argument-hint: "[feature]"
 allowed-tools: [Read, Write, Edit, Bash]
 ---
 # /frame:build -- Implementation per plan.md
 
-Reads plan.md, executes tasks with TDD and quality gates. Parallelism is determined by plan.md `Parallel:` labels — no flags needed.
+Reads plan.md, executes tasks with TDD and quality gates. Two kinds of parallelism happen automatically, no flags and no separate commands to remember:
+- **Between features** — if another feature is already being built, build sets this one up in its own git worktree for you (Step 0).
+- **Within a feature** — waves marked `Parallel:` in plan.md run their tasks concurrently (Step 4).
 
 ### Routing
 
@@ -14,7 +16,38 @@ Reads plan.md, executes tasks with TDD and quality gates. Parallelism is determi
 
 ## Instructions
 
-### Step 0: Checkpoint + Update STATE.md (IN_PROGRESS)
+### Step 0: Parallel routing — decide WHERE this build runs (do this first)
+
+Before touching anything, figure out whether this build should happen here or in an isolated worktree. This is what lets you "just run build" without thinking about `/frame:parallel`.
+
+```bash
+git rev-parse --git-common-dir            # worktree detection
+[ -f .planning/BOARD.md ] && grep "| active |" .planning/BOARD.md || echo "NO_BOARD"
+git worktree list
+```
+
+Resolve `{feature}` first (from args or STATE.md). Then match one case:
+
+- **Case A — already inside a linked worktree** (`--git-common-dir` output contains `worktrees/`): you are isolated already. Skip the rest of Step 0 and go to Step 0.1 (checkpoint). This is the normal state when you opened the worktree's terminal.
+
+- **Case B — in main, and `{feature}` already has a worktree** (a board row for `{feature}` whose worktree exists in `git worktree list`): do **not** build it here. STOP:
+  > `{feature}` is being built in `../{project}-{feature}`. Continue there: `cd ../{project}-{feature} && claude` → `/frame:build {feature}`.
+
+- **Case C — in main, and a *different* feature is active in flight** (BOARD.md has ≥1 `active` row for another feature whose worktree exists): building `{feature}` here would tie up main and share the tree with a second unfinished feature. Offer isolation:
+  ```
+  ⚠️ {other} is already being built (worktree ../{project}-{other}).
+     Building {feature} in main now would block parallel work and mix two features in one tree.
+     → Set up an isolated worktree for {feature}? [Y/n]
+  ```
+  - **Y (default)** → run the `/frame:parallel start {feature}` procedure (file-overlap check against active features → create worktree + `feature/{feature}` branch → copy context → register the board row). Then STOP:
+    > Worktree ready at `../{project}-{feature}`. Build it there: `cd ../{project}-{feature} && claude` → `/frame:build {feature}`. Main stays free for your next research/plan.
+  - **n** → build here in main (shared tree). Warn once: "Building in main — not isolated; /frame:integrate won't see it as a separate branch." Then continue to Step 0.1.
+
+- **Case D — in main, nothing else in flight** (no BOARD.md, or no `active` rows for other features): this is the only feature going right now. Build here in main normally — no worktree overhead. Continue to Step 0.1.
+
+> Mental model: **main is your main line; worktrees are the extra things you start while something's already cooking.** You never call `/frame:parallel` by hand — build offers it exactly when it's needed (Case C).
+
+### Step 0.1: Checkpoint + Update STATE.md (IN_PROGRESS)
 
 Create checkpoint before starting (feature-scoped tag — avoids collisions across parallel worktrees):
 ```bash
@@ -83,7 +116,7 @@ Each subagent receives a self-contained brief (it does NOT read memory/context i
 - Anti-patterns to avoid (the applicable ones from learnings.md)
 - Instructions: implement + run the targeted test for your file(s); return final text with changed files + test status (no commit hash — orchestrator commits)
 
-**Isolation exception**: only if a wave's tasks *could* still touch a shared file (e.g. a barrel/index, a config, a lock file the planner couldn't fully separate) — spawn those with `isolation: "worktree"` and, after each returns, bring its work into the current branch with `git cherry-pick {hash}` before running wave gates. Default path (file-disjoint tasks) needs none of this.
+**Isolation exception**: only if a wave's tasks *could* still touch a shared file (e.g. a barrel/index, a config, a lock file the planner couldn't fully separate) — spawn those with `isolation: "worktree"` and, after each returns, bring its work into the current branch with `git cherry-pick {hash}` before running wave gates. After each cherry-pick, verify it landed completely: compare `git show --stat HEAD` against the subagent's reported changed files (a conflict-resolved cherry-pick can silently drop part of the change), and run that task's targeted test before moving on. Default path (file-disjoint tasks) needs none of this.
 
 After all subagents complete → **wave commit + quality gates** (orchestrator, in the shared tree):
 ```bash
@@ -235,7 +268,9 @@ Next step: `/frame:review`
 - **Risk: high requires confirmation** — wait for user response
 - **Never use type `any`** — use `unknown` + type guard
 - **Never modify files outside the task scope** — stay within task boundaries
-- **Parallelism from plan, not flags** — plan.md `Parallel: yes/no` is the source of truth
+- **Auto-routing to worktrees** — build itself offers isolation when another feature is in flight (Step 0, Case C); the user never types `/frame:parallel start` by hand
+- **Main is the base line** — the first/only feature builds in main; concurrent features get worktrees and merge back via `/frame:integrate`
+- **Parallelism from plan, not flags** — plan.md `Parallel: yes/no` is the source of truth for waves within a feature
 - **Max 5 subagents per wave** — concurrency cap
 - **Shared tree by default** — file-disjoint wave tasks need no worktree; use `isolation: "worktree"` + `cherry-pick` only for the shared-file exception
 - **Orchestrator owns commits, plan.md, STATE.md, checkpoints** — single-task subagents own none of these
