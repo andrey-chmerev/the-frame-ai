@@ -68,6 +68,19 @@ Use the real duration in the retrospective report instead of an estimate.
 - What took longer than expected?
 - What mistakes were made?
 
+### Step 3.5: Verdict gate — decide what is worth saving (learn-eval)
+
+Do NOT dump every observation into memory — that is how memory rots. For each candidate lesson, pick one verdict:
+
+| Verdict | When | Action |
+|---------|------|--------|
+| **Save** | New, generally-true, will recur | Write it as a fresh entry (confidence: low, confirmed: 1x) |
+| **Improve then Save** | True but vague/overfit to this task | Rewrite it to be general and evidence-backed, then Save |
+| **Absorb into existing** | A known pattern/anti-pattern just recurred | Do NOT add a duplicate — bump the existing entry's `confirmed` and `last:` (confidence step-up) |
+| **Drop** | One-off, trivial, or not reproducible | Discard — say why in the report, write nothing |
+
+Only lessons that pass this gate reach Step 4. Record the verdict for each lesson in the retrospective report.
+
 ### Step 4: Update Memory
 
 **Worktree rule**: check `git rev-parse --git-common-dir`. If the output contains `worktrees/`, you are in a linked worktree (parallel task) — do **NOT** write to shared memory files (`.planning/memory/*`): parallel branches editing them guarantees merge conflicts at /frame:integrate. Instead append all patterns/anti-patterns/decisions from this retrospective to `docs/specs/{feature}/learnings.md` (per-feature file, unique to this branch — conflict-free). `/frame:integrate` merges it into shared memory. Worktree-local `.planning/STATE.md` updates are fine — they live on the feature branch and /frame:integrate resolves them in main's favor. Then skip to Step 5.
@@ -108,10 +121,12 @@ Update `.planning/memory/learnings.md` with findings from this task.
 - **Discovered**: {date}
 ```
 
-If an existing pattern was confirmed, **update its metadata**:
-- Increment `confirmed` count
+If an existing pattern was confirmed, **update its metadata** (this is the "Absorb into existing" verdict — never duplicate):
+- Increment `confirmed` count (each confirmation is a step up in confidence)
 - Update `last` date
 - Promote confidence: `low` (1x) -> `medium` (2-4x) -> `high` (5+)
+
+If the same pattern was **contradicted** this task (it did not hold), step confidence *down* one level and add a one-line `- **Contradicted**: {date} — {why}` note. Two contradictions in a row → move it to `### Archived`. (Decay over time — patterns idle > 90 days — is handled mechanically by /frame:cleanup-memory, so unused knowledge fades instead of misleading.)
 
 **If an anti-pattern was discovered**, add under `## Anti-Patterns`:
 ```markdown

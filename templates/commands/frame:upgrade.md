@@ -67,6 +67,33 @@ npx the-frame-ai@latest update . 2>&1
 
 Show the full output.
 
+### Step 6.5: Re-sync the FRAME Principles block in CLAUDE.md
+
+`update` refreshed the framework-owned principles into `.frame/frame-principles.md`. Splice that block into the project `CLAUDE.md` between the `FRAME:PRINCIPLES` markers — **without touching anything outside the markers** (the project's Tech Stack, Rules, Conventions, Anti-Patterns are yours and stay verbatim).
+
+```bash
+node -e '
+  const fs = require("fs");
+  const S = "<!-- FRAME:PRINCIPLES:START", E = "FRAME:PRINCIPLES:END -->";
+  if (!fs.existsSync(".frame/frame-principles.md")) { console.log("no principles file — skip"); process.exit(0); }
+  const block = fs.readFileSync(".frame/frame-principles.md", "utf8").trim();
+  let md = fs.readFileSync("CLAUDE.md", "utf8");
+  const s = md.indexOf(S), e = md.indexOf(E);
+  if (s === -1 || e === -1) {
+    // Older CLAUDE.md without markers: append the block once, do not restructure the rest.
+    md = md.trimEnd() + "\n\n" + block + "\n";
+    console.log("markers not found — appended principles block");
+  } else {
+    const end = md.indexOf("\n", e) === -1 ? md.length : md.indexOf("\n", e) + 1;
+    md = md.slice(0, s) + block + "\n" + md.slice(end);
+    console.log("principles block re-synced between markers");
+  }
+  fs.writeFileSync("CLAUDE.md", md);
+'
+```
+
+Report: "FRAME Principles re-synced; your project rules were left untouched."
+
 ### Step 7: Verify
 
 ```bash

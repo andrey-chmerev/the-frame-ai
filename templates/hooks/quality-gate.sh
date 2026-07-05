@@ -9,6 +9,21 @@ if [ -z "$FILE_PATH" ]; then
   exit 0
 fi
 
+# Delivery-gate bookkeeping: count edits to *source* files this session
+# (skip planning/memory bookkeeping — only real work should trip the gate).
+# Read by delivery-gate.sh (Stop hook); reset by session-init.sh.
+case "$FILE_PATH" in
+  *.planning/*|*/.claude/*) : ;;  # not counted
+  *)
+    GD=$(git rev-parse --git-dir 2>/dev/null)
+    if [ -n "$GD" ] && [ -d "$GD" ]; then
+      EC=0; [ -f "$GD/frame-edit-count" ] && EC=$(cat "$GD/frame-edit-count" 2>/dev/null | tr -dc '0-9')
+      [ -z "$EC" ] && EC=0
+      echo $((EC + 1)) > "$GD/frame-edit-count" 2>/dev/null
+    fi
+    ;;
+esac
+
 # Read quality commands from config if available
 TYPECHECK_CMD=""
 LINT_CMD=""

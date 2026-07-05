@@ -198,6 +198,17 @@ export async function update(target, flags = {}) {
     updated++;
   }
 
+  // 3b. Refresh the framework-owned principles block (.frame/frame-principles.md).
+  //     This is the "common" tier — /frame:upgrade splices it into CLAUDE.md between
+  //     the FRAME:PRINCIPLES markers, leaving the project-specific tier untouched.
+  const principlesSrc = join(TEMPLATES_DIR, 'project', 'frame-principles.md');
+  if (existsSync(principlesSrc)) {
+    const content = applyVars(readFileSync(principlesSrc, 'utf-8'), vars, qualityVars);
+    writeFile(join(target, '.frame', 'frame-principles.md'), content);
+    newManifest['.frame/frame-principles.md'] = hashContent(content);
+    updated++;
+  }
+
   // 4. Apply Playwright MCP if frontend
   if (frontendDecided) {
     writeMcpConfig(join(target, '.mcp.json'));

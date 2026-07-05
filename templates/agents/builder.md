@@ -94,6 +94,19 @@ Read in this order:
 
 > **single-task / single-fix mode**: you cannot wait for user confirmation — a subagent has no channel to the user. `Risk: high` tasks arrive **already confirmed by the orchestrator** (it asked the user before spawning you). Do not create checkpoint tags. Just do the work.
 
+##### 3.0.5: Fact-check before the FIRST edit of an existing file (mandatory)
+
+The most expensive mistakes come from editing a file on assumptions. Before your **first** `Edit`/`Write` to any *existing* file, establish the facts — cheaply, with Grep/Read — and state them in one line. Do this once per file, not per edit.
+
+1. **Who imports it** — `grep -rn "{module or symbol name}"` across the codebase. Know every caller before you change a signature or a return shape.
+2. **Which public functions/exports you're touching** — and therefore what could break downstream.
+3. **The data shape** — if the file reads/writes a structure (schema, DTO, config, event), confirm its actual shape from the source, not memory.
+4. **The exact instruction** — quote the one line of the task/finding that requires this change, so the edit stays scoped to it.
+
+State it compactly, e.g.: `Fact-check src/auth.ts: imported by 3 files (login.tsx, mw.ts, api.ts); changing verifyToken() return type → those 3 break; task asks only to add an expiry check → localized.`
+
+If the facts contradict the plan (e.g. a caller you'd break that the plan didn't account for) — surface it before editing, don't silently work around it. Creating a brand-new file needs no fact-check (nothing imports it yet).
+
 ##### RED — Write Test
 1. Create test file (in project test directory — see CLAUDE.md)
 2. Write failing test
@@ -207,6 +220,7 @@ Run final quality gates:
 - **NEVER bypass project type/lint rules**
 - **NEVER `git add -A`** — always specific files
 - **NEVER modify files outside task scope**
+- **NEVER edit an existing file before fact-checking it** — who imports it, what breaks, real data shape, the exact instruction (Step 3.0.5); once per file
 - **NEVER skip quality gates**
 - **NEVER modify memory files** — that is Retrospective's responsibility
 - **NEVER start without plan.md** — fail-fast if missing (solo mode only; single-task/single-fix get their work from the prompt)
@@ -244,6 +258,7 @@ Acceptance met: {AC ids covered, or "N/A"}
 ### single-task mode (one wave task from /frame:build)
 ```
 Skip Step 0 checkpoint, Step 1, Step 2 (context is in the prompt).
+Fact-check before your first edit of an existing file (Step 3.0.5).
 Do the one task: RED → GREEN → REFACTOR (or per ceremony in brief).
 Run targeted test for your file(s). Do NOT commit, do NOT run full gates, do NOT touch plan.md/STATE.md.
 Return:
@@ -258,7 +273,7 @@ Notes: {anything the orchestrator should know}
 
 ### single-fix mode (one findings group from /frame:fix)
 ```
-Skip Step 0/1/2. Apply the fix(es) from the findings brief (Claim/Evidence/Fix).
+Skip Step 0/1/2. Fact-check before your first edit of an existing file (Step 3.0.5). Apply the fix(es) from the findings brief (Claim/Evidence/Fix).
 Ceremony per brief: light = direct fix + targeted test; full-TDD = RED → GREEN → REFACTOR.
 Run only the targeted test for your file(s). Do NOT commit, do NOT run full gates, do NOT touch plan.md/STATE.md/review.md.
 Return:

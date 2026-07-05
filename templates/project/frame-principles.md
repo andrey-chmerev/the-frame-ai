@@ -1,48 +1,4 @@
-# CLAUDE.md — {{PROJECT_NAME}}
-
-<!--
-  Two tiers below:
-  1. PROJECT RULES (this top part) — yours. Filled by /frame:init from the codebase scan,
-     edited freely, and promoted into by /frame:evolve. Never overwritten by an upgrade.
-  2. FRAME PRINCIPLES (between the FRAME:PRINCIPLES markers near the bottom) — framework-owned,
-     language-independent. Refreshed by /frame:upgrade. Do not hand-edit that block; put your
-     own rules up here — specific (project) always beats general (principles) on any conflict.
--->
-
-## Tech Stack
-
-(to be filled after /frame:init scan)
-
-## Architecture
-
-(to be filled after /frame:init scan)
-
-## Key Patterns
-
-(to be filled after /frame:init scan)
-
-## Code Conventions
-
-- **File naming**: (define your convention)
-- **Imports**: (define your import order)
-- **Git**: `{type}({scope}): {description}` — types: feat, fix, refactor, test, docs, chore
-- **Tests**: (define your test location convention)
-
-## Rules (MUST follow)
-
-<!-- Project-specific rules. /frame:evolve promotes proven learnings here. These OVERRIDE the FRAME Principles below on any conflict. -->
-
-1. Always run quality checks before commit
-2. New features require tests
-3. (add project-specific rules here)
-
-## Anti-Patterns (NEVER do)
-
-<!-- Project-specific anti-patterns discovered during development. -->
-
-- ❌ (add project-specific anti-patterns here — /frame:retrospective and /frame:evolve fill this)
-
-<!-- FRAME:PRINCIPLES:START — framework-owned, refreshed by /frame:upgrade. Do not hand-edit; override in the sections above instead. -->
+<!-- FRAME:PRINCIPLES:START — framework-owned, refreshed by /frame:upgrade. Do not hand-edit; override in the project sections of CLAUDE.md instead. -->
 ## FRAME Framework
 
 This project uses FRAME (Framework for AI-Assisted Solo Development).
@@ -78,7 +34,7 @@ This project uses FRAME (Framework for AI-Assisted Solo Development).
 - `{quality.commands.lint}` — Lint check
 - `{quality.commands.build}` — Build check (before Ship)
 
-**Universal principles** (language-independent; project Rules above override these on conflict):
+**Universal principles** (language-independent; project Rules in CLAUDE.md override these on conflict):
 - ❌ Skip verification steps — D→P→D: always confirm an LLM change with a deterministic check
 - ❌ Skip tests for new features
 - ❌ Edit a file on assumptions — fact-check who imports it and what breaks first

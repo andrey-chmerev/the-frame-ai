@@ -1,6 +1,6 @@
 ---
 description: "Code review: completion check, automated gates, parallel reviewer panel with verification pass"
-argument-hint: "[audit]"
+argument-hint: "[audit | strict]"
 allowed-tools: [Read, Write, Bash]
 ---
 # /frame:review -- Code Review
@@ -11,6 +11,7 @@ Full review of the current feature. Validates completion against spec/plan, runs
 
 - (no args) — standard review for a feature built via `/frame:build`
 - `audit` — review mode after `/frame:build` on an audit plan: traces findings closed, not R/AC
+- `strict` — adversarial two-verdict loop: two independent verdicts must both PASS; on FAIL, fix only what's flagged and re-review with **fresh** reviewers, max 3 rounds, then escalate (see "Mode: review strict")
 
 ## Instructions
 
@@ -233,6 +234,56 @@ Difference from standard review:
 
 ---
 
+## Mode: review strict
+
+Triggered by: `/frame:review strict`. For high-stakes changes where a single review pass isn't enough. Runs Steps 0–2 exactly as standard, then replaces Steps 3–6 with an adversarial **two-verdict loop**.
+
+### Step S3: Two independent verdicts (round {N})
+
+Run the panel as two **independent verdict groups in parallel**, in one message:
+- **Group A** — `reviewer` + `tests-reviewer` + `conventions-reviewer` (does it meet spec, is it well-built).
+- **Group B** — `devils-advocate` + `security` + `performance-auditor` (how does it break).
+
+Each group returns its own overall verdict `PASS | FAIL` plus findings (universal schema, text only, no file writes). The two groups do **not** see each other's output — independence is the point.
+
+Build the **agreement table**:
+```markdown
+| Round | Group A | Group B | Agreement |
+|-------|---------|---------|-----------|
+| 1     | PASS    | FAIL    | disagree — B found 2 blockers |
+```
+
+**Gate**: ship is open only when **both groups PASS in the same round**. Any FAIL → go to the fix loop.
+
+### Step S4: Fix loop (max 3 rounds)
+
+While not both-PASS and round ≤ 3:
+1. Adversarially verify the FAIL findings (Step 4's refute pass) — drop refuted ones.
+2. Fix **only** the confirmed findings from this round. **No drive-by changes** — touching anything not flagged invalidates the round and restarts it. Record each fix against its finding ID.
+3. Re-run automated gates (Step 2).
+4. **Re-review with FRESH reviewers** — spawn new agent instances for Group A and Group B that receive only the *new* diff and the spec, with **no memory of previous rounds or of having approved anything**. This removes "I already blessed this" bias — the single most important property of the loop.
+5. Append the new round to the agreement table.
+
+Round counter increments each re-review. **After 3 rounds without both-PASS → STOP and escalate to the user**: show the agreement table, the findings still open, and what was tried each round. Do not loop a 4th time.
+
+### Step S5: Strict report
+
+Write `docs/specs/{feature}/review.md` as in Step 5, plus:
+```markdown
+## Strict Loop
+| Round | Group A | Group B | Fixed this round |
+|-------|---------|---------|------------------|
+| 1     | PASS    | FAIL    | REV-2, REV-3 |
+| 2     | PASS    | PASS    | — |
+
+Result: both groups PASS in round 2 → approved.
+(or: escalated after 3 rounds — {open findings})
+```
+
+STATE.md: both-PASS → `Status: Review complete, ready to ship`; escalated → `Status: REVIEW_FAILED (strict, escalated after 3 rounds)`.
+
+---
+
 ## Rules
 
 - **Completion before review** — if build is not done, stop at Step 1a
@@ -240,6 +291,7 @@ Difference from standard review:
 - **Adversarial verification** — all FAIL findings go through Step 4
 - **Small diff scales down** — <50 lines → 3-agent panel
 - **Panel agents are read-only** — they return findings as text, do not write files or STATE.md
+- **Strict mode = fresh reviewers each round** — re-reviews spawn new agents with no memory of prior approval; both verdict groups must PASS in the same round; fix only what's flagged; escalate after 3 rounds
 
 ## Result
 

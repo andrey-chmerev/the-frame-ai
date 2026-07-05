@@ -34,6 +34,13 @@ Update `.planning/STATE.md`:
 
 ## Mode A: Plan a feature
 
+### Step A0: SIZE sanity check
+
+Before decomposing, gauge the SIZE (same table as /frame:build Step 0.0: trivial / small / standard / large). If the work is clearly **trivial or small** (1–2 files, no new contract, obvious design), a full plan is overhead — tell the user:
+> "This looks {trivial|small}. You can skip planning and run `/frame:build {feature}` directly (it implements inline). Plan anyway?"
+
+Only proceed with full decomposition for **standard/large**, or if the user asks for a plan regardless.
+
 ### Step A1: Find and validate research.md
 
 ```bash

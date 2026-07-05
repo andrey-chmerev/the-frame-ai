@@ -1,5 +1,8 @@
 # MAP.md -- {{PROJECT_NAME}}
 
+<!-- Generated: (filled by /frame:init) | Files scanned: 0 | Commit: (none) | Lines: 0 -->
+<!-- Size budget: keep this map under ~200 lines / ~1500 tokens. If it grows past that, trim to route-level summaries. -->
+
 ## Quick Facts
 - **Name**: {{PROJECT_NAME}}
 - **Type**: (filled by /frame:init)

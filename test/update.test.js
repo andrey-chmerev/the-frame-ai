@@ -32,6 +32,25 @@ test('update does not overwrite protected config.json', async () => {
   }
 });
 
+test('update refreshes framework-owned .frame/frame-principles.md', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'frame-principles-'));
+  try {
+    makeFakeInstall(dir);
+    // Give it a valid config so update proceeds
+    writeFileSync(join(dir, '.frame', 'config.json'), '{"language":"en","quality":{"commands":{"typecheck":"tsc","test":"vitest","lint":"eslint","build":"build"}}}');
+    // A stale/corrupted principles file should be regenerated (framework-owned, not manifest-protected)
+    writeFileSync(join(dir, '.frame', 'frame-principles.md'), 'CORRUPTED');
+    const { update } = await import('../src/update.js?principles=1');
+    await update(dir);
+    const content = readFileSync(join(dir, '.frame', 'frame-principles.md'), 'utf-8');
+    assert.ok(!content.includes('CORRUPTED'), 'principles file must be refreshed on update');
+    assert.ok(content.includes('FRAME:PRINCIPLES:START'), 'refreshed principles must carry markers');
+    assert.ok(!content.includes('{quality.commands.'), 'refreshed principles must have vars applied');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test('update fails gracefully when FRAME not installed', async () => {
   const dir = mkdtempSync(join(tmpdir(), 'frame-noinit-'));
   mkdirSync(join(dir, '.git'));

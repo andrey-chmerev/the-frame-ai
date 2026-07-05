@@ -16,6 +16,24 @@ Reads plan.md, executes tasks with TDD and quality gates. Two kinds of paralleli
 
 ## Instructions
 
+### Step 0.0: Classify task SIZE — route the ceremony (do this before anything)
+
+Heavy frameworks burn time forcing full Research→Plan→Build on one-line fixes. Before routing, classify the work and take the shortest correct path. State the SIZE and the chosen route in one line so it's visible.
+
+| SIZE | Criteria | Route |
+|------|----------|-------|
+| **trivial** | 1 file, a few lines; no new dependency/contract; zero design ambiguity (typo, copy tweak, constant, obvious guard) | **Implement → Review → Commit inline.** Skip plan.md/waves. Still write/adjust a test if logic changed. |
+| **small** | 1–2 files; no new public API or dependency; design is obvious | **Light context (MAP.md + relevant memory) → Implement → Review → Commit.** No plan.md required. |
+| **standard** | 2–5 files; may add a type/contract; some design choices | **Full flow** — requires `plan.md` (run /frame:plan first). Steps 1–7 below. |
+| **large** | 5+ files, touches core/routing, new dependency or external contract, or real design ambiguity | **Full pipeline with a plan gate** — `plan.md` mandatory; if any `Risk: high`, plan must have passed devil's-advocate. Steps 1–7 below. |
+
+Routing rules:
+- **trivial / small** — you do NOT need plan.md. Do a targeted context read, make the change with a test, then go straight to Step 6 (final gates) and Step 7. Skip Steps 1–5 (wave machinery). Announce: `SIZE: trivial → inline implement, no plan.`
+- **standard / large** — plan.md is required. If it's missing, STOP: "SIZE: {standard|large} needs a plan. Run /frame:plan {feature} first." Then continue with Step 0 onward.
+- **When unsure between two sizes, pick the larger** — under-ceremony on a real change is costlier than a little overhead.
+
+Then continue to Step 0 (worktree routing) for every SIZE.
+
 ### Step 0: Parallel routing — decide WHERE this build runs (do this first)
 
 Before touching anything, figure out whether this build should happen here or in an isolated worktree. This is what lets you "just run build" without thinking about `/frame:parallel`.
@@ -220,7 +238,7 @@ grep "^### Task" plan.md | grep -v "\[DONE\]"
 
 If unclosed tasks exist — return and complete them or report to user.
 
-### Step 6: Final quality gates
+### Step 6: Final quality gates → readiness passport
 
 ```bash
 {quality.commands.test}
@@ -229,7 +247,16 @@ If unclosed tasks exist — return and complete them or report to user.
 {quality.commands.build}
 ```
 
-**D-step**: All checks must pass.
+**D-step**: All checks must pass. Report the result as the same **readiness passport** table `/frame:ship` uses (Build / Types / Lint / Tests with coverage → one-line verdict), so the readiness format is identical across build → review → ship:
+```
+| Check | Result |
+|-------|--------|
+| Build | PASS   |
+| Types | PASS   |
+| Lint  | PASS   |
+| Tests | PASS (N passed, X% cov) |
+Verdict: build gates green
+```
 
 ### Step 6.5: UI Verification (if UI tasks present)
 

@@ -4,6 +4,13 @@
 PROJECT_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || echo ".")
 STATE_FILE="$PROJECT_ROOT/.planning/STATE.md"
 
+# Reset delivery-gate bookkeeping for the new session (edit counter + one-shot marker)
+GIT_DIR=$(git rev-parse --git-dir 2>/dev/null)
+if [ -n "$GIT_DIR" ] && [ -d "$GIT_DIR" ]; then
+  echo 0 > "$GIT_DIR/frame-edit-count" 2>/dev/null
+  rm -f "$GIT_DIR/frame-delivery-gate-fired" 2>/dev/null
+fi
+
 # Write session start timestamp for telemetry
 SESSIONS_DIR="$PROJECT_ROOT/.planning/sessions"
 if [ -d "$SESSIONS_DIR" ] && command -v git >/dev/null 2>&1; then

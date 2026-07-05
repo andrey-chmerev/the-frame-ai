@@ -162,8 +162,23 @@ Write results to `.planning/MAP.md`. In REFRESH mode regenerate only the auto-ow
 sections (see Step 0) and **keep every existing line under `## Tech Debt / Notes`** —
 append new findings below them, don't replace.
 
+**Always refresh the generation-metadata line** (second line of the file) with real values —
+this is what /frame:doctor and /frame:health use for staleness detection:
+```bash
+DATE=$(date +%Y-%m-%d)
+FILES=$(find . -type f \( -name "*.ts" -o -name "*.js" -o -name "*.go" -o -name "*.py" -o -name "*.rs" \) -not -path '*/node_modules/*' 2>/dev/null | wc -l | tr -d ' ')
+COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "none")
+# Metadata line to write: <!-- Generated: $DATE | Files scanned: $FILES | Commit: $COMMIT | Lines: {map line count} -->
+```
+
+Keep the map **token-lean** — target under ~200 lines / ~1500 tokens. Prefer one-line
+`route → controller → service → repo` summaries over prose. If a section balloons, summarise.
+
 ```markdown
 # Project Map -- {Project Name}
+
+<!-- Generated: {date} | Files scanned: {N} | Commit: {short hash} | Lines: {count} -->
+<!-- Size budget: keep under ~200 lines / ~1500 tokens; trim to route-level summaries if it grows. -->
 
 ## Quick Facts
 - **Name**: {name}

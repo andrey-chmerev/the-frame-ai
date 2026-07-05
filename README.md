@@ -228,7 +228,7 @@ claude -p "/frame:audit quick" --allowedTools "Bash,Read,Write,Grep"
 FRAME provides:
 
 - **6-phase workflow**: Research → Plan → Build → Review → Ship → Reflect
-- **31 commands**: from quick tasks to full feature development cycle
+- **32 commands**: from quick tasks to full feature development cycle
 - **Parallel feature work**: `/frame:parallel` runs each feature in its own git worktree with a task board; `/frame:integrate` merges them back with per-merge quality gates and cross-feature review
 - **Parallel review fixes**: `/frame:fix` closes findings file-by-file in one pass — no worktrees, no per-fix ceremony
 - **10 AI agents**: Researcher, Planner, Builder, Reviewer, Auditor, Devil's Advocate, Security, Performance Auditor, Tests Reviewer, Conventions Reviewer
@@ -381,6 +381,7 @@ These commands cover 90% of solo dev work:
 | `/frame:daily` | Morning briefing — project status, today's priorities, and blockers | `[full]` |
 | `/frame:debug` | Systematically debug an issue — or run deep forensic investigation with 5-why analysis | `[--deep] <SEC-N|issue description>` |
 | `/frame:doctor` | Check FRAME installation health — verify paths, config, and hook registration | — |
+| `/frame:evolve` | Promote high-confidence learnings into permanent project rules (CLAUDE.md) and retire duplicates | — |
 | `/frame:fast` | Execute a quick task end-to-end without full research/plan cycle | `<task description>` |
 | `/frame:fix` | Close review findings in parallel — groups findings by file, spawns one fixer per non-conflicting group, single gates run at the end | `[feature] [REV-N ...]` |
 | `/frame:health` | Daily health check: tests, lint, types, security scan freshness — or sprint velocity check | `[sprint]` |
@@ -395,7 +396,7 @@ These commands cover 90% of solo dev work:
 | `/frame:research` | Domain research: clarification gate, parallel codebase + web scouting, new research.md with Decision Log cycle | `<topic or question>` |
 | `/frame:resume` | Resume work from pause-state.json — restore context and continue | — |
 | `/frame:retrospective` | Write retrospective, update memory files with learnings and patterns | — |
-| `/frame:review` | Code review: completion check, automated gates, parallel reviewer panel with verification pass | `[audit]` |
+| `/frame:review` | Code review: completion check, automated gates, parallel reviewer panel with verification pass | `[audit | strict]` |
 | `/frame:ship` | Prepare and create a git commit and pull request after review passes | — |
 | `/frame:test-plan` | Generate a manual user acceptance checklist for the current feature | `<feature or scope>` |
 | `/frame:unstuck` | Get unblocked: diagnose blockers, suggest next actions, reset mental model | — |

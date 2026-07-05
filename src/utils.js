@@ -137,6 +137,13 @@ const FRAME_HOOKS = {
       ],
     },
   ],
+  Stop: [
+    {
+      hooks: [
+        { type: 'command', command: 'bash "$CLAUDE_PROJECT_DIR/.claude/hooks/delivery-gate.sh"' },
+      ],
+    },
+  ],
 };
 
 // Merges FRAME hooks and permissions into .claude/settings.json (shared, git-tracked)

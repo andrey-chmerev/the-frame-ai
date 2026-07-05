@@ -52,13 +52,36 @@ else
 fi
 ```
 
-### Step 1: Quality gate
+### Step 1: Readiness passport (unified verification report)
+
+Run every gate and print **one** readiness table — a single "passport" the user can read at a glance, instead of scattered check outputs. Run each row and record PASS/FAIL (+ the number that matters):
 
 ```bash
-{quality.commands.typecheck} && {quality.commands.test}
+{quality.commands.build}      # Build
+{quality.commands.typecheck}  # Types
+{quality.commands.lint}       # Lint
+{quality.commands.test}       # Tests (capture coverage % if the runner reports it)
+{quality.commands.audit}      # Security (dependency/secret scan; skip row if not configured)
+git diff --stat               # Diff — size of what's shipping
 ```
 
-If fails → **STOP**, do not commit broken code.
+Emit the passport:
+```
+Readiness passport — {feature}
+| Check    | Result                    |
+|----------|---------------------------|
+| Build    | PASS                      |
+| Types    | PASS                      |
+| Lint     | PASS                      |
+| Tests    | PASS (128 passed, 87% cov)|
+| Security | PASS (0 vulns)            |
+| Diff     | 6 files, +240/-30         |
+| Review   | approve ({N} warnings)    |   ← from STATE.md / review.md
+──────────────────────────────────────
+Verdict: READY for PR
+```
+
+The verdict is **READY** only if Build, Types, Lint, Tests all PASS and Review is `approve`. Any FAIL → verdict **NOT READY**: print the table with the failing row(s), **STOP**, and do not commit broken code. Security FAIL and Diff are informational unless a critical vuln is present (then NOT READY).
 
 ### Step 2: Check git status
 
@@ -177,6 +200,7 @@ fi
 
 ## Result
 
+- Readiness passport printed (Build/Types/Lint/Tests/Security/Diff/Review → READY / NOT READY)
 - Git commit created
 - Optionally: git push (with confirmation), PR created
 - `.planning/context.md` updated

@@ -31,7 +31,8 @@ Determine action from the first argument:
 - `create <name>` -- create a worktree
 - `list` -- show all worktrees
 - `switch <name>` -- switch to a worktree
-- `cleanup <name>` -- remove a worktree
+- `cleanup` (no name) -- **classify all worktrees and print a cleanup plan** (Safe to remove / Salvage first / Keep)
+- `cleanup <name>` -- remove one specific worktree
 
 ---
 
@@ -153,7 +154,49 @@ git -C "../$(basename $(pwd))-$NAME" branch --show-current 2>/dev/null
 
 ---
 
-## Action: cleanup
+## Action: cleanup (no name) — classify + plan
+
+`/frame:worktree cleanup` with no name does **not** remove anything. It classifies every worktree and prints a plan so you decide what to reap. Nothing is destructive here.
+
+### Step C1: Classify each worktree
+
+For each linked worktree (`git worktree list`, skip the main one):
+```bash
+WT={path}; BR=$(git -C "$WT" branch --show-current)
+DIRTY=$(git -C "$WT" status --short | wc -l | tr -d ' ')
+MERGED=$(git branch --merged main | grep -qw "$BR" && echo yes || echo no)
+UNPUSHED=$(git -C "$WT" log --branches --not --remotes --oneline 2>/dev/null | wc -l | tr -d ' ')
+AGE=$(( ( $(date +%s) - $(stat -f %m "$WT" 2>/dev/null || stat -c %Y "$WT") ) / 86400 ))
+```
+
+Assign one class (first match wins):
+
+| Class | Condition | Bucket |
+|-------|-----------|--------|
+| **merged** | branch merged into main, tree clean | Safe to remove |
+| **idle** | clean, not merged, no unpushed commits, age < 14d | Keep |
+| **stale** | clean, not merged, age ≥ 14d | Keep (flag for review) |
+| **salvage** | has unpushed commits (`UNPUSHED > 0`) OR uncommitted changes (`DIRTY > 0`) | Salvage first |
+| **dirty** | uncommitted changes present | Salvage first |
+
+### Step C2: Print the plan
+
+```
+Cleanup plan:
+  Safe to remove (merged, clean):
+    - feature/auth  → /frame:worktree cleanup auth
+  Salvage first (unpushed commits / uncommitted changes — DO NOT remove yet):
+    - feature/billing  (3 unpushed commits) → push or /frame:integrate first
+  Keep:
+    - feature/search  (idle 4d)
+    - feature/reports (stale 21d — review whether still needed)
+```
+
+Never auto-remove. Offer to run `cleanup <name>` for each "Safe to remove" entry after the user confirms. For "Salvage first", tell them exactly what would be lost (unpushed commits / dirty files) and how to preserve it (push, /frame:integrate, or commit) before any removal.
+
+---
+
+## Action: cleanup <name>
 
 Remove a worktree and branch.
 
@@ -167,14 +210,18 @@ Update STATE.md at the start:
 - Started: {timestamp}
 ```
 
-### Step 1: Check Status
+### Step 1: Check Status (salvage guard)
 
 ```bash
 cd ../{project}-{name}
 git status --short
+# unpushed commits that would be lost with the branch:
+git log --branches --not --remotes --oneline 2>/dev/null
+# is the branch merged into main?
+git branch --merged main | grep -qw "feature/{name}" && echo "MERGED" || echo "NOT_MERGED"
 ```
 
-If there are uncommitted changes, warn the user and request confirmation.
+If there are **uncommitted changes** OR **unpushed commits** OR the branch is **NOT_MERGED**, warn the user precisely what would be lost and request confirmation. Only a `merged` + clean worktree is safe to remove without a second thought.
 
 ### Step 2: Remove Worktree
 
@@ -234,8 +281,9 @@ This gives each subagent its own git worktree automatically:
 - **WorktreeBase**: `../` -- sibling directories
 - **Branch naming**: `feature/{name}`
 - **Context copy**: STATE.md, CONTEXT.md, MAP.md
-- **Cleanup**: check for uncommitted changes before removal
-- **Never force** -- warn about potential work loss
+- **Cleanup plan classifies** -- `cleanup` (no name) buckets worktrees as Safe to remove / Salvage first / Keep; it never removes anything
+- **Salvage guard on removal** -- `cleanup <name>` refuses silent removal when a worktree has uncommitted changes, unpushed commits, or an unmerged branch
+- **Never force** -- warn about potential work loss (unpushed commits and dirty files spelled out)
 
 ## Result
 

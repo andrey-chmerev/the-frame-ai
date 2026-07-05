@@ -88,14 +88,41 @@ Update `.planning/STATE.md` (main):
 - Started: {timestamp}
 ```
 
+### Step 2.5: Predict conflicts with merge-tree (non-destructive)
+
+Before merging anything, ask git — **without touching the working tree** — which branches actually conflict. This turns "merge and hope" into a planned order.
+
+For each ready feature, test-merge it against the integration base:
+```bash
+BASE=$(git rev-parse HEAD)   # integrate/{date}, currently == main
+# modern git (>=2.38): prints a conflict list on the last lines, non-zero exit on conflict
+git merge-tree --write-tree --name-only "$BASE" feature/{name} >/tmp/mt-{name} 2>&1
+echo "exit=$?"   # 0 = clean, non-zero = conflicts; /tmp/mt-{name} names the conflicting files
+```
+Also test **pairwise** between features that share Touched Files (two branches can each be clean against main yet collide with each other):
+```bash
+git merge-tree --write-tree --name-only feature/{a} feature/{b} >/dev/null 2>&1; echo "a×b exit=$?"
+```
+
+Classify each feature as **clean** or **conflict** (with the list of conflicting files and which other branch/base it collides with).
+
+Write the prediction into `.planning/BOARD.md` under a `## Merge Preview ({date})` section so the state is visible and survives a stop/resume:
+```markdown
+## Merge Preview (2026-07-05)
+| Feature | vs base | Conflicts with | Files |
+|---------|---------|----------------|-------|
+| auth    | clean   | —              | —     |
+| billing | conflict| auth           | src/db/schema.ts |
+```
+
 ### Step 3: Merge order
 
-Sort the ready branches:
-1. features whose Touched Files overlap **nothing else** first;
-2. then by ascending diff size (`git diff main...feature/{name} --shortstat`);
-3. overlapping/large ones last — by then most context is already merged.
+Use the Step 2.5 prediction. Sort the ready branches:
+1. **clean** features first (predicted no conflicts) — merge them all before touching any conflicting one;
+2. among clean ones, ascending diff size (`git diff main...feature/{name} --shortstat`);
+3. **conflict** features last, **one at a time** — after each conflicting merge, re-run its gates before starting the next, so a collision never compounds with an unmerged second conflict.
 
-Show the planned order before starting.
+Show the planned order (with the clean/conflict split from the preview) before starting.
 
 ### Step 3.5: Collect main-side hotfixes
 
@@ -126,7 +153,22 @@ git merge --no-ff feature/{name} -m "merge: feature/{name} → integrate/{date}"
 - **Framework state files** (`.planning/STATE.md`, `.planning/BOARD.md`, `.planning/memory/*`) — always take the integration branch's version: `git checkout --ours {file} && git add {file}`. Worktree copies of these files are branch-local scratch state; main's version is authoritative, and per-feature learnings come in via Step 6 instead;
 - Trivial (disjoint import blocks, adjacent-line edits, lock files → regenerate) — resolve yourself, note it in the report;
 - **Conflict touches a file from a protected hotfix (Step 3.5)** — the hotfix behavior wins by default: resolve so the fix is preserved, tell the user which hotfix was defended, and immediately run that hotfix's regression test (the test files from its commit) before continuing;
-- Substantive (same function/logic changed by two features) — STOP and show the user: which two features collided, in which file, both intents; resolve together, then continue.
+- Substantive (same function/logic changed by two features) — **evict, don't block the whole run**. Abort this one merge (`git merge --abort`), record an eviction entry (below), and continue integrating the remaining clean features. The evicted feature goes back into the queue *carrying the conflict context* so its next pass starts already knowing what collided.
+
+**Eviction record** — when a feature is evicted (substantive conflict, or gates stay red after 2 fix attempts), do NOT silently drop it:
+1. Abort the in-progress merge so the integration branch stays green: `git merge --abort`.
+2. Append to `.planning/BOARD.md` under `## Evictions ({date})`:
+```markdown
+## Evictions (2026-07-05)
+| Feature | Round | Conflicting files | Collided with | Essence |
+|---------|-------|-------------------|---------------|---------|
+| billing | 1     | src/db/schema.ts  | auth          | both add a non-null column to `users` in the same migration; needs a shared migration |
+```
+3. Set its board row `Status` to `evicted` (kept for the next round, not `integrated`).
+4. Write the same context into `docs/specs/{feature}/review.md` under `## Integration conflict (round {N})` so `/frame:fix` in that worktree has the exact files and the essence to resolve against.
+5. Continue the merge loop with the remaining features — one bad branch never aborts the whole integration.
+
+The evicted feature is fixed **in its worktree** (rebase onto the new integration tip so it sees the conflicting change, resolve, re-review), then re-enters on the next `/frame:integrate` run — now predicted **clean** by Step 2.5 because the conflict was resolved at the source.
 
 **Even without textual conflicts**: if the merged feature touched a protected hotfix's files, git may have auto-merged a semantic revert (e.g. the feature rewrote the function from a pre-fix version). The full test run below catches this via the hotfix's regression test — if exactly that test fails, report it as "feature {name} undoes hotfix {commit}: {description}", fix by re-applying the hotfix logic on top, and re-run gates.
 
@@ -137,14 +179,13 @@ git merge --no-ff feature/{name} -m "merge: feature/{name} → integrate/{date}"
 {quality.commands.lint}
 ```
 
-Gates failed → attempt a fix (max 2 iterations, commit as `fix(integrate): {what}`). Still red → STOP:
+Gates failed → attempt a fix (max 2 iterations, commit as `fix(integrate): {what}`). Still red → **evict this branch, keep the run going**:
+```bash
+git reset --hard HEAD~1   # undo only this feature's merge (previous green merges stay)
 ```
-❌ Integration stopped at feature/{name} — gates fail after its merge.
-   Failure: {summary}
-   Merged so far: {list}. To undo just this branch: git reset --hard HEAD~1
-   (checkpoint tag: frame/checkpoint/integrate-{ts})
-```
-Do NOT auto-rollback previous, green merges.
+Then write an eviction record (see Step 4 "Eviction record" above) with the failing gate output as the essence, mark the row `evicted`, and continue the loop with the remaining features. Only STOP the whole run if the FIRST feature (integration base) can't stay green, or the user asks to.
+
+Do NOT auto-rollback previous, green merges — eviction removes exactly one branch.
 
 **Heartbeat** after each branch: "Merged {name} ({i}/{n}), gates green."
 
@@ -189,6 +230,12 @@ Write `.planning/reports/integration/{date}/INTEGRATION.md`:
 ## Gates
 After each merge: typecheck ✅ test ✅ lint ✅ — final build ✅
 
+## Merge Preview (from Step 2.5)
+{predicted clean vs conflict, per feature — the order the merge actually followed}
+
+## Evicted (not merged this round)
+{feature → conflicting files, collided-with, essence, where the fix lives — or "none"}
+
 ## Hotfixes protected
 {main-side [hotfix] commits, whether any feature conflicted with them, regression test status — or "none"}
 
@@ -206,7 +253,7 @@ After each merge: typecheck ✅ test ✅ lint ✅ — final build ✅
 
 ### Step 8: Update board + STATE.md
 
-- BOARD.md: integrated rows → `integrated`;
+- BOARD.md: integrated rows → `integrated`; evicted rows stay `evicted` (they re-enter next run); the `## Merge Preview` and `## Evictions` sections stay as the audit trail;
 - `.planning/STATE.md` (main):
 ```markdown
 ## Current Position
@@ -241,7 +288,9 @@ Found an unfinished integration on integrate/{date}: merged {list}, stopped at {
 ## Rules
 
 - **Main worktree, clean tree only** — never integrate on top of local noise
+- **Predict before merging** — `git merge-tree` classifies clean vs conflict (Step 2.5); clean features merge first, conflicting ones one at a time
 - **Gates after every merge** — failure must localize to one branch
+- **Evict, don't abort the run** — a substantive conflict or persistently-red gate removes exactly that one branch (with an eviction record carrying files + essence back to its worktree); the rest still integrate
 - **Hotfixes are protected** — main-side `[hotfix]` commits win conflicts by default; their regression tests are re-checked after any merge touching their files
 - **Never auto-rollback green merges** — only the failing one, and only with user consent
 - **Substantive conflicts go to the user** — with an explanation of which features collided and why

@@ -54,6 +54,24 @@ git status --short
 git log --oneline -5
 ```
 
+7. **MAP.md freshness** (mechanical staleness — no AI guessing)
+```bash
+# Age of the map + commits since it was generated
+MAP=.planning/MAP.md
+if [ -f "$MAP" ]; then
+  AGE=$(( ( $(date +%s) - $(stat -f %m "$MAP" 2>/dev/null || stat -c %Y "$MAP") ) / 86400 ))
+  GEN_COMMIT=$(grep -oE 'Commit: [0-9a-f]{7,}' "$MAP" | head -1 | awk '{print $2}')
+  if [ -n "$GEN_COMMIT" ]; then
+    SINCE=$(git rev-list --count "$GEN_COMMIT"..HEAD 2>/dev/null || echo "?")
+  else
+    SINCE="?"
+  fi
+  LINES=$(wc -l < "$MAP" | tr -d ' ')
+  echo "MAP.md: ${AGE}d old, ${SINCE} commits since generation, ${LINES} lines"
+fi
+```
+Flag as an action item if **age > 90 days** OR **commits since generation > 30** OR **lines > 200** (over size budget) → "MAP.md is stale — run /frame:init to refresh it."
+
 ### Step 3: History (last 7 days)
 
 Read reports from `.planning/reports/daily/` for the last 7 days and determine each day's status: HEALTHY=`+`, ISSUES=`~`, CRITICAL=`!`, missing=`.`.
@@ -176,6 +194,7 @@ Create `.planning/reports/daily/{date}.md`:
 - [x] Tests: PASS/FAIL
 - [x] Disk: {size}
 - [x] Git: {count of uncommitted files or "clean"}
+- [x] MAP.md: {age}d / {commits since gen} commits / {lines} lines — {fresh or STALE}
 
 ## Action Items
 - [ ] {concrete action for each failed check}

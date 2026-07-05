@@ -40,6 +40,7 @@ const CLAUDE_DIRS = [
 // Files in templates/project/ that should be mapped to specific destinations
 const ROOT_FILE_MAP = {
   'CLAUDE.md': 'CLAUDE.md',
+  'frame-principles.md': '.frame/frame-principles.md',
   'config.json': '.frame/config.json',
   'STATE.md': '.planning/STATE.md',
   'MAP.md': '.planning/MAP.md',

@@ -21,7 +21,7 @@ Move patterns from `### Active` to `### Core` if they meet **any** of:
 - `confidence: high` (confirmed 5+ times)
 - `confidence: medium` with `confirmed: >= 3` **and** `last:` within the last 90 days
 
-Core patterns are the default approaches that the Planner reads for decision-making.
+Core patterns are the default approaches that the Planner reads for decision-making. Patterns that reach `confidence: high` are candidates for graduation into permanent project rules — run `/frame:evolve` to promote them into CLAUDE.md.
 
 #### Stale-mark active patterns
 

@@ -1,1 +1,18 @@
-{}
+{
+  "timestamp": "",
+  "phase": "",
+  "feature": "",
+  "task": "",
+  "lastCommit": "",
+  "notes": "",
+  "hasStash": false,
+  "hasWip": false,
+  "stashMessage": "",
+  "openTasks": [],
+  "resumeHint": "",
+  "worked": [],
+  "notWorked": [],
+  "notTried": [],
+  "nextStep": "",
+  "referencedFiles": []
+}

@@ -120,6 +120,33 @@ test('init: substitutes {{PROJECT_NAME}} in templates', async () => {
   }
 });
 
+test('init: generates .frame/frame-principles.md with vars applied and markers', async () => {
+  const dir = makeTmpGitRepo();
+  try {
+    await runInit(dir);
+    const principles = join(dir, '.frame/frame-principles.md');
+    assert.ok(existsSync(principles), '.frame/frame-principles.md should exist');
+    const content = readFileSync(principles, 'utf-8');
+    assert.ok(content.includes('FRAME:PRINCIPLES:START'), 'principles should carry the START marker');
+    assert.ok(content.includes('FRAME:PRINCIPLES:END'), 'principles should carry the END marker');
+    assert.ok(!content.includes('{quality.commands.'), 'principles should have quality vars substituted');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('init: CLAUDE.md carries the two-tier PRINCIPLES markers', async () => {
+  const dir = makeTmpGitRepo();
+  try {
+    await runInit(dir);
+    const content = readFileSync(join(dir, 'CLAUDE.md'), 'utf-8');
+    assert.ok(content.includes('FRAME:PRINCIPLES:START'), 'CLAUDE.md should have the principles START marker');
+    assert.ok(content.includes('FRAME:PRINCIPLES:END'), 'CLAUDE.md should have the principles END marker');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test('init: writes .frame-version file', async () => {
   const dir = makeTmpGitRepo();
   try {

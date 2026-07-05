@@ -37,6 +37,19 @@ for file in STATE.md ROADMAP.md CONTEXT.md MAP.md; do
     echo "$file: MISSING"
   fi
 done
+
+# MAP.md staleness (mechanical — based on the generation-metadata line)
+if [ -f ".planning/MAP.md" ]; then
+  AGE=$(( ( $(date +%s) - $(stat -f %m .planning/MAP.md 2>/dev/null || stat -c %Y .planning/MAP.md) ) / 86400 ))
+  GEN_COMMIT=$(grep -oE 'Commit: [0-9a-f]{7,}' .planning/MAP.md | head -1 | awk '{print $2}')
+  SINCE=$(git rev-list --count "${GEN_COMMIT}"..HEAD 2>/dev/null || echo "?")
+  LINES=$(wc -l < .planning/MAP.md | tr -d ' ')
+  if [ "$AGE" -gt 90 ] || { [ "$SINCE" != "?" ] && [ "$SINCE" -gt 30 ]; } || [ "$LINES" -gt 200 ]; then
+    echo "MAP.md: STALE (${AGE}d old, ${SINCE} commits since gen, ${LINES} lines) — run /frame:init to refresh"
+  else
+    echo "MAP.md freshness: OK (${AGE}d, ${SINCE} commits, ${LINES} lines)"
+  fi
+fi
 ```
 
 ### 4. .planning/memory/
@@ -95,10 +108,10 @@ fi
 
 ```bash
 command_count=$(ls .claude/commands/frame:*.md 2>/dev/null | wc -l | tr -d ' ')
-if [ "$command_count" -ge 31 ]; then
+if [ "$command_count" -ge 32 ]; then
   echo "Commands: $command_count — OK"
 elif [ "$command_count" -ge 1 ]; then
-  echo "Commands: $command_count — WARNING (expected ≥31, run npx the-frame-ai update)"
+  echo "Commands: $command_count — WARNING (expected ≥32, run npx the-frame-ai update)"
 else
   echo "Commands: $command_count — INCOMPLETE (no commands found)"
 fi
@@ -120,7 +133,7 @@ fi
 ### 9. Hooks
 
 ```bash
-for hook in safety-net.sh git-safety.sh quality-gate.sh session-init.sh; do
+for hook in safety-net.sh git-safety.sh quality-gate.sh session-init.sh delivery-gate.sh; do
   if [ -f ".claude/hooks/$hook" ]; then
     if [ -x ".claude/hooks/$hook" ]; then
       echo "$hook: OK (executable)"

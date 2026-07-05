@@ -63,7 +63,18 @@ Update (do not overwrite) `.planning/STATE.md`, refreshing the status section:
 - Notes: {$ARGUMENTS}
 ```
 
-### Step 4: Create pause-state.json
+### Step 4: Collect briefing facts (mandatory)
+
+Before writing the state file, honestly answer four questions. This is the single most valuable part of a pause — it stops the next session from repeating dead ends. Do NOT leave these empty; if a section truly has nothing, write "—".
+
+- **Сработало (с доказательством)** — approaches that worked, each with concrete evidence (test passed, endpoint returns 200, file compiles). No unverified claims.
+- **НЕ сработало (и почему)** — approaches tried that failed, with the reason. This is the anti-loop section.
+- **Не пробовали** — plausible next approaches not yet attempted.
+- **Точный следующий шаг** — the exact next action: file, function, command, or line to start from.
+
+Also collect `referencedFiles`: the list of files central to the current task (used later for staleness detection on resume).
+
+### Step 5: Create pause-state.json
 
 Create `.planning/pause-state.json`:
 
@@ -79,11 +90,16 @@ Create `.planning/pause-state.json`:
   "hasWip": true/false,
   "stashMessage": "{stash or WIP commit message}",
   "openTasks": ["{open task 1}", "{open task 2}"],
-  "resumeHint": "{specific next step — file, function, or task}"
+  "resumeHint": "{specific next step — file, function, or task}",
+  "worked": ["{worked approach + evidence}"],
+  "notWorked": ["{failed approach + why}"],
+  "notTried": ["{not-yet-attempted approach}"],
+  "nextStep": "{exact next action}",
+  "referencedFiles": ["{path/to/file1}", "{path/to/file2}"]
 }
 ```
 
-### Step 5: Git Tag + Checkpoint
+### Step 6: Git Tag + Checkpoint
 
 Create a checkpoint before pause:
 ```bash
@@ -99,7 +115,7 @@ if echo "research plan build review" | grep -qw "$PHASE"; then
 fi
 ```
 
-### Step 6: Save Context
+### Step 7: Save Context
 
 Create `.planning/pause-history/{date}.md`:
 
@@ -111,18 +127,31 @@ Create `.planning/pause-history/{date}.md`:
 - Feature: {feature}
 - Task: {completed}/{total}
 
-## What was done
-{what was completed}
+## Сработало (с доказательством)
+- {worked approach 1 + evidence}
 
-## Open tasks
+## НЕ сработало (и почему)
+- {failed approach 1 + why}
+
+## Не пробовали
+- {not-yet-attempted approach 1}
+
+## Открытые задачи
 - [ ] {open task 1}
 - [ ] {open task 2}
 
-## What's next
-{resumeHint — specific next step}
+## Точный следующий шаг
+{nextStep — exact file/function/command to start from}
 
 ## Notes
 {$ARGUMENTS}
+```
+
+### Step 8: Make pause-state read-only
+
+Freeze the state file so nothing overwrites the briefing before resume:
+```bash
+chmod 444 .planning/pause-state.json 2>/dev/null || true
 ```
 
 ## Output
@@ -145,5 +174,8 @@ Create `.planning/pause-history/{date}.md`:
 - State read and updated (not overwritten)
 - Changes saved (WIP commit or stash)
 - Git tag created
+- Briefing facts recorded (worked / notWorked / notTried / nextStep)
+- referencedFiles captured for staleness detection
 - Open tasks and resumeHint recorded
 - Pause history saved
+- pause-state.json frozen read-only
