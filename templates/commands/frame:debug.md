@@ -33,6 +33,16 @@ Debug the problem: **$ARGUMENTS**
 
 **Save the current position first**: read `.planning/STATE.md` and remember the existing `## Current Position` block — a debug session is a side quest and must not hijack pipeline state (e.g. `Phase: INTEGRATE — ready to ship`). You will restore it in Phase 4.
 
+**Concurrent-work check** (from the saved block above): if `Status:` is `IN_PROGRESS` (any phase — `BUILD`, `INTEGRATE`, `DEBUG`), a build/integration is either unfinished or running **right now in another terminal on this same tree**. Debugging here would share the git index, `.planning/STATE.md`, and the quality-gate status with it — risking mixed commits and lost state. Ask **once**:
+```
+⚠️ STATE.md shows {phase} IN_PROGRESS. If that work is running in another terminal on this tree,
+   a debug session here can collide with it (shared index, STATE.md, gate status).
+   1) it's stale (that session was interrupted) — continue debugging
+   2) it's live in another terminal — debug in an isolated worktree instead (/frame:parallel start <name>)
+   3) cancel — I'll finish/pause the other work first
+```
+Only proceed on "continue". (If `Status:` is `COMPLETE`, `Shipped`, or the project is fresh — no prompt, continue silently.)
+
 Before starting, write to `.planning/STATE.md`:
 ```markdown
 - Phase: DEBUG
@@ -185,7 +195,9 @@ Systematic root cause analysis with logs, git history, and 5-why methodology. Us
 
 ### Step D0: Initialize
 
-**Save the current `## Current Position` block first** (side-quest rule — restored in Phase D5), then write to `.planning/STATE.md`:
+**Save the current `## Current Position` block first** (side-quest rule — restored in Phase D5). Then run the **Concurrent-work check** exactly as in default-mode Step 0a: if the saved `Status:` is `IN_PROGRESS`, warn once and let the user choose stale/worktree/cancel before proceeding.
+
+Write to `.planning/STATE.md`:
 ```markdown
 - Phase: DEBUG (deep)
 - Issue: {description}

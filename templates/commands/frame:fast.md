@@ -15,6 +15,16 @@ Execute the quick task: **$ARGUMENTS**
 
 **Save the current position first**: read `.planning/STATE.md` and remember the existing `## Current Position` block — a fast task is a side quest and must not hijack pipeline state (e.g. `Phase: INTEGRATE — ready to ship` would block /frame:ship if lost). You will restore it in Step 4.
 
+**Concurrent-work check** (from the saved block above): if `Status:` is `IN_PROGRESS` (any phase — `BUILD`, `INTEGRATE`, `DEBUG`), a build/integration is either unfinished or running **right now in another terminal on this same tree**. A side quest here would share the git index, `.planning/STATE.md`, and the quality-gate status with it — a recipe for mixed commits and lost state. Ask **once**:
+```
+⚠️ STATE.md shows {phase} IN_PROGRESS. If that work is running in another terminal on this tree,
+   a fast task here can collide with it (shared index, STATE.md, gate status).
+   1) it's stale (that session was interrupted) — continue the fast task
+   2) it's live in another terminal — do the fix in an isolated worktree instead (/frame:parallel start <name>)
+   3) cancel — I'll finish/pause the other work first
+```
+Only proceed on "continue". (If `Status:` is `COMPLETE`, `Shipped`, or the project is fresh — no prompt, continue silently.)
+
 Write to `.planning/STATE.md`:
 ```markdown
 ## Current Position
