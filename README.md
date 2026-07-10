@@ -382,6 +382,7 @@ These commands cover 90% of solo dev work:
 | `/frame:add-task` | Add a task to the current plan.md without interrupting work | `<task description>` |
 | `/frame:arch` | Document module architecture and design decisions for a file or module | `<file or module path>` |
 | `/frame:audit` | Comprehensive project audit across 12 categories — security, performance, business logic, API, data, observability, deps, tests, infra, maintainability, a11y, privacy | `[category | quick] [scope-path] [--priv]` |
+| `/frame:auto` | Autopilot: run plan → build → review → fix → ship unattended after research — one confirmation up front, no questions until a local commit or a halt | `<feature> [strict]` |
 | `/frame:build` | Implement planned tasks using TDD — auto-routes to a worktree when another feature is already in flight, and auto-detects parallel waves from plan.md | `[feature]` |
 | `/frame:checkpoint` | Manage git checkpoints: list, create, rollback, or clean up frame/checkpoint/* tags | `[list | create | cleanup | rollback [<tag> | --soft]]` |
 | `/frame:cleanup-memory` | Trim and archive memory files, removing stale and low-confidence entries | — |
@@ -420,13 +421,13 @@ These commands cover 90% of solo dev work:
 |-------|-------------|
 | `auditor` | Universal category auditor. Receives a category brief from the orchestrating command, audits the codebase for that category, writes findings to its category file. Use when: /frame:audit spawns category-specific subagents. |
 | `builder` | Implementation agent. Writes code using TDD, runs quality gates, creates git commits. Use when: implementing a planned task from plan.md. |
-| `conventions-reviewer` | Review agent for wave-team. Checks code conventions and style in a single task's git diff. Returns PASS/WARN/FAIL verdict. |
+| `conventions-reviewer` | Conventions/style reviewer for the /frame:review panel (and build waves). Checks code conventions and style in a git diff. Returns PASS/WARN/FAIL verdict. |
 | `devils-advocate` | Find problems in code — code review, plan critique, or finding verification. Never writes application code. Use when: reviewing implementation, challenging a plan, or verifying audit/review findings. |
 | `performance-auditor` | Performance auditor agent. Detects stack, researches current perf issues, runs deep audit, writes PERF_REPORT.md. Never edits application code. Use when: auditing perf before ship or on demand. |
 | `researcher` | Research agent. Analyzes codebase or web for alternatives and context before planning. In /frame:research acts as codebase-scout or web-scout subagent. Use when: exploring options or gathering context. |
 | `reviewer` | Review agent. Checks code against spec, runs quality gates, security analysis. In /frame:review panel acts as the Spec Compliance reviewer. Use when: implementation is complete and needs review before ship. |
 | `security` | Security auditor agent. Scans code for vulnerabilities, secrets, OWASP violations. When used in /frame:audit produces security-category report; when used in /frame:review panel produces diff-scoped findings. Never edits application code. |
-| `tests-reviewer` | Review agent for wave-team. Checks test coverage and quality of a single task's git diff. Returns PASS/WARN/FAIL verdict. |
+| `tests-reviewer` | Test-quality reviewer for the /frame:review panel (and build waves). Checks test coverage and quality of a git diff. Returns PASS/WARN/FAIL verdict. |
 <!-- AGENTS:END -->
 
 ## Hooks
