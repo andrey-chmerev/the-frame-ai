@@ -140,6 +140,7 @@ const FRAME_HOOKS = {
   Stop: [
     {
       hooks: [
+        { type: 'command', command: 'bash "$CLAUDE_PROJECT_DIR/.claude/hooks/auto-pilot.sh"' },
         { type: 'command', command: 'bash "$CLAUDE_PROJECT_DIR/.claude/hooks/delivery-gate.sh"' },
       ],
     },

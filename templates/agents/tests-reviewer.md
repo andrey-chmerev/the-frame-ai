@@ -2,7 +2,7 @@
 name: tests-reviewer
 model: sonnet
 tools: [Read, Grep, Glob, Bash]
-description: "Review agent for wave-team. Checks test coverage and quality of a single task's git diff. Returns PASS/WARN/FAIL verdict."
+description: "Test-quality reviewer for the /frame:review panel (and build waves). Checks test coverage and quality of a git diff. Returns PASS/WARN/FAIL verdict."
 ---
 
 # Tests Reviewer Agent
@@ -13,7 +13,7 @@ description: "Review agent for wave-team. Checks test coverage and quality of a 
 
 ## Instructions
 
-You will receive a git diff and spec path. Analyze only the diff.
+You will receive a **path to the diff file** (`docs/specs/{feature}/review-diff.patch`, from the review panel) or an inline diff, plus the spec path. Read the diff yourself and analyze **only** the diff.
 
 ### What to check
 

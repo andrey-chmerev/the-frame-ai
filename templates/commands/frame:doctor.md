@@ -108,10 +108,10 @@ fi
 
 ```bash
 command_count=$(ls .claude/commands/frame:*.md 2>/dev/null | wc -l | tr -d ' ')
-if [ "$command_count" -ge 32 ]; then
+if [ "$command_count" -ge 33 ]; then
   echo "Commands: $command_count — OK"
 elif [ "$command_count" -ge 1 ]; then
-  echo "Commands: $command_count — WARNING (expected ≥32, run npx the-frame-ai update)"
+  echo "Commands: $command_count — WARNING (expected ≥33, run npx the-frame-ai update)"
 else
   echo "Commands: $command_count — INCOMPLETE (no commands found)"
 fi
@@ -133,7 +133,7 @@ fi
 ### 9. Hooks
 
 ```bash
-for hook in safety-net.sh git-safety.sh quality-gate.sh session-init.sh delivery-gate.sh; do
+for hook in safety-net.sh git-safety.sh quality-gate.sh session-init.sh delivery-gate.sh auto-pilot.sh pre-compact.sh; do
   if [ -f ".claude/hooks/$hook" ]; then
     if [ -x ".claude/hooks/$hook" ]; then
       echo "$hook: OK (executable)"

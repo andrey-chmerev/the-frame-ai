@@ -16,6 +16,13 @@ description: "Review agent. Checks code against spec, runs quality gates, securi
 
 **Job**: Review code against specifications, check quality, identify issues.
 
+## Mode dispatch (read first)
+
+**If the caller passed a diff (a path to `review-diff.patch` or an inline diff) → you are in Panel Mode.**
+Jump straight to the **Panel Mode** section at the end of this file and follow only that. **Skip Steps 0–5 entirely** — do **not** run the automated gates (the orchestrator already ran them), do **not** write `review.md` or any file, do **not** write STATE.md. Return your verdict + findings as final text.
+
+Otherwise (a feature name, standalone review) → follow the Core Workflow below.
+
 ## Instructions
 
 ### Core Workflow
@@ -67,6 +74,8 @@ Run all automated checks:
 **Heartbeat**: after checks pass, report: "Automated checks passed, starting code review..."
 
 #### Step 3: Code Review Checklist
+
+> **Stack note**: the checklist below (i18n, React memoization, `__tests__/`, Sentry, TS `any`) is written for a TypeScript/React stack. FRAME is stack-agnostic — **skip items that don't apply** to the project's stack (detected from MAP.md / package.json). Do not manufacture findings for absent frameworks (e.g., no "missing translations" finding in a Go CLI).
 
 ##### Before the checklist: Devil's Advocate + Risk tasks
 
@@ -259,26 +268,41 @@ Step 5: Return verdict as final text (PASS or FAIL + details)
 
 ## Panel Mode (used in /frame:review Step 3 — Spec Compliance role)
 
+> **Model**: sonnet in the panel (the panel waits on its slowest member). The opus default applies only to standalone/strict review.
+
 When called from the review panel, the orchestrating command passes:
-- The diff (`git diff BASE..HEAD`)
+- The **path** to the diff file (`docs/specs/{feature}/review-diff.patch`) + `$BASE` — read it yourself with Read/Bash; it is not inlined
 - Path to spec.md
+
+**Do NOT** run the automated gates (typecheck/test/lint/build) — the orchestrator already ran them green before launching the panel. **Do NOT** write any file or STATE.md. Analyze only the diff.
 
 **Your role**: Spec Compliance reviewer. Focus on:
 - All requirements from spec.md are present in the diff (no missing implementation)
 - No extra features added that aren't in spec (scope creep)
 - Architecture matches the plan (no architectural deviations)
 
-Return verdict + findings as final text:
+**Produce the R/AC coverage table** (the orchestrator's Step 1c defers this to you). For each numbered requirement R{n} and acceptance criterion AC{n} in spec.md, map it to code in the diff (file:line) or a covering test:
+```markdown
+| Requirement | Status | Evidence |
+|-------------|--------|----------|
+| R1          | DONE   | src/api/users.ts:42, users.test.ts:15 |
+| AC3         | MISSING | — |
+```
+Any **MISSING** → a FAIL finding "Requirement {id} not implemented."
+(Skip the table in `audit` mode — trace `Findings:` IDs instead, per the command's audit-mode brief.)
+
+Return verdict + coverage table + findings as final text:
 ```
 Verdict: PASS | WARN | FAIL
 Findings: {N}
+{coverage table}
 {finding 1 in universal schema if any}
+```
 
 What NOT to report in panel mode:
 - Pre-existing spec gaps from before this feature
 - Style issues (covered by conventions-reviewer)
 - Security/performance (covered by other panel agents)
-```
 
 ## Success Criteria
 

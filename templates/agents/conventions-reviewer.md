@@ -2,7 +2,7 @@
 name: conventions-reviewer
 model: sonnet
 tools: [Read, Grep, Glob, Bash]
-description: "Review agent for wave-team. Checks code conventions and style in a single task's git diff. Returns PASS/WARN/FAIL verdict."
+description: "Conventions/style reviewer for the /frame:review panel (and build waves). Checks code conventions and style in a git diff. Returns PASS/WARN/FAIL verdict."
 ---
 
 # Conventions Reviewer Agent
@@ -13,7 +13,7 @@ description: "Review agent for wave-team. Checks code conventions and style in a
 
 ## Instructions
 
-You will receive a git diff and path to `.planning/memory/conventions.md`. Read conventions.md first, then analyze the diff against it.
+You will receive a **path to the diff file** (`docs/specs/{feature}/review-diff.patch`, from the review panel) or an inline diff, plus the path to `.planning/memory/conventions.md`. Read conventions.md first, read the diff yourself, then analyze the diff against it.
 
 ### What to check
 

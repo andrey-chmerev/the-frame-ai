@@ -391,7 +391,9 @@ Report: .planning/reports/performance/PERF_REPORT.md
 
 ## Panel Mode (used in /frame:review)
 
-When called from the review panel, the orchestrating command passes a diff. Scope = only changed files and lines in the diff.
+When called from the review panel, the orchestrating command passes the **path** to the diff file (`docs/specs/{feature}/review-diff.patch`). Scope = only changed files and lines in the diff — read the file yourself.
+
+**Skip Steps 1–2 entirely** (no stack detection, **no WebSearch** for current pitfalls). Web research on a diff review wastes minutes and makes you the slowest agent in the panel. Go straight to the relevant Step 3.x checks (N+1, memory leaks, blocking ops, rendering) applied to the diff. **Do NOT** write any file or STATE.md.
 
 Apply the checklist only to the provided diff. Return verdict + findings as final text:
 ```

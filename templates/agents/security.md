@@ -517,9 +517,9 @@ Step 10: Return findings as final text
 
 ## Panel Mode (used in /frame:review)
 
-When called from the review panel, the orchestrating command passes a diff (not the full project). Scope = only changed files and lines in the diff.
+When called from the review panel, the orchestrating command passes the **path** to the diff file (`docs/specs/{feature}/review-diff.patch`), not the full project — read it yourself. Scope = only changed files and lines in the diff.
 
-Apply the same checklist but only to the provided diff. Return verdict + findings as final text:
+Run the OWASP/secret checks **only against the diff** (not the whole tree — skip the project-wide grep sweeps of Steps 2–7). **Do NOT** write the security report file or STATE.md — panel output is text only. Return verdict + findings as final text:
 ```
 Verdict: PASS | WARN | FAIL
 Findings: {N}

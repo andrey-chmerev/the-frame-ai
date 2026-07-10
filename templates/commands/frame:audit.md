@@ -1,7 +1,7 @@
 ---
 description: "Comprehensive project audit across 12 categories — security, performance, business logic, API, data, observability, deps, tests, infra, maintainability, a11y, privacy"
 argument-hint: "[category | quick] [scope-path] [--priv]"
-allowed-tools: [Read, Write, Bash]
+allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Task]
 ---
 # /frame:audit -- Project Audit
 

@@ -15,15 +15,44 @@ Execute the quick task: **$ARGUMENTS**
 
 **Save the current position first**: read `.planning/STATE.md` and remember the existing `## Current Position` block — a fast task is a side quest and must not hijack pipeline state (e.g. `Phase: INTEGRATE — ready to ship` would block /frame:ship if lost). You will restore it in Step 4.
 
-**Concurrent-work check** (from the saved block above): if `Status:` is `IN_PROGRESS` (any phase — `BUILD`, `INTEGRATE`, `DEBUG`), a build/integration is either unfinished or running **right now in another terminal on this same tree**. A side quest here would share the git index, `.planning/STATE.md`, and the quality-gate status with it — a recipe for mixed commits and lost state. Ask **once**:
+**Concurrent-work check** — is this tree busy? Deterministic signal first, question second:
+
+1. **Autopilot marker**: `[ -f "$(git rev-parse --git-dir)/frame-autopilot" ]` → a `/frame:auto` flight is live in this tree **right now** — no need to ask. Go straight to the **Hotfix worktree hand-off** below.
+2. **No marker, but the saved `Status:` ends with `IN_PROGRESS`** (`IN_PROGRESS` or `FIX_IN_PROGRESS` — any phase: `BUILD`, `INTEGRATE`, `DEBUG`, `FIX`): a build/integration/fix is either unfinished or running in another terminal on this same tree — you can't tell which from here. Ask **once**:
 ```
 ⚠️ STATE.md shows {phase} IN_PROGRESS. If that work is running in another terminal on this tree,
    a fast task here can collide with it (shared index, STATE.md, gate status).
    1) it's stale (that session was interrupted) — continue the fast task
-   2) it's live in another terminal — do the fix in an isolated worktree instead (/frame:parallel start <name>)
+   2) it's live in another terminal — isolate this fix in a hotfix worktree (safe, zero interference)
    3) cancel — I'll finish/pause the other work first
 ```
-Only proceed on "continue". (If `Status:` is `COMPLETE`, `Shipped`, or the project is fresh — no prompt, continue silently.)
+Only proceed on "continue"; option 2 → **Hotfix worktree hand-off** below. (If `Status:` is `COMPLETE`, `Shipped`, or the project is fresh — no prompt, continue silently.)
+
+#### Hotfix worktree hand-off (side quest while this tree is busy)
+
+The busy session owns this tree's git index, `.planning/STATE.md`, **and** the quality-gate status (`$GIT_DIR/frame-gate-status`) — even careful edits from a second session here can flip its gate red and block its commits mid-wave. Don't share the tree; a worktree has its own copy of all three:
+
+```bash
+SLUG={2-4 kebab-case words from the task, e.g. fix-session-reset}
+git worktree list | grep -q "hotfix-$SLUG" && SLUG="$SLUG-2"
+git worktree add "../{project}-hotfix-$SLUG" -b "hotfix/$SLUG"
+# gates need the config if it isn't tracked:
+[ -f "../{project}-hotfix-$SLUG/.frame/config.json" ] || { mkdir -p "../{project}-hotfix-$SLUG/.frame"; cp .frame/config.json "../{project}-hotfix-$SLUG/.frame/" 2>/dev/null || true; }
+```
+
+If `.planning/BOARD.md` exists, append a row for `hotfix/$SLUG` with status `active` and type `hotfix` — `/frame:integrate` will pick the branch up with the batch. Then hand off and **STOP**:
+
+> Hotfix worktree ready — the fix runs isolated from the work in this tree.
+> → `cd ../{project}-hotfix-$SLUG && claude` → `/frame:fast "{task}"`
+> Merge path: `/frame:integrate` takes `hotfix/$SLUG` first with the batch, or `git merge hotfix/$SLUG` from main once it's free.
+
+#### Running inside a hotfix worktree
+
+Detected by: `git rev-parse --git-common-dir` contains `worktrees/` **and** the current branch starts with `hotfix/`. Proceed normally — you are isolated (own index, own STATE.md, own gate status; the concurrent-work check passes by construction). Two defaults are overridden:
+- the commit message **MUST** carry the `[hotfix]` marker: `{type}({scope}): {description} [hotfix]`;
+- a regression test is **MANDATORY** (overrides "tests optional") — `/frame:integrate`'s hotfix protection keys off both.
+
+Finish by reporting the merge path (integrate with the batch, or manual merge from main when it's free).
 
 Write to `.planning/STATE.md`:
 ```markdown
@@ -117,6 +146,7 @@ fast: {task} — {files changed} file(s) changed, {tests} tests added, commit {h
 - **Tests optional** — only if logic changed; **EXCEPT**: fix overlapping an active parallel feature → regression test mandatory + `[hotfix]` in commit message
 - **Board check before editing** — with active parallel tasks, warn on file overlap before touching anything
 - **Side quest, not a phase change** — previous `## Current Position` is saved and restored; fast never hijacks pipeline state
+- **Busy tree → hotfix worktree** — an autopilot marker (or a confirmed live session) routes the fix into `../{project}-hotfix-{slug}` on branch `hotfix/{slug}`; in that worktree the `[hotfix]` commit marker and a regression test are mandatory
 - **Quality gates mandatory** — typecheck + test + lint
 - **Specific files** — never `git add -A`
 - **Escalate by fact** — if you discover mid-task that it's larger than 30 min, stop and redirect to `/frame:build`

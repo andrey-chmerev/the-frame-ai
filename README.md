@@ -15,7 +15,8 @@ If you're building a product alone with Claude Code and want to work like a team
 | Losing context between sessions | Project memory and automatic state dump on session start |
 | Chaos in tasks and priorities | 6-phase workflow: Research → Plan → Build → Review → Ship → Reflect |
 | Fear of breaking something important | Safety hooks block destructive commands before they run |
-| Repetitive routine tasks | 31 ready-made commands for the full development cycle |
+| Repetitive routine tasks | 33 ready-made commands for the full development cycle |
+| Babysitting every phase by hand | `/frame:auto` — plan → build → review → fix → ship unattended after one confirmation |
 | Waiting for one feature to finish before starting the next | `/frame:parallel` — each feature in its own worktree, `/frame:integrate` merges them back with quality gates |
 | Slow, one-by-one fixes after review | `/frame:fix` — closes review findings in parallel, one fixer per file |
 | Complex features with dependencies | Parallel subagents for independent tasks (wave-based planning) |
@@ -49,6 +50,11 @@ If review requests changes, `/frame:fix` closes the findings in parallel — one
 
 **Reflect** — learn and improve
 `/frame:retrospective` after deploy updates metrics and captures patterns for future sessions.
+
+**Autopilot** — everything after research, unattended
+`/frame:auto <feature>` chains plan → build → review → fix → ship in one run. You confirm a single briefing after the plan is generated (tasks, waves, high-risk list); after "go" the pipeline runs until it lands a local commit — or halts and hands the decision back to you (sensitive-area fixes, wave failures, architectural deviations, 3 review rounds without approve). It never pushes and never auto-fixes auth/money/core code. Add `strict` for the adversarial two-verdict review each round.
+Autopilot composes with parallel work: run `/frame:auto` in each feature's worktree — those flights land at review approve (integrate-ready) instead of shipping; when the batch is done, one `/frame:integrate` from main merges them all, then a single `/frame:ship`.
+Side quests stay safe too: `/frame:fast` and `/frame:debug` detect a live flight and isolate themselves into a `hotfix/{slug}` worktree — zero interference with the running build, and integrate merges the hotfix first.
 
 ## Examples
 
@@ -228,7 +234,8 @@ claude -p "/frame:audit quick" --allowedTools "Bash,Read,Write,Grep"
 FRAME provides:
 
 - **6-phase workflow**: Research → Plan → Build → Review → Ship → Reflect
-- **32 commands**: from quick tasks to full feature development cycle
+- **33 commands**: from quick tasks to full feature development cycle
+- **Pipeline autopilot**: `/frame:auto` drives plan → build → review → fix → ship unattended, with a Stop hook that keeps the flight moving and hard halts on anything that needs a human
 - **Parallel feature work**: `/frame:parallel` runs each feature in its own git worktree with a task board; `/frame:integrate` merges them back with per-merge quality gates and cross-feature review
 - **Parallel review fixes**: `/frame:fix` closes findings file-by-file in one pass — no worktrees, no per-fix ceremony
 - **10 AI agents**: Researcher, Planner, Builder, Reviewer, Auditor, Devil's Advocate, Security, Performance Auditor, Tests Reviewer, Conventions Reviewer
@@ -391,9 +398,9 @@ These commands cover 90% of solo dev work:
 | `/frame:note` | Save a quick memory note (pattern, decision, or anti-pattern) to memory files | `<note text>` |
 | `/frame:parallel` | Orchestrate parallel feature work across git worktrees — start tasks, view the board, stop tasks | `start <feature> | status | stop <feature>` |
 | `/frame:pause` | Save session state to pause-state.json and create a checkpoint | — |
-| `/frame:plan` | Decompose a feature into atomic tasks with wave grouping, traceability, and Parallel labels; or create a plan from audit findings | `<feature description> | audit [all]` |
+| `/frame:plan` | Decompose a feature into atomic, code-grounded tasks with embedded bodies (Action/Done/Context), wave grouping, traceability, and Parallel labels; or create a plan from audit findings | `<feature description> | audit [all]` |
 | `/frame:refactor` | Refactor code with test coverage verification and checkpoint safety | `<refactor scope>` |
-| `/frame:research` | Domain research: clarification gate, parallel codebase + web scouting, new research.md with Decision Log cycle | `<topic or question>` |
+| `/frame:research` | Domain research: clarification gate, size scaling, parallel codebase + web scouting with source-quality protocol, dependency passports, devil's-advocate stress-test, new research.md with Decision Log cycle | `<topic or question>` |
 | `/frame:resume` | Resume work from pause-state.json — restore context and continue | — |
 | `/frame:retrospective` | Write retrospective, update memory files with learnings and patterns | — |
 | `/frame:review` | Code review: completion check, automated gates, parallel reviewer panel with verification pass | `[audit | strict]` |
@@ -416,7 +423,6 @@ These commands cover 90% of solo dev work:
 | `conventions-reviewer` | Review agent for wave-team. Checks code conventions and style in a single task's git diff. Returns PASS/WARN/FAIL verdict. |
 | `devils-advocate` | Find problems in code — code review, plan critique, or finding verification. Never writes application code. Use when: reviewing implementation, challenging a plan, or verifying audit/review findings. |
 | `performance-auditor` | Performance auditor agent. Detects stack, researches current perf issues, runs deep audit, writes PERF_REPORT.md. Never edits application code. Use when: auditing perf before ship or on demand. |
-| `planner` | Planning agent. Decomposes research into atomic tasks with wave grouping. Use when: research.md is complete and needs to be broken into a plan. |
 | `researcher` | Research agent. Analyzes codebase or web for alternatives and context before planning. In /frame:research acts as codebase-scout or web-scout subagent. Use when: exploring options or gathering context. |
 | `reviewer` | Review agent. Checks code against spec, runs quality gates, security analysis. In /frame:review panel acts as the Spec Compliance reviewer. Use when: implementation is complete and needs review before ship. |
 | `security` | Security auditor agent. Scans code for vulnerabilities, secrets, OWASP violations. When used in /frame:audit produces security-category report; when used in /frame:review panel produces diff-scoped findings. Never edits application code. |

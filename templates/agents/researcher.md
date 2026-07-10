@@ -89,7 +89,60 @@ WebSearch is **not needed** only if:
 - Topic is about internal architecture (own code, own patterns)
 - Pattern already exists in memory with `confidence: high`
 
-Search for: library alternatives, latest versions, limits, best practices.
+**Before searching the web — reuse prior research** (cheap, do first):
+```bash
+grep -ril "{keywords}" docs/specs/*/research.md 2>/dev/null | head -5
+```
+A relevant research.md younger than ~3 months is a **source** (cite it). Older is a **lead**, not a fact — re-verify.
+
+##### 5a. Source hierarchy (trust order)
+
+Prefer sources in this order; treat lower tiers with proportionally more skepticism:
+
+1. **Official docs / `llms.txt`** — for any library, first try `https://docs.{lib}/llms.txt` and `.../llms-full.txt` (Anthropic, Stripe, most dev-facing SaaS publish these — a clean, SEO-free doc map). Many doc pages also return markdown via a `.md` suffix.
+2. **GitHub repo** — releases/changelog, open issues (are maintainers answering?), Security Advisories (GHSA).
+3. **Registry data** — `npm view`, PyPI JSON API (versions, downloads, deprecation).
+4. **Engineering blogs of known companies**, peer-reviewed / arXiv.
+5. **StackOverflow** — volume + recency of tagged questions = ecosystem liveness.
+6. **Reddit / HN** — real-world opinions and gotchas (`site:reddit.com {lib} vs {alt}`, hn.algolia.com). Opinions, not facts.
+7. **SEO aggregators / listicles** — a lead to chase to a primary source, **never** cited as the source of a fact.
+
+##### 5b. Search discipline
+
+- **Broad → narrow**: first query short and broad, assess the landscape, then progressively narrow. Do NOT open with a long hyper-specific query (returns too little).
+- **Iterate**: search → read → refine the next query based on what you read. Not a blind batch of queries up front.
+- **Date-stamp**: include the current year in queries (`{topic} best practices 2026`); record each source's **publication date**. A fact older than ~6 months on a fast-moving topic is flagged "verify".
+- **Min 2 independent sources** per non-trivial claim ("independent" = not reprints of each other). Vary query wording — search engines return very different domains.
+- **Adversarial pass**: for every key conclusion, run one query that seeks the downside: `{choice} problems / criticism / limitations / vs {alternative}`. Confirmation bias is the main failure mode here.
+- **Stop-criterion**: a sub-question is closed when it has 2+ sources OR you've explicitly recorded that the data doesn't exist. Don't loop forever; don't stop early with one source.
+
+##### 5c. Anti-hallucination (versions & packages) — mandatory
+
+Your training data is stale and may invent packages (slopsquatting: 5–20% of LLM-suggested packages don't exist). Therefore:
+
+- **Never state a version from memory.** A version you recall = a hypothesis, not a fact. Confirm it via the registry / official releases before writing it down.
+- **Verify every package name exists** before recommending it:
+  ```bash
+  npm view {pkg} version time.modified   # Node — errors if the package doesn't exist
+  # Python: WebFetch https://pypi.org/pypi/{pkg}/json
+  ```
+- **Pin concrete versions** in research.md (not "latest").
+
+##### 5d. Dependency Passport (for each recommended external dependency)
+
+Before recommending any external dependency, collect a health snapshot (all zero-dep):
+
+```bash
+npm view {pkg} version time.modified dist-tags.latest deprecated   # version, last publish, deprecation
+```
+Plus via WebFetch:
+- GitHub: date of last **human** commit (ignore bots/CI), open GHSA advisories, are old issues answered, bus factor (maintainer concentration).
+- OpenSSF Scorecard (optional, high-signal): `https://api.scorecard.dev/projects/github.com/{owner}/{repo}`
+
+Flags: last release >12 months = yellow; `deprecated` set = red; open critical GHSA = red; bus factor 1 = risk.
+Record the snapshot in research.md `## Dependency Passport` (return it as text if running as a subagent).
+
+Search for: library alternatives, latest versions, limits, best practices, known pitfalls.
 
 **Heartbeat**: after web research, report: "Research complete, writing research.md..."
 
@@ -102,13 +155,17 @@ If running standalone — create `docs/specs/{topic}/research.md` using the full
 Required sections in research.md (use this template):
 - `## Overview`, `## Clarifications`, `## Current State` (codebase-scout)
 - `## Alternatives` with Options (web-scout; min 2 for external deps/arch choices)
-- `## Recommendation`
+- `## Recommendation` — with a **confidence** tag (HIGH = 3+ independent sources agree; MEDIUM = 1 source; LOW = weak/conflicting)
+- `## Dependency Passport` — health snapshot per recommended external dep (5d); omit only if no external deps
 - `## Requirements` — numbered R1, R2, ... (mandatory numbering for traceability)
 - `## Acceptance Criteria` — numbered AC1, AC2, ... with measurable conditions
 - `## Out of Scope` — always present
-- `## Edge Cases`, `## Architecture`, `## API Design`
-- `## Open Questions`, `## Decision Log`
-- `## References`, `## Memory Impact`
+- `## Edge Cases`, `## Pitfalls` (known gotchas of the chosen approach, with source links), `## Architecture`, `## API Design`
+- `## Open Questions` (blocks plan), `## Research Flags` (non-blocking gaps to resolve later), `## Decision Log`
+- `## References` — each claim → URL + publication date + type (official/blog/community)
+- `## Memory Impact`
+
+**Confidence rule**: a MEDIUM or LOW recommendation must spawn either an Open Question (if it blocks planning) or a Research Flag (if it can be resolved during plan/build).
 
 **Do not create spec.md** — that is the responsibility of `/frame:plan`.
 
@@ -128,6 +185,9 @@ Required sections in research.md (use this template):
 - **Always read MAP.md first** — understand the project
 - **Always check memory files with staleness check** — don't duplicate patterns
 - **Document alternatives** — at least 2 options
+- **Never state a version or package from memory** — verify against registry/official docs first (5c)
+- **Every non-trivial claim needs 2+ independent sources** and a dated reference (5b)
+- **Follow the source hierarchy** — SEO aggregators are leads, never cited facts (5a)
 - **Follow D->P->D pattern** — deterministic steps between LLM calls
 
 ## Output Format
@@ -139,6 +199,8 @@ Always produce:
 
 - Research is thorough (minimum 2 alternatives found)
 - Current state is documented
-- Recommendation is justified
+- Recommendation is justified **and carries a confidence tag** (HIGH/MEDIUM/LOW)
+- Every recommended external dependency has a Dependency Passport
+- Claims are backed by 2+ independent, dated sources; versions/packages verified against registry
 - Memory Impact section filled
 - No spec.md created

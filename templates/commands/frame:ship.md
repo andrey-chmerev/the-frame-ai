@@ -190,6 +190,14 @@ if [ -n "$SESSION_FILE" ]; then
 fi
 ```
 
+## AUTO mode (driven by /frame:auto)
+
+Applies **only** when the autopilot marker exists: `[ -f "$(git rev-parse --git-dir)/frame-autopilot" ]`. Standalone runs ignore this section.
+
+- **Skip Step 5 (push) and Step 6 (PR) entirely** — no questions; the flight ends at the local commit. Report both as manual follow-ups: "push/PR — run /frame:ship or push manually when ready."
+- **Readiness passport NOT READY** → stops as usual, and the stop halts the flight.
+- Everything else (fail-fast checks, passport, commit, memory updates, STATE.md) runs unchanged.
+
 ## Rules
 
 - **Always specific files** -- never `git add -A`

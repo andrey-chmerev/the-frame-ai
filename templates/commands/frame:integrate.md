@@ -37,6 +37,11 @@ A task is **ready** when, in its worktree:
 - `git -C {worktree} status --short` is clean;
 - all plan.md tasks are `[DONE]`.
 
+**Hotfix rows are judged differently** (type `hotfix`, branch `hotfix/*` — side quests that `/frame:fast`/`/frame:debug` isolated away from a busy tree). They have no plan.md and no review phase, so the criteria above don't apply. A hotfix row is **ready** when:
+- `git -C {worktree} status --short` is clean;
+- the branch has ≥1 commit carrying the `[hotfix]` marker;
+- that commit touches a test file (the mandatory regression test) — if not, mark **not ready** and report: "hotfix/{slug} has no regression test — add one in its worktree first."
+
 If specific features were passed as arguments — restrict to those (a listed-but-not-ready feature = STOP with its blockers).
 
 **Note — main may already carry a feature.** The first/only feature often builds directly in main (build Step 0, Case D) and is not a board row. That is fine: main is the integration base, so its feature ships together with the merged ones. Just confirm main itself is reviewed and green before integrating (it becomes the base of `integrate/{date}`); if main has an unreviewed feature in progress, tell the user to finish `/frame:review` in main first.
@@ -118,9 +123,10 @@ Write the prediction into `.planning/BOARD.md` under a `## Merge Preview ({date}
 ### Step 3: Merge order
 
 Use the Step 2.5 prediction. Sort the ready branches:
-1. **clean** features first (predicted no conflicts) — merge them all before touching any conflicting one;
-2. among clean ones, ascending diff size (`git diff main...feature/{name} --shortstat`);
-3. **conflict** features last, **one at a time** — after each conflicting merge, re-run its gates before starting the next, so a collision never compounds with an unmerged second conflict.
+1. **hotfix branches first** (`hotfix/*` rows) — they are small, and every feature must be validated against a tree that already contains the fix; once merged, their `[hotfix]` commits are part of the integration branch history, so Step 3.5's protection covers them for every feature merged after;
+2. **clean** features next (predicted no conflicts) — merge them all before touching any conflicting one;
+3. among clean ones, ascending diff size (`git diff main...feature/{name} --shortstat`);
+4. **conflict** features last, **one at a time** — after each conflicting merge, re-run its gates before starting the next, so a collision never compounds with an unmerged second conflict.
 
 Show the planned order (with the clean/conflict split from the preview) before starting.
 
@@ -137,6 +143,8 @@ Note commits marked `[hotfix]` (and any `fix(...)` commits) and the files they t
 ```bash
 git show --stat --format="" {hotfix_commit}
 ```
+
+Worktree hotfix branches (`hotfix/*`) merged in Step 4's first slot count here too: after their merge, their `[hotfix]` commits sit in the integration branch history exactly like main-side hotfixes — the same protection applies against every feature merged after them.
 
 These are the **protected fixes**: a feature branch that predates a hotfix has never seen it, so its merge can textually or semantically undo the fix. The protection below and the regression tests those fixes carry (mandatory for `[hotfix]` commits) are what keep them alive.
 
@@ -268,6 +276,7 @@ Final output: merged list, conflict summary, review verdict, then:
 ```
 → Run: /frame:ship — commit/PR from integrate/{date}
    After ship: /frame:parallel stop {feature} (each) to clean up worktrees
+   Hotfix worktrees: git worktree remove ../{project}-hotfix-{slug} && git branch -d hotfix/{slug}
 ```
 
 ## Recovery: resuming after a mid-merge failure
@@ -291,7 +300,8 @@ Found an unfinished integration on integrate/{date}: merged {list}, stopped at {
 - **Predict before merging** — `git merge-tree` classifies clean vs conflict (Step 2.5); clean features merge first, conflicting ones one at a time
 - **Gates after every merge** — failure must localize to one branch
 - **Evict, don't abort the run** — a substantive conflict or persistently-red gate removes exactly that one branch (with an eviction record carrying files + essence back to its worktree); the rest still integrate
-- **Hotfixes are protected** — main-side `[hotfix]` commits win conflicts by default; their regression tests are re-checked after any merge touching their files
+- **Hotfixes are protected** — `[hotfix]` commits (main-side or from merged `hotfix/*` branches) win conflicts by default; their regression tests are re-checked after any merge touching their files
+- **Hotfix rows merge first, with light readiness** — no plan/review required; clean worktree + `[hotfix]` commit + regression test is the bar
 - **Never auto-rollback green merges** — only the failing one, and only with user consent
 - **Substantive conflicts go to the user** — with an explanation of which features collided and why
 - **Cross-feature focus in review** — per-feature internals were already reviewed in worktrees

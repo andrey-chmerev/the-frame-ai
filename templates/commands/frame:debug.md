@@ -33,15 +33,20 @@ Debug the problem: **$ARGUMENTS**
 
 **Save the current position first**: read `.planning/STATE.md` and remember the existing `## Current Position` block — a debug session is a side quest and must not hijack pipeline state (e.g. `Phase: INTEGRATE — ready to ship`). You will restore it in Phase 4.
 
-**Concurrent-work check** (from the saved block above): if `Status:` is `IN_PROGRESS` (any phase — `BUILD`, `INTEGRATE`, `DEBUG`), a build/integration is either unfinished or running **right now in another terminal on this same tree**. Debugging here would share the git index, `.planning/STATE.md`, and the quality-gate status with it — risking mixed commits and lost state. Ask **once**:
+**Concurrent-work check** — is this tree busy? Deterministic signal first, question second:
+
+1. **Autopilot marker**: `[ -f "$(git rev-parse --git-dir)/frame-autopilot" ]` → a `/frame:auto` flight is live in this tree **right now** — no need to ask. Run the **Hotfix worktree hand-off** from `/frame:fast` Step 0 (create `../{project}-hotfix-{slug}` on branch `hotfix/{slug}`, board row if BOARD.md exists), hand off `/frame:debug "{bug}"` there, and STOP. Bonus for debugging: the worktree is the last *committed* state — a stable repro base, instead of a tree that's being edited mid-wave under you.
+2. **No marker, but the saved `Status:` ends with `IN_PROGRESS`** (`IN_PROGRESS` or `FIX_IN_PROGRESS` — any phase: `BUILD`, `INTEGRATE`, `DEBUG`, `FIX`): a build/integration/fix is either unfinished or running in another terminal on this same tree. Ask **once**:
 ```
 ⚠️ STATE.md shows {phase} IN_PROGRESS. If that work is running in another terminal on this tree,
    a debug session here can collide with it (shared index, STATE.md, gate status).
    1) it's stale (that session was interrupted) — continue debugging
-   2) it's live in another terminal — debug in an isolated worktree instead (/frame:parallel start <name>)
+   2) it's live in another terminal — debug in an isolated hotfix worktree (safe, stable repro base)
    3) cancel — I'll finish/pause the other work first
 ```
-Only proceed on "continue". (If `Status:` is `COMPLETE`, `Shipped`, or the project is fresh — no prompt, continue silently.)
+Only proceed on "continue"; option 2 → the same hotfix worktree hand-off. (If `Status:` is `COMPLETE`, `Shipped`, or the project is fresh — no prompt, continue silently.)
+
+**Running inside a hotfix worktree** (branch starts with `hotfix/`): proceed normally — isolated by construction. The fix commit MUST carry the `[hotfix]` marker and a regression test (see `/frame:fast` "Running inside a hotfix worktree" — same contract), so `/frame:integrate`'s hotfix protection covers it.
 
 Before starting, write to `.planning/STATE.md`:
 ```markdown

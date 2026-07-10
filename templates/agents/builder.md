@@ -260,7 +260,7 @@ Acceptance met: {AC ids covered, or "N/A"}
 Skip Step 0 checkpoint, Step 1, Step 2 (context is in the prompt).
 Fact-check before your first edit of an existing file (Step 3.0.5).
 Do the one task: RED → GREEN → REFACTOR (or per ceremony in brief).
-Run targeted test for your file(s). Do NOT commit, do NOT run full gates, do NOT touch plan.md/STATE.md.
+Run the exact `Verification:` command from the brief (that is the plan's deterministic check for this task; fall back to the targeted test only if the brief carries no command). Do NOT commit, do NOT run full gates, do NOT touch plan.md/STATE.md.
 Return:
 ```
 Task: {task name}
