@@ -21,7 +21,7 @@ Where the flight ends depends on where it runs — detect once at preflight via 
 - **Main flight** (not a linked worktree) → full pipeline, lands at **SHIP: a local commit** (push/PR manual).
 - **Worktree flight** (`--git-common-dir` contains `worktrees/`) → this feature is one of several being built in parallel. The flight lands at **review approve** and **skips SHIP**: `/frame:integrate` (run manually from main when the batch is ready) requires each worktree's STATE.md to read `Phase: REVIEW / Status: ready to ship` — running ship in the worktree would set `SHIP/Shipped` and fail integrate's readiness check. Merging the batch and the single final ship stay manual by design.
 
-The parallel pattern end-to-end: `/frame:auto feature-1` in main (or its worktree), `/frame:parallel start feature-N` + `/frame:auto feature-N` in each additional worktree, then — when all flights have landed — one `/frame:integrate` from main, then `/frame:ship` from the integration branch.
+The parallel pattern end-to-end: `/frame:auto feature-1` in main; for every next feature just run `/frame:auto feature-N` from main again — preflight detects the busy tree, prepares the worktree itself, and hands off (`cd ../{project}-feature-N && claude` → `/frame:auto feature-N`). When all flights have landed — one `/frame:integrate` from main, then `/frame:ship` from the integration branch.
 
 ## How it executes phases
 
@@ -47,7 +47,31 @@ Those files stay the single source of truth. Each of them carries an **`## AUTO 
 
 2. **Research gate.** `docs/specs/{feature}/research.md` must exist — else STOP: "No research.md for '{feature}'. Run /frame:research first — autopilot starts after research." If its `## Open Questions` has unanswered items → STOP and list them: research questions are yours to answer, autopilot does not guess.
 
-3. **Concurrent-work check** (same rule as `/frame:fast` Step 0): if STATE.md `Status:` ends with `IN_PROGRESS` for a *different* feature, ask once — stale (continue) / live in another terminal (abort) / cancel. A live parallel run shares the index and STATE.md; autopilot on top of it is a recipe for mixed commits.
+3. **Busy-tree routing** — a new feature never squats on another feature's tree; when the tree is busy, the answer is *parallel*, not *stale-or-live*. Check two signals: the autopilot marker (`[ -f "$(git rev-parse --git-dir)/frame-autopilot" ]`) and STATE.md's `## Current Position` (`Status:` ending `IN_PROGRESS`/`FIX_IN_PROGRESS`). Route:
+
+   - **STATE shows the *same* feature mid-pipeline** → this is a **resume**, not a new flight: skip the phases STATE.md already passed and continue from where it stands (a plan with `[DONE]` tasks re-enters build; `REVIEW_FAILED` re-enters fix). Announce what's being resumed.
+   - **Marker exists** (a flight is live in this tree *right now*) → **no question**: prepare a worktree for the new feature (procedure below) and hand off. Announce: "flight {other} is live here — {feature} goes to its own worktree."
+   - **No marker, but STATE shows a *different* feature mid-pipeline** (an interrupted flight or manual session — its done tasks are committed, so it is *resumable*, not garbage) → ask once, recommended option first:
+     ```
+     ⚠️ {other} is mid-pipeline in this tree (STATE.md: {phase} {task}/{total}; no live flight).
+        1) Start {feature} in its own worktree — RECOMMENDED: main keeps {other} resumable (/frame:build {other} later)
+        2) {other} is abandoned — take over main (allowed only if `git status --short` is clean; uncommitted changes belong to {other})
+        3) Cancel
+     ```
+     Option 2 with a dirty tree → refuse and list the uncommitted files: they are {other}'s work; commit/stash/revert them first.
+
+   **Worktree hand-off for a new feature** (pre-plan, so lighter than `/frame:parallel start` — no plan.md exists yet and none is needed here; the flight plans *inside* the worktree):
+   ```bash
+   git worktree add "../{project}-{feature}" -b "feature/{feature}"
+   # docs/ is typically untracked — bring the research along and commit it in the worktree:
+   mkdir -p "../{project}-{feature}/docs/specs"
+   cp -R "docs/specs/{feature}" "../{project}-{feature}/docs/specs/"
+   git -C "../{project}-{feature}" add "docs/specs/{feature}" && git -C "../{project}-{feature}" commit -m "docs({feature}): research"
+   [ -f "../{project}-{feature}/.frame/config.json" ] || { mkdir -p "../{project}-{feature}/.frame"; cp .frame/config.json "../{project}-{feature}/.frame/" 2>/dev/null || true; }
+   ```
+   Register a board row if `.planning/BOARD.md` exists (`{feature} | active | ../{project}-{feature}`). Then **STOP** with the hand-off:
+   > Worktree ready. → `cd ../{project}-{feature} && claude` → `/frame:auto {feature}`
+   > (plan is created there; the flight lands integrate-ready — see "Two landing modes")
 
 4. **Detect the landing mode** (see "Two landing modes"): `git rev-parse --git-common-dir` → main flight or worktree flight.
 
@@ -76,6 +100,7 @@ Autopilot briefing — {feature}
 | Files touched       | {count} ({top-level dirs}) |
 | Risk: high tasks    | {list with one-line why, or "none"} |
 | Sensitive areas     | {plan files matching auth/money/core/migrations/routing, or "none"} |
+| Parallel overlap    | {plan Touched Files ∩ other active features' Touched Files, or "none"} |
 | Review mode         | standard | strict |
 | Review rounds cap   | 3 |
 | End state           | main: local commit — push/PR manual | worktree: review approve — /frame:integrate manual |
@@ -83,6 +108,13 @@ Autopilot briefing — {feature}
 After "go" there are no more questions until commit or halt.
 High-risk tasks listed above count as confirmed. Proceed? [go / abort / hold <task ids>]
 ```
+
+**Parallel overlap row** — the pre-plan hand-off skips `/frame:parallel start`'s file-overlap check (no plan existed yet), so run it here, now that the plan exists. Compare this plan's `## Touched Files` against every *other* active feature's file list from the board's `## Touched Files (cache)` section. From inside a worktree, the live board is in the **main** tree, not the worktree copy:
+```bash
+MAIN_ROOT=$(dirname "$(git rev-parse --git-common-dir)")   # == project root in main; equals cwd when not in a worktree
+grep -A 50 "## Touched Files (cache)" "$MAIN_ROOT/.planning/BOARD.md" 2>/dev/null
+```
+No board / no other active features / no intersection → `none`. Intersection found → list `{file} ↔ {feature}` in the row; it does not block (integrate's merge-tree prediction and hotfix protection catch real collisions at merge time), but the user may prefer `abort` and sequencing the features instead — that's exactly what this one question is for.
 
 - **go** → all `Risk: high` tasks are pre-confirmed for BUILD (its Step 4 up-front confirmation and the Risk-Strategy per-task wait are both satisfied by this gate). Engage autopilot:
   ```bash
@@ -202,6 +234,7 @@ A halt is not a failure of the run — it is the pipeline handing back a decisio
 - **Halts preserve state** — STATE.md keeps the phase command's status; manual pipeline commands pick up from there
 - **Worktree flights land at review approve** — never run ship in a worktree (`/frame:integrate` requires `Phase: REVIEW / ready to ship` there); Case C prepares the new feature's worktree and hands off `cd … && /frame:auto {feature}`
 - **Side quests never touch a live flight's tree** — `/frame:fast` and `/frame:debug` detect the autopilot marker and route themselves into a `hotfix/{slug}` worktree; those branches merge first in `/frame:integrate`
+- **Busy tree → parallel, not takeover** — preflight routes a new feature into its own worktree (automatically when a flight is live; recommended option otherwise); "take over main" is an explicit user choice and requires a clean tree; the same feature mid-pipeline means resume, not re-plan
 
 ## When to Use
 
