@@ -26,6 +26,13 @@ test -f .frame/config.json || { echo "ERROR: Run /frame:init first."; exit 1; }
 test -f .planning/MAP.md || { echo "ERROR: Run /frame:init first — MAP.md missing."; exit 1; }
 ```
 
+**Recovery**: if STATE.md already shows `Phase: AUDIT` + `Status: IN_PROGRESS`, a previous run was interrupted. The audit is idempotent — just restart from here; Step 2 clears stale category files.
+
+Set the report directory (used everywhere below as `{AUDIT_DIR}`):
+```bash
+AUDIT_DIR=".planning/reports/audit/$(date +%Y-%m-%d)"
+```
+
 Update `.planning/STATE.md`:
 ```markdown
 ## Current Position
@@ -36,6 +43,8 @@ Update `.planning/STATE.md`:
 
 ### Step 1: Profile project → active categories + tier
 
+**Single-category run** (`/frame:audit security`, `/frame:audit deps`, etc.): skip the tier table — launch one agent for that category (Tier L projects may shard it by directory). Record the scope path if given; it goes into the brief in Step 2.
+
 Count project files (excluding vendor):
 ```bash
 git ls-files | grep -v "^node_modules\|^vendor\|^dist\|^build" | wc -l
@@ -45,7 +54,7 @@ Read `.frame/config.json` and `.planning/MAP.md` to determine:
 - `frontend` presence → A11Y on/off
 - `database` presence → DATA full or reduced
 - LLM code present (grep for `openai|anthropic|langchain|claude` in source) → SEC AI/LLM block on/off
-- `userData: true` or `gdpr: true` in MAP.md → PRIV auto-enabled
+- PRIV auto-enable: `grep -qiE "userData|GDPR|PII|personal data" .planning/MAP.md` (MAP.md has no dedicated field — a text match in Quick Facts / Tech Debt / Notes counts)
 - `--priv` flag → PRIV enabled regardless
 
 **Tier rules** (determines how many parallel agents to run):
@@ -58,37 +67,63 @@ Read `.frame/config.json` and `.planning/MAP.md` to determine:
 
 > **Rule**: never run 12 agents on a project with <100 files. Scale to match.
 
-For `quick` mode: always Tier S approach regardless of project size.
+**Tier S agent mapping** (merged groups need an owner):
+- `SEC+DEPS` → `security` agent in **Audit Mode** (its own workflow already covers dependencies)
+- `PERF+INFRA`, `LOGIC+API+DATA`, `OBS+TEST+MAINT` → generic `auditor` agent with the merged briefs concatenated
+- A11Y/PRIV, if active in Tier S, are appended as extra checklists to the `OBS+TEST+MAINT` group
+- Merged group writes ONE file named after the group (e.g. `{AUDIT_DIR}/SEC+DEPS.md`); finding IDs inside keep their own category prefixes (SEC-1, DEPS-1)
+
+**Quick mode** (`/frame:audit quick`): exactly 2 agents, no WebSearch, ~5 min budget:
+1. `security` agent in Audit Mode — secrets scan + CRITICAL-severity injection/auth patterns only → `{AUDIT_DIR}/SEC.md`
+2. `auditor` agent — DEPS brief reduced to: lockfile in git + known CVEs (CRITICAL/HIGH only) → `{AUDIT_DIR}/DEPS.md`
+
+Both briefs must state: "Quick mode: skip WebSearch." Verification pass (Step 3) runs for CRITICAL findings only.
 
 Report: "Project profile: {tier} tier ({N} files), {categories} active, launching {M} agents..."
 
 ### Step 2: Launch audit agents
 
-Each agent receives a **category brief** (see section below) and writes **only its own** `.planning/reports/audit/{date}/{category}.md`. Max 5 agents in Wave 1, remaining in Wave 2.
+Prepare the report directory — a re-run on the same day must not inherit category files from a previous run (stale files would leak old findings into Step 4 synthesis):
+```bash
+mkdir -p "$AUDIT_DIR"
+rm -f "$AUDIT_DIR"/*.md
+```
 
-**State tracking rule**: auditor subagents return findings as final text + write their `{category}.md`. They never write `.planning/STATE.md`.
+Each agent receives a **category brief** containing all four fields `auditor` expects (it stops without them):
+- **Category**: which category (or merged group) to audit
+- **Scope**: full project, or the scope path from the routing args
+- **Checklist**: the full text of the category brief(s) from the section below — including "What NOT to report"
+- **Output file**: `{AUDIT_DIR}/{category}.md` — the exact path, computed by the orchestrator
+
+Each agent writes **only its own** output file. Max 5 agents in Wave 1, remaining in Wave 2.
+
+**State tracking rule**: auditor subagents return findings as final text + write their `{category}.md`. They never write `.planning/STATE.md` or `.planning/memory/*` (parallel writers would clobber each other — the orchestrator applies memory updates once, in Step 5).
 
 After all agents complete, update STATE.md: `Status: AUDIT_COLLECTING`
 
 ### Step 3: Verification pass
 
-For all confirmed CRITICAL and HIGH findings, and MEDIUM findings with `Confidence ≤5`:
+Update STATE.md: `Status: AUDIT_VERIFYING`
+
+For all CRITICAL and HIGH findings, and MEDIUM findings with `Confidence ≤5` (in quick mode: CRITICAL only):
 
 Launch `devils-advocate` subagents in refute mode (batches of ≤5):
-- Input: finding + source file content
-- Task: "Try to refute this finding. Is there validation higher in the stack? Is this code path reachable? Is this a test/example file? Default to `refuted: false` only if you find concrete evidence."
-- Output: `{ refuted: boolean, reason: string }`
+- Input: the finding (ID, severity, claim, evidence) + its `file:line` — **not** the file content pasted inline; the agent has Read/Grep and reads the file itself, so it also sees surrounding functions and call sites (same pattern as `/frame:review` Step 4)
+- Task: "Try to refute this finding. Is there validation higher in the stack? Is this code path reachable? Is this a test/example file? Default to NOT refuted — set `Refuted: yes` only with concrete evidence."
+- Output (devils-advocate verifier format): `Finding: {ID}` / `Refuted: yes | no` / `Confidence: 1–10` / `Reason: {evidence}`
 
-Findings not refuted → `Verified: yes`
-Findings refuted → `Verified: refuted` (kept in appendix for transparency, not in main report)
-
-Update STATE.md: `Status: AUDIT_VERIFYING`
+Assign the `Verified` field:
+- Sent to verification, not refuted → `Verified: yes`
+- Sent to verification, refuted → `Verified: refuted` (kept in appendix for transparency, not in main report)
+- Not sent to verification (MEDIUM with Confidence >5, LOW) → `Verified: auto` (accepted without adversarial pass — `/frame:plan audit all` picks these up)
 
 ### Step 4: Synthesize AUDIT.md
 
-Read all `{category}.md` files. Deduplicate findings with the same root cause (same file+line = one finding). Merge severity to the highest.
+Read all `{category}.md` files from `{AUDIT_DIR}`. Deduplicate findings with the same root cause (same file+line = one finding; keep all category IDs on the merged finding). Merge severity to the highest.
 
-Create `.planning/reports/audit/{date}/AUDIT.md`:
+The main report includes findings with `Verified: yes` and `Verified: auto`; refuted ones go to the appendix only.
+
+Create `{AUDIT_DIR}/AUDIT.md`:
 
 ```markdown
 # Project Audit — {date}
@@ -129,7 +164,9 @@ Create `.planning/reports/audit/{date}/AUDIT.md`:
 Run `/frame:plan audit` to create a fix plan from these findings.
 ```
 
-### Step 5: Update STATE.md + report to user
+### Step 5: Apply memory updates + update STATE.md + report to user
+
+Apply the `## Memory Updates` suggestions from AUDIT.md to `.planning/memory/learnings.md` under `## Anti-Patterns` (the orchestrator is the single writer — subagents never touch memory files). Skip entries already present.
 
 ```markdown
 ## Current Position
@@ -169,7 +206,7 @@ Every finding must use this format:
 - **Impact**: what happens and under what conditions
 - **Fix**: concrete approach to resolve
 - **Effort**: XS | S | M | L
-- **Verified**: yes | no | refuted (filled by verification pass)
+- **Verified**: yes | auto | refuted (filled by verification pass; agents write `no` as the initial value; `auto` = accepted without adversarial pass)
 ```
 
 > Evidence is mandatory. "I think this might be vulnerable" without a code quote or reproducible command is not a finding.
@@ -180,12 +217,12 @@ Every finding must use this format:
 
 Each auditor agent receives one of these briefs as its task prompt.
 
-### SEC — Security (agent: security)
+### SEC — Security (agent: security, **Audit Mode** — pass the output file path; the agent writes the category file in the universal schema, not its standalone report)
 
 **Checklist** (OWASP Top 10:2025 + LLM Top 10 2025):
 - Every endpoint with an ID parameter: check for missing ownership check (BOLA/IDOR — A01:2025)
 - SQL/NoSQL/command injection: check for string concatenation in queries (A03:2025)
-- Secrets in code and git history: `grep -rE "(api_key|secret|password|token)\s*=\s*['\"][^'\"]{8,}" --include="*.{js,ts,py,go}" .`
+- Secrets in code and git history: `grep -rE "(api_key|secret|password|token)\s*=\s*['\"][^'\"]{8,}" --include="*.js" --include="*.ts" --include="*.py" --include="*.go" .` (grep's `--include` does not expand `{a,b}` braces — always repeat the flag)
 - Cryptography: MD5/SHA1 for passwords, weak random, missing salt
 - CORS misconfiguration, missing security headers, debug endpoints in production
 - **Error handling (A10:2025)**: catch blocks that swallow errors silently (fail-open) — check for empty catch, catch+log-only without re-throw on auth/payment paths
@@ -203,7 +240,7 @@ Each auditor agent receives one of these briefs as its task prompt.
 
 ---
 
-### PERF — Performance (agent: performance-auditor)
+### PERF — Performance (agent: performance-auditor, **Audit Mode** — pass the output file path; the agent writes the category file in the universal schema, not its standalone report)
 
 **Checklist**:
 - Core Web Vitals targets: LCP ≤2.5s, INP ≤200ms, CLS ≤0.1 (frontend only)
@@ -347,7 +384,7 @@ Each auditor agent receives one of these briefs as its task prompt.
 **Only if frontend project (check MAP.md)**
 
 **Checklist** (WCAG 2.2 AA):
-- `<img>` without `alt` attribute: `grep -rE "<img(?![^>]*alt=)" --include="*.tsx" .`
+- `<img>` without `alt` attribute: `grep -rn "<img" --include="*.tsx" --include="*.jsx" --include="*.html" . | grep -v "alt="` (no PCRE lookahead — macOS grep has no `-P`)
 - `<input>` without associated `<label>` or `aria-label`
 - Color contrast: flag hardcoded color values that may fail 4.5:1 ratio (requires visual check — note as manual)
 - Keyboard navigation: interactive elements reachable via Tab? No keyboard traps?
@@ -380,4 +417,4 @@ Each auditor agent receives one of these briefs as its task prompt.
 - **Scale to project size** — don't run 12 agents on 30 files
 - **WebSearch at start of each category** — look up current best practices and known issues for the stack
 - **What NOT to report sections are enforced** — generic advice without specifics is noise
-- **Write only your category file** — `.planning/reports/audit/{date}/{category}.md` (orchestrator writes AUDIT.md)
+- **Write only your category file** — `{AUDIT_DIR}/{category}.md` (orchestrator writes AUDIT.md and applies memory updates; subagents never write `.planning/memory/*`)

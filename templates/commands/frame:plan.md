@@ -343,7 +343,7 @@ If no report → STOP: "No audit report found. Run /frame:audit first."
 
 Read the AUDIT.md. Extract:
 - `audit` mode (default): only CRITICAL and HIGH severity, `Verified: yes` findings
-- `audit all` mode: also include MEDIUM findings
+- `audit all` mode: also include MEDIUM findings — these carry `Verified: yes` OR `Verified: auto` (MEDIUM with Confidence >5 skips the adversarial pass and is marked `auto`; only `refuted` is excluded)
 
 Skip research.md validation in this mode.
 

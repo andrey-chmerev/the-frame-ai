@@ -515,6 +515,18 @@ Step 9: Update learnings.md (Anti-Patterns + Patterns sections)
 Step 10: Return findings as final text
 ```
 
+## Audit Mode (used in /frame:audit)
+
+When called from `/frame:audit`, the orchestrating command passes a **category brief** with Category (SEC, or SEC+DEPS in Tier S), Scope, Checklist, and an explicit **Output file** path (`{AUDIT_DIR}/SEC.md` or `{AUDIT_DIR}/SEC+DEPS.md`). In this mode:
+
+- **Write ONLY the passed output file** — do NOT create `.planning/reports/security/security-{date}.md` (Step 8) and do NOT update `.planning/memory/learnings.md` (Step 9). Parallel audit agents writing memory would clobber each other; the orchestrator applies memory updates once. Put suggestions in a `## Memory Updates` section of the category file instead.
+- **Use the universal finding schema** from the brief (Severity / Confidence / File / Claim / Evidence / Impact / Fix / Effort / Verified: no) — not the table format of the standalone report. The orchestrator's verification and synthesis steps parse these fields.
+- **Restrict all scans to the Scope** from the brief, if one is given.
+- **Quick mode**: if the brief says "Quick mode", run only Step 2 (secrets) + the CRITICAL-severity injection/auth patterns from Step 3; skip Steps 4–7 and any WebSearch.
+- Return the standard summary as final text (category, counts, output file, top finding) — the orchestrator reads it.
+
+Standalone runs (user invokes the agent directly, outside `/frame:audit`) keep the full Step 0–10 workflow unchanged.
+
 ## Panel Mode (used in /frame:review)
 
 When called from the review panel, the orchestrating command passes the **path** to the diff file (`docs/specs/{feature}/review-diff.patch`), not the full project — read it yourself. Scope = only changed files and lines in the diff.

@@ -92,22 +92,25 @@ Heartbeat: "Bundle analysis complete."
 #### 3.2 N+1 Query Patterns
 
 ```bash
-# ORM calls inside loops
-grep -rn --include="*.{ts,tsx,js,jsx,py,rb,java,go}" \
-  -E '(for|forEach|map|while).*\n.*\.(find|findOne|query|execute|fetch|get)\(' \
-  . 2>/dev/null | grep -v node_modules | grep -v '.git/' | grep -v test | head -20
+# ORM calls inside loops — grep is line-based, so match loop lines with 3 lines of
+# trailing context, then filter the context for ORM calls (a \n in the pattern never matches)
+grep -rn -A3 --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" --include="*.py" --include="*.rb" --include="*.java" --include="*.go" \
+  -E '(for\s*\(|\.forEach\(|\.map\(|while\s*\()' \
+  . 2>/dev/null | grep -v node_modules | grep -v '.git/' | grep -v test | \
+  grep -E '\.(find|findOne|findMany|query|execute|fetch)\(' | head -20
+# Read each hit to confirm the call is actually inside the loop body
 ```
 
 ```bash
 # Prisma/Sequelize/TypeORM N+1
-grep -rn --include="*.{ts,tsx,js,jsx}" \
+grep -rn --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" \
   -E '\.(findMany|findAll|find)\(' \
   . 2>/dev/null | grep -v node_modules | grep -v '.git/' | grep -v test | head -20
 ```
 
 ```bash
 # Missing select/include (fetching all fields)
-grep -rn --include="*.{ts,tsx,js,jsx}" \
+grep -rn --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" \
   -E '\.(findMany|findFirst|findUnique|findAll)\(\s*\{?\s*where' \
   . 2>/dev/null | grep -v node_modules | grep -v '.git/' | grep -v test | grep -v 'select\|include' | head -20
 ```
@@ -118,14 +121,14 @@ Heartbeat: "Database pattern analysis complete."
 
 ```bash
 # Unclosed event listeners
-grep -rn --include="*.{ts,tsx,js,jsx}" \
+grep -rn --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" \
   -E '(addEventListener|on\(|subscribe\()' \
   . 2>/dev/null | grep -v node_modules | grep -v '.git/' | grep -v test | head -20
 ```
 
 ```bash
 # Missing cleanup in React effects
-grep -rn --include="*.{ts,tsx,jsx}" \
+grep -rn --include="*.ts" --include="*.tsx" --include="*.jsx" \
   -E 'useEffect\(' \
   . 2>/dev/null | grep -v node_modules | grep -v '.git/' | grep -v test | head -20
 # Then check if corresponding files have cleanup returns
@@ -133,14 +136,14 @@ grep -rn --include="*.{ts,tsx,jsx}" \
 
 ```bash
 # Timers without cleanup
-grep -rn --include="*.{ts,tsx,js,jsx}" \
+grep -rn --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" \
   -E '(setInterval|setTimeout)\(' \
   . 2>/dev/null | grep -v node_modules | grep -v '.git/' | grep -v test | head -20
 ```
 
 ```bash
 # Global state accumulation
-grep -rn --include="*.{ts,tsx,js,jsx}" \
+grep -rn --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" \
   -E '(global\.|window\.|globalThis\.)[a-zA-Z]+\s*=' \
   . 2>/dev/null | grep -v node_modules | grep -v '.git/' | grep -v test | head -10
 ```
@@ -151,21 +154,21 @@ Heartbeat: "Memory leak patterns checked."
 
 ```bash
 # Sync file operations in async context
-grep -rn --include="*.{ts,tsx,js,jsx}" \
+grep -rn --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" \
   -E '(readFileSync|writeFileSync|existsSync|mkdirSync|readdirSync)' \
   . 2>/dev/null | grep -v node_modules | grep -v '.git/' | grep -v test | grep -v 'bin/' | head -20
 ```
 
 ```bash
 # CPU-intensive operations without worker threads
-grep -rn --include="*.{ts,tsx,js,jsx}" \
+grep -rn --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" \
   -E '(JSON\.parse|JSON\.stringify)' \
   . 2>/dev/null | grep -v node_modules | grep -v '.git/' | grep -v test | head -10
 ```
 
 ```bash
 # Missing async/await (sync patterns in async code)
-grep -rn --include="*.{ts,tsx,js,jsx}" \
+grep -rn --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" \
   -E 'async.*function|async.*=>' \
   . 2>/dev/null | grep -v node_modules | grep -v '.git/' | grep -v test | head -5
 ```
@@ -176,21 +179,21 @@ Heartbeat: "Blocking operations checked."
 
 ```bash
 # Missing cache headers
-grep -rn --include="*.{ts,tsx,js,jsx,py,go,java}" \
+grep -rn --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" --include="*.py" --include="*.go" --include="*.java" \
   -E '(Cache-Control|ETag|Last-Modified|cache-control)' \
   . 2>/dev/null | grep -v node_modules | grep -v '.git/' | grep -v test | head -10
 ```
 
 ```bash
 # Repeated identical API calls (no memoization)
-grep -rn --include="*.{ts,tsx,js,jsx}" \
+grep -rn --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" \
   -E '(fetch|axios\.get|useSWR|useQuery)\(' \
   . 2>/dev/null | grep -v node_modules | grep -v '.git/' | grep -v test | head -20
 ```
 
 ```bash
 # Missing database indexes (raw queries without WHERE optimization)
-grep -rn --include="*.{ts,tsx,js,jsx,py,go,java,sql}" \
+grep -rn --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" --include="*.py" --include="*.go" --include="*.java" --include="*.sql" \
   -E '(SELECT.*FROM|\.find\(|\.query\()' \
   . 2>/dev/null | grep -v node_modules | grep -v '.git/' | grep -v test | head -20
 ```
@@ -203,21 +206,21 @@ Only if frontend framework detected:
 
 ```bash
 # Missing React.memo / useMemo / useCallback
-grep -rn --include="*.{ts,tsx,jsx}" \
+grep -rn --include="*.ts" --include="*.tsx" --include="*.jsx" \
   -E 'export (default )?function|export const.*=.*\(' \
   . 2>/dev/null | grep -v node_modules | grep -v '.git/' | grep -v test | head -20
 ```
 
 ```bash
 # Inline object/array creation in JSX (causes re-renders)
-grep -rn --include="*.{ts,tsx,jsx}" \
+grep -rn --include="*.ts" --include="*.tsx" --include="*.jsx" \
   -E '(style=\{\{|className=\{.*\+|onClick=\{.*=>)' \
   . 2>/dev/null | grep -v node_modules | grep -v '.git/' | grep -v test | head -20
 ```
 
 ```bash
 # Missing key props in lists
-grep -rn --include="*.{ts,tsx,jsx}" \
+grep -rn --include="*.ts" --include="*.tsx" --include="*.jsx" \
   -E '\.(map|filter)\(.*=>' \
   . 2>/dev/null | grep -v node_modules | grep -v '.git/' | grep -v test | head -20
 ```
@@ -257,19 +260,19 @@ Based on detected stack, run additional targeted checks:
 **Next.js:**
 ```bash
 # Missing Image optimization
-grep -rn --include="*.{ts,tsx,jsx}" -E '<img ' . 2>/dev/null | grep -v node_modules | grep -v '.git/' | grep -v test | head -10
+grep -rn --include="*.ts" --include="*.tsx" --include="*.jsx" -E '<img ' . 2>/dev/null | grep -v node_modules | grep -v '.git/' | grep -v test | head -10
 # Missing dynamic imports for heavy components
-grep -rn --include="*.{ts,tsx,jsx}" -E "import.*from '" . 2>/dev/null | grep -Ev "from 'next" | grep -v node_modules | grep -v '.git/' | grep -v test | wc -l
+grep -rn --include="*.ts" --include="*.tsx" --include="*.jsx" -E "import.*from '" . 2>/dev/null | grep -Ev "from 'next" | grep -v node_modules | grep -v '.git/' | grep -v test | wc -l
 # getServerSideProps vs getStaticProps usage
-grep -rn --include="*.{ts,tsx,js}" -E 'getServerSideProps' . 2>/dev/null | grep -v node_modules | grep -v '.git/' | head -10
+grep -rn --include="*.ts" --include="*.tsx" --include="*.js" -E 'getServerSideProps' . 2>/dev/null | grep -v node_modules | grep -v '.git/' | head -10
 ```
 
 **Express/Node.js API:**
 ```bash
 # Missing compression middleware
-grep -rn --include="*.{ts,tsx,js}" -E '(compression|gzip|deflate)' . 2>/dev/null | grep -v node_modules | grep -v '.git/' | head -5
+grep -rn --include="*.ts" --include="*.tsx" --include="*.js" -E '(compression|gzip|deflate)' . 2>/dev/null | grep -v node_modules | grep -v '.git/' | head -5
 # Synchronous middleware
-grep -rn --include="*.{ts,tsx,js}" -E 'app\.(use|get|post)\(.*function\s*\(' . 2>/dev/null | grep -v node_modules | grep -v '.git/' | grep -v 'async' | head -10
+grep -rn --include="*.ts" --include="*.tsx" --include="*.js" -E 'app\.(use|get|post)\(.*function\s*\(' . 2>/dev/null | grep -v node_modules | grep -v '.git/' | grep -v 'async' | head -10
 ```
 
 **Python/FastAPI/Django:**
@@ -283,7 +286,7 @@ grep -rn --include="*.py" -E '(\.objects\.(get|filter|all)\()' . 2>/dev/null | g
 **Database (any):**
 ```bash
 # Missing pagination
-grep -rn --include="*.{ts,tsx,js,jsx,py,go,java}" \
+grep -rn --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" --include="*.py" --include="*.go" --include="*.java" \
   -E '(findMany|findAll|SELECT.*FROM)' \
   . 2>/dev/null | grep -v node_modules | grep -v '.git/' | grep -v test | grep -v 'take\|limit\|LIMIT\|paginate' | head -20
 ```
@@ -388,6 +391,18 @@ Performance audit complete.
 Critical: {N} | High: {N} | Medium: {N} | Low: {N}
 Report: .planning/reports/performance/PERF_REPORT.md
 ```
+
+## Audit Mode (used in /frame:audit)
+
+When called from `/frame:audit`, the orchestrating command passes a **category brief** with Category (PERF), Scope, Checklist, and an explicit **Output file** path (`{AUDIT_DIR}/PERF.md`). In this mode:
+
+- **Write ONLY the passed output file** — do NOT create `.planning/reports/performance/PERF_REPORT.md` (Step 5) and do NOT update `.planning/memory/learnings.md` (Step 6). The orchestrator applies memory updates once; put suggestions in a `## Memory Updates` section of the category file instead.
+- **Use the universal finding schema** from the brief (Severity / Confidence / File / Claim / Evidence / Impact / Fix / Effort / Verified: no) — not the standalone PERF_REPORT structure. The orchestrator's verification and synthesis steps parse these fields.
+- **Restrict all scans to the Scope** from the brief, if one is given.
+- Keep Steps 1–2 (stack detection + WebSearch) unless the brief says "Quick mode: skip WebSearch".
+- Return the standard summary as final text (category, counts, output file, top finding) — the orchestrator reads it.
+
+Standalone runs (user invokes the agent directly, outside `/frame:audit`) keep the full workflow unchanged.
 
 ## Panel Mode (used in /frame:review)
 

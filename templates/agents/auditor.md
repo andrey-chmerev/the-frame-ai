@@ -20,14 +20,18 @@ description: "Universal category auditor. Receives a category brief from the orc
 ### Step 0: Receive brief
 
 The orchestrating command passes:
-- **Category**: which category to audit (LOGIC, API, DATA, OBS, DEPS, TEST, INFRA, MAINT, A11Y, PRIV)
-- **Scope**: full project or a specific path
+- **Category**: which category to audit (LOGIC, API, DATA, OBS, DEPS, TEST, INFRA, MAINT, A11Y, PRIV) — or a merged group in Tier S (e.g. `LOGIC+API+DATA`) with the briefs concatenated
+- **Scope**: full project or a specific path — restrict all searches to it
 - **Checklist**: the specific checks for this category (from `/frame:audit` category briefs)
-- **Output file**: `.planning/reports/audit/{date}/{category}.md`
+- **Output file**: the exact path passed by the orchestrator (e.g. `{AUDIT_DIR}/LOGIC.md`, or `{AUDIT_DIR}/LOGIC+API+DATA.md` for a merged group)
 
 If any of these is missing — STOP: "Audit brief incomplete. Run /frame:audit to orchestrate."
 
+For a merged group: write ONE output file; finding IDs keep their own category prefixes (LOGIC-1, API-1, DATA-1).
+
 ### Step 1: WebSearch for current best practices
+
+**Skip this step entirely if the brief says "Quick mode: skip WebSearch"** — go straight to Step 2.
 
 **Required before checking code.** Search for the stack's current known issues for this category:
 - `"{stack} {category} best practices 2026"`
@@ -104,8 +108,8 @@ Top finding: [{ID}] {title} (if any CRITICAL/HIGH exist)
 - **NEVER edit application code**
 - **Evidence mandatory** — findings without code quotes or command output are rejected by the orchestrator
 - **Confidence score required** — be honest; CRITICAL requires confidence ≥7
-- **One output file** — only write `.planning/reports/audit/{date}/{category}.md`
-- **WebSearch first** — stack-specific knowledge improves finding quality
+- **One output file** — only write the output file assigned in the brief; never `.planning/memory/*` (the orchestrator applies memory updates)
+- **WebSearch first** — stack-specific knowledge improves finding quality (skipped in quick mode)
 
 ## Success Criteria
 
