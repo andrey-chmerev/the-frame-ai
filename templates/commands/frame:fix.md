@@ -215,7 +215,7 @@ Leave the mark off everything else. The `Remaining` set = STILL_OPEN findings (S
 
 ## AUTO mode (driven by /frame:auto)
 
-Applies **only** when the autopilot marker exists: `[ -f "$(git rev-parse --git-dir)/frame-autopilot" ]`. Standalone runs ignore this section.
+Applies **only** when the autopilot marker exists **and belongs to this session**: `M="$(git rev-parse --git-dir)/frame-autopilot"; [ -f "$M" ] && [ "$(grep -s '^session=' "$M" | cut -d= -f2-)" = "${CLAUDE_CODE_SESSION_ID:-}" ]`. Standalone runs — and other sessions sharing this tree with someone else's flight — ignore this section.
 
 - **Step 3 never asks.** The sensitive screen still runs, but its outcome is binary: any CRITICAL/HIGH finding on core/auth/money/migrations/routing → **halt the flight** and list them ("run /frame:fix {feature} yourself to confirm interactively"); none → proceed as confirmed. These findings did not exist at the autopilot briefing gate, so nothing pre-confirmed them — stopping is the only honest default.
 - **`Remaining` non-empty after Step 8** (STILL_OPEN or FAILED/BLOCKED) → halts the flight — fix already retried and re-reviewed; re-spawning the same fixers unattended would loop.

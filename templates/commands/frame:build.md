@@ -347,7 +347,7 @@ Next step is **not** `/frame:review` (it requires a plan and will STOP at its co
 
 ## AUTO mode (driven by /frame:auto)
 
-Applies **only** when the autopilot marker exists: `[ -f "$(git rev-parse --git-dir)/frame-autopilot" ]`. Standalone runs ignore this section.
+Applies **only** when the autopilot marker exists **and belongs to this session**: `M="$(git rev-parse --git-dir)/frame-autopilot"; [ -f "$M" ] && [ "$(grep -s '^session=' "$M" | cut -d= -f2-)" = "${CLAUDE_CODE_SESSION_ID:-}" ]`. Standalone runs — and other sessions sharing this tree with someone else's flight — ignore this section.
 
 - **High-risk tasks are pre-confirmed** — the `/frame:auto` briefing gate (its Step 2) already listed every `Risk: high` task and got one "go". Skip the Step 4 up-front ask **and** the Risk-Strategy per-task "wait for user confirmation"; still create the checkpoints. Tasks the user answered `hold` for are excluded — leave them un-built and unmarked.
 - **Step 0 Case C (another feature in flight)** → do **not** ask and do **not** build in main. Take the manual "Y" path unattended: run the `/frame:parallel start {feature}` procedure (file-overlap check against active features → worktree + `feature/{feature}` branch → context copy → board row), **then halt the flight** with the hand-off — autopilot cannot follow the work into another terminal, but it leaves the next flight one command away:

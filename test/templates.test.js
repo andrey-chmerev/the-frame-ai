@@ -2,7 +2,7 @@ import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   mkdtempSync, rmSync, mkdirSync, readFileSync,
-  readdirSync, existsSync,
+  readdirSync, existsSync, writeFileSync,
 } from 'node:fs';
 import { join, relative } from 'node:path';
 import { tmpdir } from 'node:os';
@@ -366,4 +366,44 @@ test('templates: agent files must not contain STATE.md write instructions', () =
   }
 
   assert.deepEqual(violations, [], `Agent files that write STATE.md (violates rule 13.1):\n${violations.join('\n')}`);
+});
+
+// ── 10. auto-pilot.sh Stop hook is session-bound ─────────────────────────────
+// The marker lives in the shared $GIT_DIR — without the session= guard the hook
+// nudges every chat working in the tree, not just the one flying the pipeline.
+
+test('templates: auto-pilot.sh only nudges the session that owns the flight', () => {
+  const TEMPLATES_DIR = new URL('../templates', import.meta.url).pathname;
+  const hook = join(TEMPLATES_DIR, 'hooks', 'auto-pilot.sh');
+
+  const repo = mkdtempSync(join(tmpdir(), 'frame-autopilot-'));
+  try {
+    spawnSync('git', ['init', '-q', repo]);
+    mkdirSync(join(repo, '.planning'), { recursive: true });
+    writeFileSync(join(repo, '.planning', 'STATE.md'), '- Phase: BUILD\n- Status: IN_PROGRESS\n');
+
+    const runHook = (stdinJson) => spawnSync('bash', [hook], {
+      cwd: repo, input: stdinJson, encoding: 'utf-8',
+    });
+    const marker = join(repo, '.git', 'frame-autopilot');
+    const nudges = join(repo, '.git', 'frame-autopilot-nudges');
+
+    // Foreign session: silent no-op, nudge counter untouched
+    writeFileSync(marker, 'feature=x\nround=0\nreview=standard\nsession=owner-session\n');
+    const foreign = runHook('{"session_id":"other-session"}');
+    assert.equal(foreign.status, 0, `foreign session must exit 0, stderr: ${foreign.stderr}`);
+    assert.ok(!existsSync(nudges), 'foreign session must not touch the nudge counter');
+
+    // Owning session: nudged (exit 2)
+    const owner = runHook('{"session_id":"owner-session"}');
+    assert.equal(owner.status, 2, `owner session must be nudged (exit 2), stderr: ${owner.stderr}`);
+
+    // Legacy marker without session=: nudges as before (backward compat)
+    rmSync(nudges, { force: true });
+    writeFileSync(marker, 'feature=x\nround=0\nreview=standard\n');
+    const legacy = runHook('{"session_id":"whatever"}');
+    assert.equal(legacy.status, 2, 'legacy marker without session= must keep old behavior');
+  } finally {
+    rmSync(repo, { recursive: true, force: true });
+  }
 });

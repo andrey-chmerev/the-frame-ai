@@ -402,7 +402,7 @@ Show: count of Critical/High addressed, skipped Medium (if any), next step: `/fr
 
 ## AUTO mode (driven by /frame:auto)
 
-Applies **only** when the autopilot marker exists: `[ -f "$(git rev-parse --git-dir)/frame-autopilot" ]`. Standalone runs ignore this section.
+Applies **only** when the autopilot marker exists **and belongs to this session**: `M="$(git rev-parse --git-dir)/frame-autopilot"; [ -f "$M" ] && [ "$(grep -s '^session=' "$M" | cut -d= -f2-)" = "${CLAUDE_CODE_SESSION_ID:-}" ]`. Standalone runs — and other sessions sharing this tree with someone else's flight — ignore this section.
 
 - **No fuzzy-match questions** — the feature name comes explicitly from `/frame:auto`; if several `docs/specs/` candidates still match, halt the flight (report the candidates) instead of asking.
 - **Existing plan with `[DONE]` tasks** → take option **(a) re-plan the remainder** by default and announce it in one line; do not ask.

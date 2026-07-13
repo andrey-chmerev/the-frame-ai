@@ -25,6 +25,16 @@ GIT_DIR=$(git rev-parse --git-dir 2>/dev/null)
 MARKER="$GIT_DIR/frame-autopilot"
 [ -f "$MARKER" ] || exit 0
 
+# Session guard: the marker is bound to the session that engaged the flight
+# (session= line, written by /frame:auto). $GIT_DIR is shared by every session
+# working in this tree — without this check the hook nudges unrelated chats.
+# Empty session= (legacy marker or no session id available) → no guard.
+MARKER_SESSION=$(grep '^session=' "$MARKER" 2>/dev/null | head -1 | cut -d= -f2-)
+if [ -n "$MARKER_SESSION" ]; then
+  HOOK_SESSION=$(node -e "try{const i=JSON.parse(process.argv[1]);process.stdout.write(i.session_id||'')}catch{}" -- "$input" 2>/dev/null)
+  [ "$HOOK_SESSION" = "$MARKER_SESSION" ] || exit 0
+fi
+
 PROJECT_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || echo ".")
 STATE_FILE="$PROJECT_ROOT/.planning/STATE.md"
 NUDGE_FILE="$GIT_DIR/frame-autopilot-nudges"

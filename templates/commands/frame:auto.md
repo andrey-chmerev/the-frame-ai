@@ -39,6 +39,8 @@ Those files stay the single source of truth. Each of them carries an **`## AUTO 
 
 **The autopilot marker.** While the pipeline runs, `$GIT_DIR/frame-autopilot` exists (where `GIT_DIR=$(git rev-parse --git-dir)`). It is the deterministic signal that (a) tells the phase commands to apply their AUTO overrides, and (b) lets the `auto-pilot.sh` Stop hook re-engage the pipeline if the session stops mid-flight. **Every exit path — finish or halt — must remove it.**
 
+The marker's `session=` line binds the flight to the session that engaged it (`$CLAUDE_CODE_SESSION_ID`). `$GIT_DIR` is shared by every chat working in this tree — the session binding is what keeps the Stop hook and the AUTO overrides from firing in unrelated sessions. Tree-level checks (busy-tree routing here, hotfix routing in `/frame:fast` and `/frame:debug`) deliberately ignore it: for them "some flight is live in this tree" is exactly the question.
+
 ## Instructions
 
 ### Step 0: Preflight (interactive — autopilot not engaged yet)
@@ -118,7 +120,7 @@ No board / no other active features / no intersection → `none`. Intersection f
 
 - **go** → all `Risk: high` tasks are pre-confirmed for BUILD (its Step 4 up-front confirmation and the Risk-Strategy per-task wait are both satisfied by this gate). Engage autopilot:
   ```bash
-  printf 'feature=%s\nround=0\nreview=%s\n' "{feature}" "{standard|strict}" > "$(git rev-parse --git-dir)/frame-autopilot"
+  printf 'feature=%s\nround=0\nreview=%s\nsession=%s\n' "{feature}" "{standard|strict}" "${CLAUDE_CODE_SESSION_ID:-}" > "$(git rev-parse --git-dir)/frame-autopilot"
   rm -f "$(git rev-parse --git-dir)/frame-autopilot-nudges"
   ```
 - **hold {ids}** → mark those tasks as excluded, re-show the briefing (they'll stay unbuilt; the plan keeps them for a manual pass).
