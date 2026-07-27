@@ -103,8 +103,15 @@ fi
 GIT_COMMON=$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null)
 [ -n "$GIT_COMMON" ] && [ -d "$GIT_COMMON" ] || GIT_COMMON=""
 
+# GNU `stat -f` means --file-system and *succeeds* while printing filesystem
+# stats, so a plain `stat -f %m || stat -c %Y` never reaches the fallback on
+# Linux and yields garbage. Try GNU first, then BSD, and accept digits only.
 mtime_of() {
-  stat -f %m "$1" 2>/dev/null || stat -c %Y "$1" 2>/dev/null
+  local m
+  m=$(stat -c %Y "$1" 2>/dev/null)
+  case "$m" in ''|*[!0-9]*) m=$(stat -f %m "$1" 2>/dev/null) ;; esac
+  case "$m" in ''|*[!0-9]*) m='' ;; esac
+  printf '%s' "$m"
 }
 
 LOCK_DIR=""

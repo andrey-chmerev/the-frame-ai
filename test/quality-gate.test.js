@@ -179,6 +179,47 @@ test('debounce skips a second run inside the window', () => {
   assert.equal(gateLog(dir, 'tsc').length, 1, 'the second edit inside the window should be skipped');
 });
 
+// GNU `stat -f` is --file-system: it succeeds and prints filesystem stats
+// instead of an mtime, so a BSD-first `stat -f %m || stat -c %Y` silently
+// yields garbage on Linux and the debounce/lock arithmetic stops working.
+// This stub reproduces that platform on any host, so the regression cannot
+// hide until CI runs.
+test('debounce survives a GNU-style stat where -f succeeds with garbage', () => {
+  const dir = makeProject({
+    typecheck: 'node tools/tsc-fake.js',
+    lint: 'node tools/eslint-fake.js',
+    tools: { 'tsc-fake.js': fakeTool('tsc'), 'eslint-fake.js': fakeTool('eslint') },
+  });
+
+  const binDir = join(dir, 'stubbin');
+  mkdirSync(binDir);
+  writeFileSync(
+    join(binDir, 'stat'),
+    [
+      '#!/bin/sh',
+      'if [ "$1" = "-c" ]; then',
+      '  node -e "process.stdout.write(String(Math.floor(require(\'fs\').statSync(process.argv[1]).mtimeMs/1000)))" "$3"',
+      '  exit 0',
+      'fi',
+      'if [ "$1" = "-f" ]; then',
+      '  echo "  File: \\"$3\\""',
+      '  echo "    ID: 0  Namelen: 255  Type: UNKNOWN"',
+      '  exit 0',
+      'fi',
+      'exit 1',
+    ].join('\n'),
+    { mode: 0o755 },
+  );
+
+  const env = { FRAME_GATE_DEBOUNCE: '60', PATH: `${binDir}:${process.env.PATH}` };
+  const file = join(dir, 'app/page.tsx');
+
+  runHook(dir, file, env);
+  runHook(dir, file, env);
+
+  assert.equal(gateLog(dir, 'tsc').length, 1, 'debounce must hold when only GNU-style stat works');
+});
+
 test('FRAME_GATE_NO_GUARD=1 restores an unguarded run on every edit', () => {
   const dir = makeProject({
     typecheck: 'node tools/tsc-fake.js',
