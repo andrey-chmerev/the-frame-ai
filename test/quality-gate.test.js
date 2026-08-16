@@ -116,6 +116,24 @@ test('Go tooling is skipped for markdown but runs for .go files', () => {
   assert.equal(gateLog(dir).length, 1, 'golangci should run for .go');
 });
 
+test('Swift tooling is skipped for markdown but runs for .swift files', () => {
+  const dir = makeProject({
+    lint: 'node tools/swiftlint-fake.js',
+    tools: { 'swiftlint-fake.js': fakeTool('swiftlint') },
+  });
+
+  runHook(dir, join(dir, 'README.md'));
+  assert.deepEqual(gateLog(dir), [], 'swiftlint must not run for .md');
+
+  clearDebounce(dir);
+  const file = join(dir, 'Sources/App/ContentView.swift');
+  runHook(dir, file);
+
+  const [line] = gateLog(dir, 'swiftlint');
+  assert.ok(line, 'swiftlint should run for .swift');
+  assert.ok(line.includes(file), `swiftlint should receive the changed file, got: ${line}`);
+});
+
 test('unknown tooling keeps the previous unfiltered behaviour', () => {
   const dir = makeProject({
     typecheck: 'node tools/custom-check.js',

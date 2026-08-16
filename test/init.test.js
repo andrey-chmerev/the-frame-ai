@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, rmSync, mkdirSync, readFileSync } from 'node:fs';
+import { mkdtempSync, rmSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { existsSync } from 'node:fs';
@@ -155,6 +155,91 @@ test('init: writes .frame-version file', async () => {
     assert.ok(existsSync(versionFile), '.frame-version should exist');
     const version = readFileSync(versionFile, 'utf-8').trim();
     assert.match(version, /^\d+\.\d+\.\d+$/, '.frame-version should be semver');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+// Regression: audit/outdated were absent from every non-npm preset, so the
+// npm defaults from config.json survived and /frame:audit ran `npm audit` in
+// Go/Rust/Python/Swift projects — reporting "no vulnerabilities" for a scan
+// that never happened.
+test('stack presets: every preset defines the same command keys', async () => {
+  const { STACK_PRESETS } = await import('../src/languages.js');
+  const expected = ['typecheck', 'test', 'lint', 'build', 'audit', 'outdated'];
+
+  for (const [name, preset] of Object.entries(STACK_PRESETS)) {
+    assert.deepEqual(
+      Object.keys(preset).sort(),
+      [...expected].sort(),
+      `preset "${name}" must define all quality command keys`,
+    );
+  }
+});
+
+test('stack presets: non-npm stacks never inherit npm audit/outdated', async () => {
+  const { STACK_PRESETS } = await import('../src/languages.js');
+
+  for (const [name, preset] of Object.entries(STACK_PRESETS)) {
+    if (name === 'typescript' || name === 'javascript') continue;
+    for (const key of ['audit', 'outdated']) {
+      assert.ok(
+        !preset[key].includes('npm '),
+        `preset "${name}" must not use an npm command for ${key}, got: ${preset[key]}`,
+      );
+    }
+  }
+});
+
+test('detectStack: recognises stacks by their manifest files', async () => {
+  const { detectStack } = await import('../src/languages.js');
+  const cases = [
+    { files: ['go.mod'], stack: 'go' },
+    { files: ['Cargo.toml'], stack: 'rust' },
+    { files: ['Package.swift'], stack: 'swift' },
+    { files: ['pyproject.toml'], stack: 'python' },
+    { files: ['requirements.txt'], stack: 'python' },
+    { files: ['package.json'], stack: 'javascript' },
+    { files: ['package.json', 'tsconfig.json'], stack: 'typescript' },
+    // Native manifests win over package.json — a Go service with a JS frontend is Go.
+    { files: ['go.mod', 'package.json'], stack: 'go' },
+    { files: [], stack: undefined },
+  ];
+
+  for (const { files, stack } of cases) {
+    const dir = mkdtempSync(join(tmpdir(), 'frame-detect-'));
+    try {
+      for (const f of files) writeFileSync(join(dir, f), '');
+      assert.equal(detectStack(dir)?.stack, stack, `files [${files}] should detect ${stack}`);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  }
+});
+
+test('detectStack: an Xcode project yields swift-ios and its scheme name', async () => {
+  const { detectStack } = await import('../src/languages.js');
+  const dir = mkdtempSync(join(tmpdir(), 'frame-detect-'));
+  try {
+    mkdirSync(join(dir, 'CoffeeApp.xcodeproj'));
+    writeFileSync(join(dir, 'Package.swift'), ''); // an app target wins over SwiftPM
+    const got = detectStack(dir);
+    assert.equal(got.stack, 'swift-ios');
+    assert.equal(got.scheme, 'CoffeeApp', 'scheme should come from the .xcodeproj name');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('init --yes: writes the detected stack commands, not the npm defaults', async () => {
+  const dir = makeTmpGitRepo();
+  try {
+    writeFileSync(join(dir, 'go.mod'), 'module example.com/app\n');
+    await runInit(dir);
+    const cfg = JSON.parse(readFileSync(join(dir, '.frame/config.json'), 'utf-8'));
+    assert.equal(cfg.quality.commands.test, 'go test ./...');
+    assert.equal(cfg.quality.commands.audit, 'govulncheck ./...');
+    assert.ok(!cfg.quality.commands.outdated.includes('npm'), 'outdated must not stay npm');
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

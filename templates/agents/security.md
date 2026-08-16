@@ -339,28 +339,38 @@ If no AI patterns found → skip with note: "No AI/LLM integration detected in p
 
 #### Step 7: Dependency Audit
 
+The audit command comes from `.frame/config.json` and is stack-specific (`npm audit`,
+`pip-audit`, `govulncheck ./...`, `cargo audit`, …). It is **empty** for stacks with no
+standard scanner (e.g. SwiftPM).
+
 ```bash
-{quality.commands.audit} 2>/dev/null
+AUDIT_CMD='{quality.commands.audit}'
+if [ -z "$AUDIT_CMD" ]; then
+  echo "AUDIT=unavailable CRITICAL=unknown HIGH=unknown"
+else
+  OUT=$(sh -c "$AUDIT_CMD" 2>&1); echo "$OUT" | tail -40
+  case "$AUDIT_CMD" in
+    *"npm audit"*)
+      CRITICAL=$(npm audit --json 2>/dev/null | node -e "const d=JSON.parse(require('fs').readFileSync('/dev/stdin','utf8')); console.log(d.metadata?.vulnerabilities?.critical ?? 'unknown')" 2>/dev/null || echo "unknown")
+      HIGH=$(npm audit --json 2>/dev/null | node -e "const d=JSON.parse(require('fs').readFileSync('/dev/stdin','utf8')); console.log(d.metadata?.vulnerabilities?.high ?? 'unknown')" 2>/dev/null || echo "unknown")
+      ;;
+    *)
+      # Other tools have no common JSON contract — read $OUT yourself and count
+      # the advisories it lists. These greps are a starting point, not the answer.
+      CRITICAL=$(printf '%s' "$OUT" | grep -ciE 'critical'); HIGH=$(printf '%s' "$OUT" | grep -ciE '\bhigh\b')
+      ;;
+  esac
+  echo "CRITICAL=$CRITICAL HIGH=$HIGH"
+fi
 ```
 
-Count critical and high vulnerabilities:
-```bash
-CRITICAL=$(npm audit --json 2>/dev/null | node -e "const d=JSON.parse(require('fs').readFileSync('/dev/stdin','utf8')); console.log(d.metadata?.vulnerabilities?.critical ?? 0)" 2>/dev/null || echo "0")
-HIGH=$(npm audit --json 2>/dev/null | node -e "const d=JSON.parse(require('fs').readFileSync('/dev/stdin','utf8')); console.log(d.metadata?.vulnerabilities?.high ?? 0)" 2>/dev/null || echo "0")
-echo "CRITICAL=$CRITICAL HIGH=$HIGH"
-```
-
-If not an npm project, try alternative:
-```bash
-# Python
-pip-audit 2>/dev/null || safety check 2>/dev/null
-
-# Go
-govulncheck ./... 2>/dev/null
-
-# Rust
-cargo audit 2>/dev/null
-```
+**Never report a missing tool as a clean result.** If `AUDIT=unavailable`, or the command
+fails because the tool is not installed, record it as *"Dependency audit: not run — no audit
+tool configured/installed for this stack"* and treat the counts as unknown. Writing `0
+critical` when nothing was scanned would let `security.blockShipOnCritical` pass a project
+that was never checked. When the tool is simply missing, name the install in the report:
+`pip-audit` (Python), `govulncheck` (Go), `cargo audit` (Rust); Swift has no standard
+scanner — flag dependencies for manual review instead.
 
 **Heartbeat**: after dependency audit, report: "Dependency audit complete. Writing security report..."
 

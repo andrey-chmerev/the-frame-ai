@@ -73,6 +73,7 @@ cmd_matches_file() {
     "go "*|*"go vet"*|*"go build"*|*golangci*|*gofmt*|*staticcheck*) ext_re='\.go$' ;;
     *ruff*|*mypy*|*pyright*|*pylint*)             ext_re='\.py$' ;;
     *cargo*|*clippy*)                             ext_re='\.rs$' ;;
+    *swiftlint*|*swift-format*|*xcodebuild*|"swift "*|*"swift build"*|*"swift test"*) ext_re='\.swift$' ;;
     *) return 0 ;;  # unknown tool — do not filter, keep previous behaviour
   esac
   echo "$file" | grep -qiE "$ext_re"
@@ -94,6 +95,10 @@ if [ "$LINT_FROM_CONFIG" -eq 1 ] && [ -n "$LINT_CMD" ]; then
     *eslint*|*biome*|*oxlint*)
       SCOPED=$(printf '%s' "$LINT_CMD" | sed -E 's#[[:space:]]+(\.|\./|\*\*/\*|src|app)[[:space:]]*$##')
       LINT_CMD="$SCOPED \"$FILE_PATH\""
+      ;;
+    # SwiftLint takes paths positionally; without one it lints the whole project.
+    *swiftlint*|*swift-format*)
+      LINT_CMD="$LINT_CMD \"$FILE_PATH\""
       ;;
   esac
 fi
@@ -149,7 +154,7 @@ fi
 
 run_cmd() {
   local cmd="$1"
-  if ! echo "$cmd" | grep -qE '^(npx |npm run |yarn |pnpm |node |tsc |eslint |biome |deno |go |golangci-lint |ruff |mypy |cargo )'; then
+  if ! echo "$cmd" | grep -qE '^(npx |npm run |yarn |pnpm |node |tsc |eslint |biome |deno |go |golangci-lint |ruff |mypy |cargo |swift |swiftlint |swift-format |xcodebuild )'; then
     echo "FRAME Quality Gate: command not in allowlist, skipping: $cmd" >&2
     return 0
   fi

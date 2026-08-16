@@ -237,16 +237,17 @@ Heartbeat: "Rendering patterns checked."
 #### 3.7 Dependencies
 
 ```bash
+# Outdated versions — command is stack-specific, from .frame/config.json.
+# Empty means the stack has no standard tool: report "not checked", not "up to date".
+OUTDATED_CMD='{quality.commands.outdated}'
+[ -n "$OUTDATED_CMD" ] && sh -c "$OUTDATED_CMD" 2>&1 | head -20 || echo "OUTDATED=unavailable"
+```
+
+npm/yarn/pnpm projects only — skip both on other stacks:
+```bash
 # Duplicate dependencies
 npm ls --depth=0 2>/dev/null | grep -E 'UNMET|invalid|extraneous' | head -10
-```
 
-```bash
-# Outdated major versions
-npm outdated 2>/dev/null | head -20
-```
-
-```bash
 # Heavy packages with lighter alternatives
 cat package.json 2>/dev/null | grep -E '(moment|lodash|jquery|underscore|request|node-fetch)' | head -10
 ```

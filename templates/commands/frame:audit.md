@@ -327,15 +327,18 @@ Each auditor agent receives one of these briefs as its task prompt.
 
 ### DEPS — Dependencies & Supply Chain (agent: auditor)
 
-**Checklist**:
-- Lockfile in git: `git ls-files package-lock.json yarn.lock pnpm-lock.yaml | wc -l` — must be ≥1
-- CI uses `npm ci` (not `npm install`): check CI config files
-- Known CVEs: `{quality.commands.audit}` — report CRITICAL and HIGH
+**Checklist** (stack-agnostic items first):
+- Lockfile in git — the stack's own: `package-lock.json`/`yarn.lock`/`pnpm-lock.yaml`, `poetry.lock`/`uv.lock`, `go.sum`, `Cargo.lock`, `Package.resolved`. Must be committed.
+- CI installs from the lockfile, not a loose resolve (`npm ci`, `poetry install`, `cargo build --locked`): check CI config files
+- Known CVEs: `{quality.commands.audit}` — report CRITICAL and HIGH. **If the command is empty, or the tool is not installed, report "not checked" — never "no vulnerabilities".** A stack with no scanner (e.g. SwiftPM) gets a manual-review finding instead.
+- Outdated dependencies: `{quality.commands.outdated}` — same rule when empty
 - New package cooldown (≥7 days since first publish before adding): check publish date of recently added deps
+- Abandoned packages: no upstream activity in 2+ years (`npm view {package} time.modified`, or the registry equivalent)
+- License compatibility: flag GPL in a commercial project, or unrecognized licenses
+
+npm/yarn/pnpm projects only — skip on other stacks:
 - Suspicious install scripts: `grep -r "\"postinstall\"\|\"preinstall\"" node_modules/*/package.json | head -10` — flag unknown scripts
 - Typosquatting check: read `package.json` dependencies and look for common typos of popular packages
-- Abandoned packages: `npm view {package} time.modified` for packages with no activity in 2+ years
-- License compatibility: flag GPL in a commercial project, or unrecognized licenses
 
 ---
 

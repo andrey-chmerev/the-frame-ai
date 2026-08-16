@@ -87,7 +87,7 @@ export async function init(target, flags = {}) {
     process.exitCode = 1;
     return;
   }
-  const resolvedConfig = await promptConfig(defaultConfig, flags.yes);
+  const resolvedConfig = await promptConfig(defaultConfig, flags.yes, target);
   const qualityVars = Object.fromEntries(
     Object.entries(resolvedConfig.quality.commands).map(([k, v]) => [`quality.commands.${k}`, v])
   );

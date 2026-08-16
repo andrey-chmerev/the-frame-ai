@@ -470,6 +470,8 @@ npx the-frame-ai version               # Show CLI version
 
 `update` only updates commands, agents, and hooks. Project files (STATE.md, MAP.md, memory/, etc.) are never overwritten.
 
+`init` detects the stack from its manifest file — `go.mod`, `Cargo.toml`, `Package.swift`, `*.xcodeproj`, `pyproject.toml`, `package.json` — and fills `quality.commands` in `.frame/config.json` accordingly (typecheck, test, lint, build, audit, outdated). The detected stack is preselected in the interactive prompt and applied as-is under `--yes`. Supported presets: typescript, javascript, python, go, rust, swift (SwiftPM), swift-ios (Xcode); pick `custom` to type your own commands.
+
 ## Project Structure (after installation)
 
 ```
