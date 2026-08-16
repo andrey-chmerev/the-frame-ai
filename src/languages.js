@@ -1,5 +1,5 @@
 import { createInterface } from 'node:readline';
-import { existsSync, readdirSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join, basename } from 'node:path';
 
 function ask(rl, question) {
@@ -80,21 +80,29 @@ const STACK_PRESETS = {
   rust: { typecheck: 'cargo check', test: 'cargo test', lint: 'cargo clippy', build: 'cargo build', audit: 'cargo audit', outdated: 'cargo outdated' },
   // SwiftPM has no standard vulnerability scanner — audit stays empty on purpose.
   swift: { typecheck: 'swift build', test: 'swift test', lint: 'swiftlint lint --quiet', build: 'swift build -c release', audit: '', outdated: 'swift package update --dry-run' },
-  // Xcode apps: a full xcodebuild is far too slow for the post-edit quality gate
-  // (it runs after every Edit/Write), so typecheck stays empty and the gate only
-  // lints. The build itself runs in /frame:review and /frame:ship. `swift package`
-  // needs a Package.swift, which an Xcode-managed project does not have.
-  'swift-ios': {
+  // Xcode apps of any platform — the preset is about the build system, not iOS.
+  // A full xcodebuild is far too slow for the post-edit quality gate (it runs after
+  // every Edit/Write), so typecheck stays empty and the gate only lints; the build
+  // itself runs in /frame:review and /frame:ship. `swift package` needs a
+  // Package.swift, which an Xcode-managed project does not have.
+  'swift-xcode': {
     typecheck: '',
-    test: `xcodebuild test -scheme "{{SCHEME}}" -destination 'platform=iOS Simulator,name=iPhone 16'`,
+    test: `xcodebuild test -scheme "{{SCHEME}}" -destination '{{DEST_TEST}}'`,
     lint: 'swiftlint lint --quiet',
-    build: `xcodebuild build -scheme "{{SCHEME}}" -destination 'generic/platform=iOS'`,
+    build: `xcodebuild build -scheme "{{SCHEME}}" -destination '{{DEST_BUILD}}'`,
     audit: '',
     outdated: '',
   },
 };
 
 export { STACK_PRESETS };
+
+// Tests need a concrete simulator; builds take the generic destination. macOS runs
+// on the host, so both are the same there.
+export const XCODE_PLATFORMS = {
+  ios: { label: 'iOS', test: 'platform=iOS Simulator,name=iPhone 16', build: 'generic/platform=iOS' },
+  macos: { label: 'macOS', test: 'platform=macOS', build: 'platform=macOS' },
+};
 
 // Detect the stack from manifest files. Order matters: an .xcodeproj means an app
 // target even when a Package.swift sits beside it, and a native manifest wins over
@@ -111,7 +119,12 @@ export function detectStack(target) {
   const xcode = entries.find((e) => e.endsWith('.xcodeproj') || e.endsWith('.xcworkspace'));
   if (xcode) {
     // The scheme usually carries the project name; the user can still correct it.
-    return { stack: 'swift-ios', marker: xcode, scheme: basename(xcode).replace(/\.(xcodeproj|xcworkspace)$/, '') };
+    return {
+      stack: 'swift-xcode',
+      marker: xcode,
+      scheme: basename(xcode).replace(/\.(xcodeproj|xcworkspace)$/, ''),
+      platform: detectXcodePlatform(target, entries),
+    };
   }
   if (has('Package.swift')) return { stack: 'swift', marker: 'Package.swift' };
   if (has('go.mod')) return { stack: 'go', marker: 'go.mod' };
@@ -127,11 +140,35 @@ export function detectStack(target) {
   return null;
 }
 
-// Xcode presets carry a {{SCHEME}} placeholder — only the project knows the scheme name.
-function fillScheme(preset, scheme) {
+// An .xcodeproj says nothing about the platform, and the destination differs:
+// building a macOS app for `generic/platform=iOS` fails outright. SDKROOT in
+// project.pbxproj carries the answer. A workspace keeps its targets in sibling
+// .xcodeproj bundles, so fall back to whichever project is there.
+function detectXcodePlatform(target, entries) {
+  const proj = entries.find((e) => e.endsWith('.xcodeproj'));
+  if (!proj) return null;
+  let pbx = '';
+  try {
+    pbx = readFileSync(join(target, proj, 'project.pbxproj'), 'utf-8');
+  } catch {
+    return null; // unreadable — let the caller ask or default
+  }
+  // A cross-platform project lists both; iOS is the safer assumption there,
+  // since a macOS-only app never mentions iphoneos.
+  if (/SDKROOT\s*=\s*iphoneos/.test(pbx)) return 'ios';
+  if (/SDKROOT\s*=\s*macosx/.test(pbx)) return 'macos';
+  return null;
+}
+
+// Xcode presets carry {{SCHEME}} and destination placeholders — only the project knows these.
+function fillXcodeVars(preset, { scheme, platform }) {
+  const dest = XCODE_PLATFORMS[platform] ?? XCODE_PLATFORMS.ios;
   const filled = { ...preset };
   for (const key of Object.keys(filled)) {
-    filled[key] = filled[key].replaceAll('{{SCHEME}}', scheme);
+    filled[key] = filled[key]
+      .replaceAll('{{SCHEME}}', scheme)
+      .replaceAll('{{DEST_TEST}}', dest.test)
+      .replaceAll('{{DEST_BUILD}}', dest.build);
   }
   return filled;
 }
@@ -144,8 +181,12 @@ export async function promptConfig(defaultConfig, yes = false, target = null) {
   if (!process.stdin.isTTY || yes) {
     if (!detected) return defaultConfig;
     const config = JSON.parse(JSON.stringify(defaultConfig));
-    Object.assign(config.quality.commands, fillScheme(STACK_PRESETS[detected.stack], detected.scheme || 'MyApp'));
-    console.log(`\x1b[32m✓\x1b[0m Stack: ${detected.stack} (detected from ${detected.marker})`);
+    Object.assign(
+      config.quality.commands,
+      fillXcodeVars(STACK_PRESETS[detected.stack], { scheme: detected.scheme || 'MyApp', platform: detected.platform }),
+    );
+    const platform = detected.platform ? ` for ${XCODE_PLATFORMS[detected.platform].label}` : '';
+    console.log(`\x1b[32m✓\x1b[0m Stack: ${detected.stack}${platform} (detected from ${detected.marker})`);
     return config;
   }
 
@@ -166,9 +207,18 @@ export async function promptConfig(defaultConfig, yes = false, target = null) {
   if (stackIdx >= 0 && stackIdx < stacks.length) {
     let preset = { ...STACK_PRESETS[stacks[stackIdx]] };
     if (Object.values(preset).some((v) => v.includes('{{SCHEME}}'))) {
-      const suggested = detected?.scheme || 'MyApp';
-      const scheme = (await ask(rl, `\n  Xcode scheme name [${suggested}]: `)).trim() || suggested;
-      preset = fillScheme(preset, scheme);
+      const suggestedScheme = detected?.scheme || 'MyApp';
+      const scheme = (await ask(rl, `\n  Xcode scheme name [${suggestedScheme}]: `)).trim() || suggestedScheme;
+
+      // The destination is platform-specific: a macOS app cannot build for
+      // generic/platform=iOS, and an iOS app cannot test on platform=macOS.
+      const keys = Object.keys(XCODE_PLATFORMS);
+      const suggestedPlatform = detected?.platform ?? 'ios';
+      const options = keys.map((k) => (k === suggestedPlatform ? `${XCODE_PLATFORMS[k].label} (default)` : XCODE_PLATFORMS[k].label));
+      const answer = (await ask(rl, `  Target platform — ${options.join(' / ')}: `)).trim().toLowerCase();
+      const platform = keys.find((k) => k === answer || XCODE_PLATFORMS[k].label.toLowerCase() === answer) ?? suggestedPlatform;
+
+      preset = fillXcodeVars(preset, { scheme, platform });
     }
     Object.assign(config.quality.commands, preset);
     console.log(`\x1b[32m✓\x1b[0m Stack: ${stacks[stackIdx]}`);

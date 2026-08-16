@@ -217,15 +217,52 @@ test('detectStack: recognises stacks by their manifest files', async () => {
   }
 });
 
-test('detectStack: an Xcode project yields swift-ios and its scheme name', async () => {
+test('detectStack: an Xcode project yields swift-xcode and its scheme name', async () => {
   const { detectStack } = await import('../src/languages.js');
   const dir = mkdtempSync(join(tmpdir(), 'frame-detect-'));
   try {
     mkdirSync(join(dir, 'CoffeeApp.xcodeproj'));
     writeFileSync(join(dir, 'Package.swift'), ''); // an app target wins over SwiftPM
     const got = detectStack(dir);
-    assert.equal(got.stack, 'swift-ios');
+    assert.equal(got.stack, 'swift-xcode');
     assert.equal(got.scheme, 'CoffeeApp', 'scheme should come from the .xcodeproj name');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+// Regression: the preset used to hardcode iOS destinations, so a macOS app got
+// `generic/platform=iOS` and every build failed.
+test('detectStack: Xcode platform comes from SDKROOT in project.pbxproj', async () => {
+  const { detectStack } = await import('../src/languages.js');
+  const cases = [
+    { sdkroot: 'SDKROOT = macosx;', platform: 'macos' },
+    { sdkroot: 'SDKROOT = iphoneos;', platform: 'ios' },
+    { sdkroot: 'SDKROOT = macosx;\nSDKROOT = iphoneos;', platform: 'ios' }, // cross-platform → iOS
+    { sdkroot: '', platform: null }, // unknown → caller asks or defaults
+  ];
+
+  for (const { sdkroot, platform } of cases) {
+    const dir = mkdtempSync(join(tmpdir(), 'frame-detect-'));
+    try {
+      mkdirSync(join(dir, 'MyApp.xcodeproj'));
+      writeFileSync(join(dir, 'MyApp.xcodeproj', 'project.pbxproj'), sdkroot);
+      assert.equal(detectStack(dir).platform, platform, `SDKROOT "${sdkroot}" should give ${platform}`);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  }
+});
+
+test('init --yes: a macOS Xcode app gets macOS destinations, not iOS', async () => {
+  const dir = makeTmpGitRepo();
+  try {
+    mkdirSync(join(dir, 'Notes.xcodeproj'));
+    writeFileSync(join(dir, 'Notes.xcodeproj', 'project.pbxproj'), 'SDKROOT = macosx;');
+    await runInit(dir);
+    const cfg = JSON.parse(readFileSync(join(dir, '.frame/config.json'), 'utf-8'));
+    assert.match(cfg.quality.commands.build, /-scheme "Notes" -destination 'platform=macOS'/);
+    assert.ok(!cfg.quality.commands.test.includes('iOS'), 'a macOS app must not test on an iOS simulator');
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
