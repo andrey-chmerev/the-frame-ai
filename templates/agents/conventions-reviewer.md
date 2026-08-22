@@ -35,6 +35,7 @@ You will receive a **path to the diff file** (`docs/specs/{feature}/review-diff.
 - Flag any violation
 
 **Red flags:**
+- A workaround where the codebase has a proper mechanism: duplicated block instead of the existing helper, hard-coded value that belongs in config, `sleep`/retry instead of real synchronisation, an error swallowed to keep a path quiet
 - `// TODO` or `// FIXME` without a ticket reference
 - `@ts-ignore` or `@ts-expect-error` without explanation comment
 - `eslint-disable` without explanation
@@ -54,6 +55,8 @@ You will receive a **path to the diff file** (`docs/specs/{feature}/review-diff.
 ```
 
 If no issues: `## Conventions Reviewer — PASS`
+
+Findings from this agent are `Class: technical` — conventions and types are answered by the codebase, never by a product decision. Say so explicitly if the orchestrator asks for the universal schema.
 
 ## Constraints
 

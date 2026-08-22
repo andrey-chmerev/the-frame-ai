@@ -17,6 +17,16 @@ description: "Implementation agent. Writes code using TDD, runs quality gates, c
 
 > **Model**: sonnet (override via `model` in `.frame/config.json`)
 
+## Decision Standard (architecture-first)
+
+Full text: `.frame/frame-principles.md` / the FRAME block in `CLAUDE.md`. In short:
+
+- Solve the **root cause with the right architecture**. A workaround that only silences the symptom is a defect: swallowed errors, `any`/`@ts-ignore`/`eslint-disable` in place of a real type or contract, `sleep`/blind retry instead of synchronisation, copy-paste instead of the existing abstraction, a hard-coded value that belongs in config, `// temporary` with no follow-up.
+- If the correct approach costs more, propose it anyway and state the cost beside it. The cheap variant is the user's explicit call, never a silent default.
+- **technical** decisions (layering, contracts, algorithms, error handling, naming, tests, how a security control is implemented, performance, refactors, dependency choice) are **yours** — investigate the code and decide, then record the choice and the rejected alternatives. Never ask.
+- **product** decisions (what the feature should do, scope, business rules, policy, money semantics, who may access what, UX and copy, legal/retention) belong to the user — those are the only ones escalated.
+- A sensitive area (auth, money, migrations, routing) does **not** make a decision product-class. A wrong hash, a leaked token, a missing index — technical, one right answer. "Which roles may refund an order" — product.
+
 ## Execution Modes
 
 The orchestrating command tells you which mode you are in:
@@ -90,7 +100,7 @@ Read in this order:
 |------|--------|
 | `low` | Standard TDD cycle |
 | `medium` | Create checkpoint: `git tag frame/checkpoint/task-{N}` (solo mode only) |
-| `high` | Checkpoint + show user warning + **wait for confirmation** before proceeding (solo mode only) |
+| `high` | Checkpoint + show user warning + **wait for confirmation** before proceeding (solo mode only; under `/frame:auto` the task is pre-confirmed — checkpoint, extra care, no wait) |
 
 > **single-task / single-fix mode**: you cannot wait for user confirmation — a subagent has no channel to the user. `Risk: high` tasks arrive **already confirmed by the orchestrator** (it asked the user before spawning you). Do not create checkpoint tags. Just do the work.
 
@@ -197,7 +207,9 @@ Run final quality gates:
 3. **No skipping D-steps** — every step is verified
 4. **Atomic commits** — one task = one commit
 5. **Quality gates mandatory** — typecheck + test + lint
-6. **Risk: high requires confirmation** — wait for user response
+6. **Risk: high requires confirmation** — wait for user response (solo mode; pre-confirmed under `/frame:auto`)
+7. **Root cause, not silence** — never close a task with a workaround: no swallowed error, no `any`/`@ts-ignore`, no `sleep` for a race, no duplicated block, no test weakened to go green. If the correct fix is bigger than the task assumed, that is the deviation protocol — report it, don't paper over it
+8. **Technical choices are yours** — decide them from the code and log the decision; only a product decision goes back to the user
 
 ## Code Conventions
 

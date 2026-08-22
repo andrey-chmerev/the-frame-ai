@@ -127,7 +127,7 @@ Launch all panel agents in one message (parallel). Each receives:
 - The **path** to the diff file: `docs/specs/{feature}/review-diff.patch` (+ `$BASE`) — the agent reads it with Read/Bash; the diff is **not** inlined into the prompt
 - Path to spec.md
 - Their specific brief (see below)
-- Instruction: run in **Panel Mode** (diff-scoped, read-only); return verdict `PASS | WARN | FAIL` + findings in the universal schema as final text; do NOT run the gates again (already green); do NOT write files; do NOT write STATE.md
+- Instruction: run in **Panel Mode** (diff-scoped, read-only); return verdict `PASS | WARN | FAIL` + findings in the universal schema as final text (including `Class: technical | product` — see Step 3.6); do NOT run the gates again (already green); do NOT write files; do NOT write STATE.md
 
 | Agent | Model | Role | Focus |
 |-------|-------|------|-------|
@@ -153,6 +153,17 @@ The panel dimensions overlap — security and devils-advocate both surface XSS/i
 - Keep one canonical finding per group; merge severity to the **highest** and union the evidence.
 - **Union the `Source` field** — the canonical finding lists every panel agent that raised it (e.g. a shared XSS from security + devils-advocate → `Source: security, devils-advocate`). `/frame:fix` Step 7 routes its scoped re-review by this field, so it must survive the merge.
 - Assign the final `REV-N` IDs after dedup, so IDs are stable for Step 5 and `/frame:fix`.
+
+### Step 3.6: Classify every finding — technical or product
+
+`Class` decides who closes the finding, so it is set here, once, on the merged findings — `/frame:fix` and `/frame:auto` both route on it and never re-litigate it.
+
+- **`Class: technical`** — the correct fix is derivable from the code, the contracts, the conventions or the requirement already agreed in research. Layering, contracts, algorithms, error handling, races, naming, tests, *how* a security control is implemented, performance, dependency choice. `Decision needed: none`.
+- **`Class: product`** — closing it needs intent the repo does not carry: which business rule applies, scope, policy, money semantics, who may access what, UX and copy, legal/retention. Write the exact question in `Decision needed`, with the options the code allows.
+
+**The file is not the classifier.** A finding in `auth/`, `billing/`, `migrations/` or the router is technical whenever there is one right answer in the code — a wrong hash, a leaked token, a missing index, an unhandled rollback. It is product only when a human choice changes the outcome ("which roles may refund an order", "should an expired trial keep read access").
+
+**Workarounds are findings.** If the diff solves a problem by silencing it — a swallowed error, `any`/`@ts-ignore`/`eslint-disable` in place of a real type or contract, a `sleep` instead of synchronisation, a duplicated block instead of the existing abstraction, a hard-coded value that belongs in config, a test weakened to pass — raise it as a finding (`Class: technical`, severity by blast radius) with the architectural fix in `Fix`. FRAME's standard is the root cause, not the quiet symptom.
 
 ### Step 4: Verification pass
 
@@ -209,6 +220,7 @@ Base: {BASE commit or tag}
 
 ### [REV-1] {Title}
 - **Severity**: CRITICAL | HIGH | MEDIUM | LOW
+- **Class**: technical | product
 - **Confidence**: 1–10
 - **File**: path/to/file.ts:{line}
 - **Source**: {panel agent(s) that raised it — reviewer | security | performance-auditor | devils-advocate | tests-reviewer | conventions-reviewer; after dedup this may list several}
@@ -217,6 +229,7 @@ Base: {BASE commit or tag}
 - **Impact**: {what happens}
 - **Fix**: {approach}
 - **Effort**: XS | S | M | L
+- **Decision needed**: {product findings only — the exact question and the options the code allows; `none` for technical}
 - **Verified**: yes | no | refuted
 
 ...
@@ -270,10 +283,15 @@ approve | request changes
 ```
 
 ```
-❌ Review failed. {N} critical issues.
+❌ Review failed. {N} confirmed findings ({T} technical, {P} product).
    Fixes: docs/specs/{feature}/review.md → Action Items
-   Run /frame:fix to close them in parallel (or /frame:build for large/architectural changes).
 ```
+
+**Then continue into the fixes yourself — do not hand the user a command to retype.** Findings are not a stopping point; a review that found technical defects has also found their fixes:
+
+- **All confirmed findings are `Class: technical`** → announce one line (`→ continuing into /frame:fix ({N} technical findings)`) and execute the `/frame:fix {feature}` procedure now, in this session. For large or cross-cutting architectural rework, run `/frame:build` fix-mode instead — same automatic continuation, different procedure.
+- **Any `Class: product` finding** → fix the technical ones first (same continuation), then stop and put the product decisions to the user with their `Decision needed` text.
+- **Exceptions** — `review audit` mode (reporting only) and an explicit "review only" from the user: report and stop.
 
 ---
 
@@ -340,6 +358,9 @@ STATE.md: both-PASS → `Status: Review complete, ready to ship`; escalated → 
 
 ## Rules
 
+- **Every finding carries `Class`** — technical (the code answers it) or product (a human decision changes the outcome); the file it lives in never decides this
+- **Findings continue into fixes** — a `request changes` verdict runs `/frame:fix` (or `/frame:build` fix-mode) in the same session for the technical findings; only product decisions come back to the user
+- **Workarounds are defects** — a silenced symptom in the diff is a finding, with the architectural fix written in `Fix`
 - **Completion before review** — if build is not done, stop at Step 1a
 - **Gates run in the background** — launched in Step 0, collected in Step 2; the panel never runs the gates again
 - **Diff on disk** — written once to `review-diff.patch`; panel and verifier agents read the path, never receive the diff inlined

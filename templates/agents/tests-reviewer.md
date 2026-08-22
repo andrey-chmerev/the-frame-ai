@@ -30,6 +30,7 @@ You will receive a **path to the diff file** (`docs/specs/{feature}/review-diff.
 - No `it('works')` or `it('should work')` without specifics
 
 **Red flags:**
+- A test weakened, narrowed or `.skip`-ed so the suite goes green (assertion loosened, case deleted, snapshot re-baselined without cause) → FAIL, always
 - New code with zero tests
 - Tests that always pass (no assertions, or `expect(true).toBe(true)`)
 - Tests skipped with `.skip` or `xit`
@@ -50,6 +51,8 @@ You will receive a **path to the diff file** (`docs/specs/{feature}/review-diff.
 ```
 
 If no issues: `## Tests Reviewer — PASS`
+
+Findings from this agent are `Class: technical` — test coverage and test quality follow from the code, never from a product decision. Say so explicitly if the orchestrator asks for the universal schema.
 
 ## Constraints
 

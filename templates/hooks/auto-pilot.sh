@@ -2,8 +2,8 @@
 # auto-pilot.sh - Stop hook. Keeps a live /frame:auto flight moving if the model
 # stops mid-pipeline. No AI inference — pure marker-file + STATE.md checks.
 #
-# Active only while $GIT_DIR/frame-autopilot exists (created at the /frame:auto
-# confirmation gate, removed on finish and on every halt path). If the marker is
+# Active only while $GIT_DIR/frame-autopilot exists (created when /frame:auto engages
+# the flight, removed on finish and on every halt path). If the marker is
 # gone, this hook is a no-op — normal sessions never see it.
 #
 # Loop protection: unlike delivery-gate.sh we deliberately do NOT stand down on

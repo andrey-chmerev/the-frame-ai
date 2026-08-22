@@ -16,7 +16,7 @@ If you're building a product alone with Claude Code and want to work like a team
 | Chaos in tasks and priorities | 6-phase workflow: Research → Plan → Build → Review → Ship → Reflect |
 | Fear of breaking something important | Safety hooks block destructive commands before they run |
 | Repetitive routine tasks | 33 ready-made commands for the full development cycle |
-| Babysitting every phase by hand | `/frame:auto` — plan → build → review → fix → ship unattended after one confirmation |
+| Babysitting every phase by hand | `/frame:auto` — plan → build → review → fix → ship unattended, zero questions after research |
 | Waiting for one feature to finish before starting the next | `/frame:parallel` — each feature in its own worktree, `/frame:integrate` merges them back with quality gates |
 | Slow, one-by-one fixes after review | `/frame:fix` — closes review findings in parallel, one fixer per file |
 | Complex features with dependencies | Parallel subagents for independent tasks (wave-based planning) |
@@ -52,7 +52,7 @@ If review requests changes, `/frame:fix` closes the findings in parallel — one
 `/frame:retrospective` after deploy updates metrics and captures patterns for future sessions.
 
 **Autopilot** — everything after research, unattended
-`/frame:auto <feature>` chains plan → build → review → fix → ship in one run. You confirm a single briefing after the plan is generated (tasks, waves, high-risk list); after "go" the pipeline runs until it lands a local commit — or halts and hands the decision back to you (sensitive-area fixes, wave failures, architectural deviations, 3 review rounds without approve). It never pushes and never auto-fixes auth/money/core code. Add `strict` for the adversarial two-verdict review each round.
+`/frame:auto <feature>` chains plan → build → review → fix → ship in one run and **asks nothing**. Research is where you decided what to build; from there the pipeline prints a briefing (tasks, waves, high-risk list) and flies until it lands a local commit. Review findings do not bounce back to you for a manual `/frame:fix` — a technical finding is fixed in-flight, to the right architectural solution rather than a workaround, whatever its severity and whichever file it sits in. It halts only on a **product decision** (a business rule, a policy, scope — something the repo cannot answer), a wave failure, an architectural deviation from the plan, a review round that closes nothing, or 5 rounds without approve. It never pushes and never opens a PR. Add `strict` for the adversarial two-verdict review each round.
 Autopilot composes with parallel work: run `/frame:auto` in each feature's worktree — those flights land at review approve (integrate-ready) instead of shipping; when the batch is done, one `/frame:integrate` from main merges them all, then a single `/frame:ship`.
 Side quests stay safe too: `/frame:fast` and `/frame:debug` detect a live flight and isolate themselves into a `hotfix/{slug}` worktree — zero interference with the running build, and integrate merges the hotfix first.
 
@@ -235,7 +235,7 @@ FRAME provides:
 
 - **6-phase workflow**: Research → Plan → Build → Review → Ship → Reflect
 - **33 commands**: from quick tasks to full feature development cycle
-- **Pipeline autopilot**: `/frame:auto` drives plan → build → review → fix → ship unattended, with a Stop hook that keeps the flight moving and hard halts on anything that needs a human
+- **Pipeline autopilot**: `/frame:auto` drives plan → build → review → fix → ship unattended, with a Stop hook that keeps the flight moving; it halts only for a product decision, never for a technical one
 - **Parallel feature work**: `/frame:parallel` runs each feature in its own git worktree with a task board; `/frame:integrate` merges them back with per-merge quality gates and cross-feature review
 - **Parallel review fixes**: `/frame:fix` closes findings file-by-file in one pass — no worktrees, no per-fix ceremony
 - **10 AI agents**: Researcher, Planner, Builder, Reviewer, Auditor, Devil's Advocate, Security, Performance Auditor, Tests Reviewer, Conventions Reviewer
@@ -382,7 +382,7 @@ These commands cover 90% of solo dev work:
 | `/frame:add-task` | Add a task to the current plan.md without interrupting work | `<task description>` |
 | `/frame:arch` | Document module architecture and design decisions for a file or module | `<file or module path>` |
 | `/frame:audit` | Comprehensive project audit across 12 categories — security, performance, business logic, API, data, observability, deps, tests, infra, maintainability, a11y, privacy | `[category | quick] [scope-path] [--priv]` |
-| `/frame:auto` | Autopilot: run plan → build → review → fix → ship unattended after research — one confirmation up front, no questions until a local commit or a halt | `<feature> [strict]` |
+| `/frame:auto` | Autopilot: run plan → build → review → fix → ship unattended after research — zero questions; halts only on a product decision or a hard failure | `<feature> [strict]` |
 | `/frame:build` | Implement planned tasks using TDD — auto-routes to a worktree when another feature is already in flight, and auto-detects parallel waves from plan.md | `[feature]` |
 | `/frame:checkpoint` | Manage git checkpoints: list, create, rollback, or clean up frame/checkpoint/* tags | `[list | create | cleanup | rollback [<tag> | --soft]]` |
 | `/frame:cleanup-memory` | Trim and archive memory files, removing stale and low-confidence entries | — |

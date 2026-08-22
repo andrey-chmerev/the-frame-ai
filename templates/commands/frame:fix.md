@@ -65,11 +65,18 @@ Determine each group's ceremony level from the findings' `Effort` field:
 
 If a finding has no `Effort` field, infer: single-line/local change → light; new logic or multi-function change → full TDD.
 
-### Step 3: Confirm risky fixes up front (before spawning)
+### Step 3: Screen for product decisions (before spawning)
 
-Scan selected findings for any that touch core logic, auth, money, migrations, or routing (Severity **CRITICAL or HIGH** on such files — a HIGH fix in auth/money is just as risky as a CRITICAL one). If any exist → list them and **ask the user once**: "These fixes touch sensitive areas: {list}. Proceed with all, or hold some for manual review?"
+Split the selected findings on their **`Class`** field — what the fix *requires*, not which file it lives in (Decision Standard):
 
-Subagents cannot ask questions mid-run — all confirmation happens here, at the orchestrator level, before any fixer is spawned.
+- **`Class: technical`** — the correct fix is derivable from the code, the contracts and the conventions. It is fixed, whatever the severity and whatever the file. A CRITICAL auth bypass, a token in the logs, an unindexed query on the payments table are technical: there is one right answer and the fixer implements it. Being in `auth/`, `billing/` or `migrations/` is **not** a reason to stop.
+- **`Class: product`** — closing the finding needs intent the repo does not carry (which business rule applies, what the policy is, who may do what, what the copy says). Only these are escalated: list them with the exact decision each one needs and **ask the user once** — "these findings need a product decision: {list}. Decide, or hold them for a manual pass?" Technical findings are fixed regardless of the answer.
+
+A finding with no `Class` field (an older review.md) → classify it here before deciding; genuinely ambiguous → treat it as `product`.
+
+Subagents cannot ask questions mid-run — all escalation happens here, at the orchestrator level, before any fixer is spawned.
+
+**Every fixer's brief carries the architectural bar**: fix the root cause the way the codebase should have had it. A silenced error, an `any`/`@ts-ignore`, a `sleep`, a duplicated block or a narrowed test to make a finding disappear is not a fix — a fixer that can only close its finding that way returns `BLOCKED` with what it would take to do it properly.
 
 ### Step 4: Apply the fixes
 
@@ -217,7 +224,7 @@ Leave the mark off everything else. The `Remaining` set = STILL_OPEN findings (S
 
 Applies **only** when the autopilot marker exists **and belongs to this session**: `M="$(git rev-parse --git-dir)/frame-autopilot"; [ -f "$M" ] && [ "$(grep -s '^session=' "$M" | cut -d= -f2-)" = "${CLAUDE_CODE_SESSION_ID:-}" ]`. Standalone runs — and other sessions sharing this tree with someone else's flight — ignore this section.
 
-- **Step 3 never asks.** The sensitive screen still runs, but its outcome is binary: any CRITICAL/HIGH finding on core/auth/money/migrations/routing → **halt the flight** and list them ("run /frame:fix {feature} yourself to confirm interactively"); none → proceed as confirmed. These findings did not exist at the autopilot briefing gate, so nothing pre-confirmed them — stopping is the only honest default.
+- **Step 3 never asks.** The product screen still runs and its outcome is binary: every `Class: technical` finding is fixed unattended (any severity, any file — auth/money/migrations included); any `Class: product` finding → **halt the flight** with the decision it needs ("run /frame:fix {feature} yourself, or answer here"). Technical findings in the same batch are fixed and committed before the halt, so the halt is only about the decision.
 - **`Remaining` non-empty after Step 8** (STILL_OPEN or FAILED/BLOCKED) → halts the flight — fix already retried and re-reviewed; re-spawning the same fixers unattended would loop.
 
 ## When to use
@@ -234,7 +241,8 @@ Applies **only** when the autopilot marker exists **and belongs to this session*
 - **Light findings skip TDD** — Effort XS/S get a direct fix; M/L keep full TDD; a single light group is fixed inline (no subagent)
 - **Subagents don't self-read context** — the orchestrator packs conventions/anti-patterns into the brief
 - **Subagents don't commit or run full gates** — orchestrator does both, once; fixers ignore hook errors outside their own files
-- **Confirmation before spawn** — sensitive fixes (CRITICAL or HIGH on core/auth/money/migrations/routing) are cleared with the user up front, never mid-run
+- **Escalate product, fix technical** — only `Class: product` findings go to the user (up front, never mid-run); technical findings are fixed regardless of severity or area
+- **Root cause, not silence** — a fix that only makes the finding disappear (swallowed error, `any`, `sleep`, duplicated block, weakened test) is `BLOCKED`, not `DONE`
 - **Full gates incl. build** — Step 5 runs the same four gates as `/frame:review`
 - **Specific files only** — never `git add -A`; never commit a FAILED/BLOCKED group's files
 - **`[FIXED]` only after re-review** — a finding is marked closed only once Step 7 returns RESOLVED, not at commit time

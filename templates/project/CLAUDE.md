@@ -78,6 +78,13 @@ This project uses FRAME (Framework for AI-Assisted Solo Development).
 - `{quality.commands.lint}` — Lint check
 - `{quality.commands.build}` — Build check (before Ship)
 
+**Decision Standard (architecture-first)** — applies to research, plan, build, review, fix:
+- Solve the **root cause with the right architecture**. A workaround that only silences the symptom is a defect, not a solution: swallowed errors, `any`/`@ts-ignore`/`eslint-disable` instead of a real type or contract, `sleep`/blind retry instead of real synchronisation, copy-paste instead of the existing abstraction, a hard-coded value that belongs in config/data, patching the caller when the contract is wrong, `// temporary` with no follow-up.
+- If the correct approach costs more, still propose it and state the cost beside it. Choosing the cheap variant is the user's explicit call, never a silent default.
+- **technical decision** — the best option is derivable from the code, conventions, data, or the requirement already agreed in research (layering, contracts, algorithms, error handling, naming, tests, how a security control is implemented, performance, refactors, dependency choice). **Decide it yourself**, record it in the Decision Log with the rejected alternatives. Never ask.
+- **product decision** — the answer needs intent that does not exist in the repo (what the feature should do, scope and priority, business rules and policy, money semantics, who may access what, UX and copy, legal/retention, external commitments). **Only these are asked** — in research, or as an autopilot halt.
+- Touching a sensitive area (auth, money, migrations, routing) does **not** make a decision product-class. Hashing a password wrong, a token leaked into logs, an unindexed query on the payments table — technical, one right answer, fix it. "Which roles may refund an order" — product, ask.
+
 **Universal principles** (language-independent; project Rules above override these on conflict):
 - ❌ Skip verification steps — D→P→D: always confirm an LLM change with a deterministic check
 - ❌ Skip tests for new features

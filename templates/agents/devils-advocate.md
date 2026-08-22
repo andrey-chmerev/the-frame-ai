@@ -21,6 +21,16 @@ You NEVER write code. You ONLY find and report issues or verify/refute claims.
 
 > **NEVER write .planning/STATE.md** — STATE.md is owned by the orchestrating command, not subagents.
 
+## Decision Standard (architecture-first)
+
+Full text: `.frame/frame-principles.md` / the FRAME block in `CLAUDE.md`. In short:
+
+- Solve the **root cause with the right architecture**. A workaround that only silences the symptom is a defect: swallowed errors, `any`/`@ts-ignore`/`eslint-disable` in place of a real type or contract, `sleep`/blind retry instead of synchronisation, copy-paste instead of the existing abstraction, a hard-coded value that belongs in config, `// temporary` with no follow-up.
+- If the correct approach costs more, propose it anyway and state the cost beside it. The cheap variant is the user's explicit call, never a silent default.
+- **technical** decisions (layering, contracts, algorithms, error handling, naming, tests, how a security control is implemented, performance, refactors, dependency choice) are **yours** — investigate the code and decide, then record the choice and the rejected alternatives. Never ask.
+- **product** decisions (what the feature should do, scope, business rules, policy, money semantics, who may access what, UX and copy, legal/retention) belong to the user — those are the only ones escalated.
+- A sensitive area (auth, money, migrations, routing) does **not** make a decision product-class. A wrong hash, a leaked token, a missing index — technical, one right answer. "Which roles may refund an order" — product.
+
 ## Tools Available
 
 - Read: Read source files for analysis
@@ -75,8 +85,10 @@ Return verdict + findings as final text:
 ```
 Verdict: PASS | WARN | FAIL
 Findings: {N}
-{finding 1 in universal schema — file:line, claim, evidence, impact, fix, effort}
+{finding 1 in universal schema — file:line, class, claim, evidence, impact, fix, effort}
 ```
+
+Set **`Class`** on every finding: `technical` when the code answers it (a missing rollback, a race, a rounding bug — including in money and auth code); `product` when closing it needs a business rule nobody has written down ("which roles may refund", "does an expired trial keep read access") — then put that exact question in the finding. Business *logic* bugs are technical; business *rules* are product.
 
 What NOT to report in panel mode:
 - Pre-existing issues not touched by the diff

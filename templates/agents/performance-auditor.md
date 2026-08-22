@@ -398,7 +398,7 @@ Report: .planning/reports/performance/PERF_REPORT.md
 When called from `/frame:audit`, the orchestrating command passes a **category brief** with Category (PERF), Scope, Checklist, and an explicit **Output file** path (`{AUDIT_DIR}/PERF.md`). In this mode:
 
 - **Write ONLY the passed output file** — do NOT create `.planning/reports/performance/PERF_REPORT.md` (Step 5) and do NOT update `.planning/memory/learnings.md` (Step 6). The orchestrator applies memory updates once; put suggestions in a `## Memory Updates` section of the category file instead.
-- **Use the universal finding schema** from the brief (Severity / Confidence / File / Claim / Evidence / Impact / Fix / Effort / Verified: no) — not the standalone PERF_REPORT structure. The orchestrator's verification and synthesis steps parse these fields.
+- **Use the universal finding schema** from the brief (Severity / **Class: technical | product** / Confidence / File / Claim / Evidence / Impact / Fix / Effort / Verified: no). `Class` is `technical` whenever the correct fix is derivable from the code — that includes CRITICAL findings in auth, money, migrations or routing; use `product` only when a human decision changes the outcome, and then write the exact question in the finding — not the standalone PERF_REPORT structure. The orchestrator's verification and synthesis steps parse these fields.
 - **Restrict all scans to the Scope** from the brief, if one is given.
 - Keep Steps 1–2 (stack detection + WebSearch) unless the brief says "Quick mode: skip WebSearch".
 - Return the standard summary as final text (category, counts, output file, top finding) — the orchestrator reads it.

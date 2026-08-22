@@ -407,3 +407,62 @@ test('templates: auto-pilot.sh only nudges the session that owns the flight', ()
     rmSync(repo, { recursive: true, force: true });
   }
 });
+
+// ── 11. Unattended pipeline: no confirmation gate, product-only halts ────────
+// The autopilot asks nothing after research. Technical findings — whatever their
+// severity or file — are fixed in-flight; only a decision the repo cannot answer
+// (Class: product) comes back to the user.
+
+test('templates: /frame:auto engages without a confirmation question', () => {
+  const auto = readFileSync(join(INSTALL_DIR, '.claude', 'commands', 'frame:auto.md'), 'utf-8');
+
+  assert.ok(/no confirmation gate/i.test(auto), 'auto.md must state that there is no confirmation gate');
+  assert.match(auto, /Step 2: Engage/, 'Step 2 must engage the flight, not gate it');
+
+  // The old gate's prompt must be gone — its presence means the flight still waits for input.
+  assert.doesNotMatch(auto, /Proceed\? \[go \/ abort/, 'the go/abort prompt must not survive');
+  assert.doesNotMatch(auto, /The one confirmation gate/, 'the confirmation-gate step must not survive');
+
+  // The marker is written by Step 2 itself, so a flight that never asked still flies.
+  assert.match(auto, /printf 'feature=%s\\nround=0/, 'Step 2 must write the autopilot marker');
+});
+
+test('templates: autopilot halts on product decisions, not on sensitive areas', () => {
+  const dir = join(INSTALL_DIR, '.claude', 'commands');
+  const auto = readFileSync(join(dir, 'frame:auto.md'), 'utf-8');
+  const fix = readFileSync(join(dir, 'frame:fix.md'), 'utf-8');
+
+  // Screening is by finding class, not by file path.
+  assert.match(auto, /Class: technical/, 'auto.md must screen findings by Class');
+  assert.match(auto, /product decision needed/i, 'auto.md must halt on a product decision');
+  assert.match(fix, /Screen for product decisions/, 'fix.md Step 3 must screen for product decisions');
+
+  // The old area-based gate is what forced the manual /frame:fix run — it must be gone.
+  const areaHalt = /(HALT|halt)[^\n]*\b(auth|money)\/(money|core)/;
+  assert.doesNotMatch(auto, areaHalt, 'auto.md must not halt merely because a fix touches a sensitive area');
+  assert.doesNotMatch(
+    fix,
+    /any CRITICAL\/HIGH finding on core\/auth\/money\/migrations\/routing → \*\*halt/,
+    'fix.md AUTO mode must not halt on area alone',
+  );
+});
+
+test('templates: review classifies findings and continues into fixes', () => {
+  const review = readFileSync(join(INSTALL_DIR, '.claude', 'commands', 'frame:review.md'), 'utf-8');
+
+  assert.match(review, /\*\*Class\*\*: technical \| product/, 'the finding schema must carry Class');
+  assert.match(review, /Step 3\.6: Classify every finding/, 'review must have a classification step');
+  assert.match(review, /continuing into \/frame:fix/, 'review must continue into fix instead of printing a command');
+});
+
+test('templates: architecture-first decision standard reaches agents and principles', () => {
+  const principles = readFileSync(join(INSTALL_DIR, '.frame', 'frame-principles.md'), 'utf-8');
+  assert.match(principles, /Decision Standard \(architecture-first\)/, 'principles must carry the decision standard');
+  assert.match(principles, /product decision/, 'principles must define the product class');
+
+  const agentsDir = join(INSTALL_DIR, '.claude', 'agents');
+  for (const name of ['researcher.md', 'builder.md', 'reviewer.md', 'devils-advocate.md']) {
+    const content = readFileSync(join(agentsDir, name), 'utf-8');
+    assert.match(content, /Decision Standard \(architecture-first\)/, `${name} must carry the decision standard`);
+  }
+});

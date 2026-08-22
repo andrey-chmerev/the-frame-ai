@@ -162,7 +162,16 @@ Read by /frame:plan when decomposing risks. "None found" is a valid entry.}
 {Key interfaces, endpoints, or data structures}
 
 ## Open Questions
-{Questions that must be answered before planning. Empty = ready for /frame:plan. BLOCKS /frame:plan.}
+{**Product questions only** — things the repo cannot answer and where a human decision changes the outcome:
+what the feature should do, scope, business rules, policy, money semantics, who may access what, UX and copy,
+legal/retention, external commitments. Empty = ready for /frame:plan. BLOCKS /frame:plan.
+
+A technical question is **never** an Open Question. Which layer owns the concern, which library, which contract
+shape, how errors propagate, how it is tested — research answers those by reading the code and the sources,
+picks the architecturally correct option, and records it in `## Architecture` + `## Decision Log` with the
+rejected alternatives. Parking a technical choice here just makes the user do the engineering.
+
+This is the *last* place the pipeline asks anything: `/frame:auto` starts here and never asks again.}
 
 ## Research Flags
 {Non-blocking gaps — things to verify later, tagged with the phase that resolves them.
@@ -211,7 +220,7 @@ Research complete. Here's what I found:
 
 Want to discuss? I'll record all decisions in the Decision Log.
 Next: /frame:plan {topic}
-      (or /frame:auto {topic} — plan → build → review → fix → ship unattended, one confirmation)
+      (or /frame:auto {topic} — plan → build → review → fix → ship unattended, no further questions)
 ```
 
 Then stay available. For each substantive decision made in conversation:
@@ -252,6 +261,8 @@ Before the session ends: show the diff of what changed in research.md since Step
 - **Out of Scope always present** — even if empty
 - **Decision Log is append-only** — never edit or delete entries
 - **Open Questions blocks plan** — `/frame:plan` will fail if any unanswered; Research Flags do NOT block
+- **Open Questions are product-only** — technical choices are decided here (architecturally correct option + Decision Log), never handed back to the user
+- **Architecture, not workarounds** — the Recommendation is the right approach for this codebase; a cheaper shortcut may be offered *beside* it with its cost, never in place of it
 - **Min 2 alternatives** — for external deps and architecture choices; internal features: 1 + rationale
 - **Dated sources** — each claim → URL + publication date; SEO aggregators are leads, not cited facts
 

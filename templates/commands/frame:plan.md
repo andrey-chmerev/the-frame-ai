@@ -200,7 +200,9 @@ If any task has `Risk: high`, run the `devils-advocate` agent in **plan critic m
 > "Critique this plan. Flag **only** gaps that affect correctness or the stated requirements: missed dependencies, hidden same-wave file conflicts, tasks that assume something an earlier task doesn't produce, missing error-handling/rollback tasks, or an estimate wildly off the file count. No style, no over-engineering, no 'nice to have'. Return blockers and advisories separately."
 
 Classify every finding (from the deterministic checks **and** the agent):
-- **Blocker** — same-wave file conflict, cyclic/invalid dependency, uncovered requirement, task with no `Verification`, or a dependency assumption that doesn't hold. You **must** fix these in the plan and re-run the checks. Loop at most **2 times**; if blockers remain, STOP and surface them to the user.
+- **Blocker** — same-wave file conflict, cyclic/invalid dependency, uncovered requirement, task with no `Verification`, or a dependency assumption that doesn't hold. You **must** fix these in the plan and re-run the checks. Loop at most **2 times**.
+  - Blockers are **technical by nature** — a conflict, a cycle, a missing verification all have one correct resolution in the plan. Resolve them; do not hand them back as questions.
+  - If blockers survive both loops: a *technical* one means the plan's structure is wrong — re-decompose the affected waves once more and say so in one line. Only a blocker that turns out to need a **product** decision (the requirement itself is ambiguous) is surfaced to the user, with the exact question.
 - **Advisory** — risks, assumptions, suggestions. Record under `## Plan Risks`, do not block.
 
 Skip the agent (not the deterministic checks) if no `Risk: high` tasks — saves tokens.
@@ -405,15 +407,17 @@ Show: count of Critical/High addressed, skipped Medium (if any), next step: `/fr
 Applies **only** when the autopilot marker exists **and belongs to this session**: `M="$(git rev-parse --git-dir)/frame-autopilot"; [ -f "$M" ] && [ "$(grep -s '^session=' "$M" | cut -d= -f2-)" = "${CLAUDE_CODE_SESSION_ID:-}" ]`. Standalone runs — and other sessions sharing this tree with someone else's flight — ignore this section.
 
 - **No fuzzy-match questions** — the feature name comes explicitly from `/frame:auto`; if several `docs/specs/` candidates still match, halt the flight (report the candidates) instead of asking.
+- **Technical ambiguity is planned, not escalated.** Where research left a choice the code can settle — layering, contract shape, which abstraction to extend, migration strategy, test seams — pick the architecturally correct option, write it into the task body, and record it in the Decision Log with the rejected alternatives. A halt is only for a **product** decision that research somehow left open.
 - **Existing plan with `[DONE]` tasks** → take option **(a) re-plan the remainder** by default and announce it in one line; do not ask.
-- **Open Questions unanswered** → still a hard STOP (this halts the flight — autopilot never answers research questions for the user).
-- **Devil's-advocate blockers after 2 loops** → still a hard STOP (halts the flight); advisories go to Plan Risks as usual.
+- **Open Questions unanswered** → still a hard STOP (this halts the flight — autopilot never answers a *product* question for the user; if the leftover question is technical, decide it per the Decision Standard, log it, and keep flying).
+- **Devil's-advocate blockers after 2 loops** → re-decompose once (they are technical: conflicts, cycles, coverage gaps) and continue the flight. Halt only if the surviving blocker needs a **product** decision — report it with the exact question. Advisories go to Plan Risks as usual.
 
 ## Rules (all modes)
 
 - **SIZE gate before STATE.md** — never leave STATE in IN_PROGRESS after a "skip planning" answer
 - **Fail-fast on research.md** — don't plan on incomplete data
-- **Open Questions blocks planning** — must be empty before Mode A proceeds
+- **Open Questions blocks planning** — must be empty before Mode A proceeds (they are product questions by definition; a technical one is decided here and logged)
+- **Plan the right architecture** — tasks implement the correct approach for this codebase; if the cheap path is chosen, it is written down as a decision with its cost, never slipped in as "temporary"
 - **Ground the plan in real code** — read the target modules; every `Files:` path exists or is marked `(new)`
 - **Never overwrite a plan with [DONE] tasks** — offer re-plan-remainder / full re-plan / cancel
 - **Every task carries a body** — Action + Done + Context, so build's subagent needs no re-derivation

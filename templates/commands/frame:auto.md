@@ -1,13 +1,15 @@
 ---
-description: "Autopilot: run plan → build → review → fix → ship unattended after research — one confirmation up front, no questions until a local commit or a halt"
+description: "Autopilot: run plan → build → review → fix → ship unattended after research — zero questions; halts only on a product decision or a hard failure"
 argument-hint: "<feature> [strict]"
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Task]
 ---
 # /frame:auto -- Pipeline Autopilot
 
-Takes a researched feature and drives it through the whole pipeline without you: **plan → build → review → (fix → re-review)×N → ship (local commit)**. You answer **one** consolidated question after the plan is generated; after that the pipeline runs unattended until it produces a local commit or hits a halt condition.
+Takes a researched feature and drives it through the whole pipeline without you: **plan → build → review → (fix → re-review)×N → ship (local commit)**. **It asks nothing.** Research is where you decided what to build; from `/frame:auto` on, the pipeline runs unattended until it produces a local commit or hits a halt.
 
-**What autopilot never does**: push, create a PR, auto-fix findings in sensitive areas (auth/money/core/migrations/routing), or improvise around an architectural mismatch. Those always come back to you.
+**The only reason to interrupt you is a product decision** — something the repo cannot answer (a business rule, a policy, scope, money semantics, who may access what). Everything technical — the architecture, the contracts, an error path, a security control's implementation, a HIGH review finding on auth or billing code — the pipeline resolves itself, to the **right architectural solution, not a workaround** (see the Decision Standard in CLAUDE.md / `.frame/frame-principles.md`).
+
+**What autopilot never does**: push, create a PR, take a product decision on your behalf, ship past a red gate, or improvise around an architectural mismatch with the plan.
 
 ### Routing
 
@@ -43,7 +45,7 @@ The marker's `session=` line binds the flight to the session that engaged it (`$
 
 ## Instructions
 
-### Step 0: Preflight (interactive — autopilot not engaged yet)
+### Step 0: Preflight (autopilot not engaged yet)
 
 1. **Resolve `{feature}`.** From args; if empty, from `.planning/STATE.md` `Feature:`. Still empty → **STOP**: "Usage: /frame:auto <feature>".
 
@@ -77,25 +79,30 @@ The marker's `session=` line binds the flight to the session that engaged it (`$
 
 4. **Detect the landing mode** (see "Two landing modes"): `git rev-parse --git-common-dir` → main flight or worktree flight.
 
-5. **Announce the flight plan** (one line):
-   - main: `autopilot: {feature} — plan → build → review{ strict} → fix → ship (local commit). Max 3 review rounds. Halts on: sensitive fixes, wave failure, architectural deviation.`
-   - worktree: `autopilot: {feature} — plan → build → review{ strict} → fix → LAND at review approve (then /frame:integrate from main). Max 3 review rounds.`
+5. **Announce the flight plan** (one line) — this is an announcement, not a question; do not wait for an answer:
+   - main: `autopilot: {feature} — plan → build → review{ strict} → fix → ship (local commit). Max 5 review rounds. Halts on: a product decision, wave failure, architectural deviation.`
+   - worktree: `autopilot: {feature} — plan → build → review{ strict} → fix → LAND at review approve (then /frame:integrate from main). Max 5 review rounds.`
 
 ### Step 1: PLAN
 
 **Skip if a ready plan exists**: `docs/specs/{feature}/plan.md` present with **zero** `[DONE]` tasks and no `WAVE_FAILED`/`REVIEW_FAILED` in STATE.md for this feature → announce `plan.md found — skipping PLAN` and go straight to Step 2. This is the normal entry for a worktree flight handed off by a Case C halt (the plan was made in the main session and copied over by `/frame:parallel start`).
 
-Otherwise execute the `/frame:plan {feature}` procedure (AUTO overrides apply: re-plan-remainder is the default for a partially done plan; ambiguity that standalone plan would resolve by asking → halt instead).
+Otherwise execute the `/frame:plan {feature}` procedure (AUTO overrides apply: re-plan-remainder is the default for a partially done plan; **technical** ambiguity a standalone plan would resolve by asking is decided here instead — the architecturally correct option, written into the task body and the Decision Log).
 
-- Plan blockers survive the devil's-advocate loop (2 iterations) → **HALT** (see Halt protocol).
+- Plan blockers survive the devil's-advocate loop (2 iterations) → re-decompose once; **HALT** only if what remains needs a **product** decision (report the exact question).
 - On success: plan.md exists with waves, `Coverage` table, `Verification:` per task.
 
-### Step 2: The one confirmation gate
+### Step 2: Engage — briefing, no question
 
-This is the **only question** of the flight. Read the fresh plan.md and present a compact briefing:
+There is **no confirmation gate**. Read the fresh plan.md, engage the autopilot, print the briefing as a *report* of what is now flying, and go straight to Step 3:
+
+```bash
+printf 'feature=%s\nround=0\nreview=%s\nsession=%s\n' "{feature}" "{standard|strict}" "${CLAUDE_CODE_SESSION_ID:-}" > "$(git rev-parse --git-dir)/frame-autopilot"
+rm -f "$(git rev-parse --git-dir)/frame-autopilot-nudges"
+```
 
 ```
-Autopilot briefing — {feature}
+Autopilot engaged — {feature}
 | Item | Value |
 |------|-------|
 | Tasks / waves       | {N} tasks in {M} waves ({K} parallel) |
@@ -104,38 +111,31 @@ Autopilot briefing — {feature}
 | Sensitive areas     | {plan files matching auth/money/core/migrations/routing, or "none"} |
 | Parallel overlap    | {plan Touched Files ∩ other active features' Touched Files, or "none"} |
 | Review mode         | standard | strict |
-| Review rounds cap   | 3 |
+| Review rounds cap   | 5 |
 | End state           | main: local commit — push/PR manual | worktree: review approve — /frame:integrate manual |
 
-After "go" there are no more questions until commit or halt.
-High-risk tasks listed above count as confirmed. Proceed? [go / abort / hold <task ids>]
+No questions from here until a landing or a product decision. Interrupt any time to steer.
 ```
+
+**`Risk: high` and sensitive-area rows are informational.** They do not gate anything: high-risk tasks are pre-confirmed by the fact that you ran `/frame:auto` on a feature whose research you closed, and a sensitive *area* is not a product *decision* (Decision Standard). They are printed so an interrupt is an informed one.
 
 **Parallel overlap row** — the pre-plan hand-off skips `/frame:parallel start`'s file-overlap check (no plan existed yet), so run it here, now that the plan exists. Compare this plan's `## Touched Files` against every *other* active feature's file list from the board's `## Touched Files (cache)` section. From inside a worktree, the live board is in the **main** tree, not the worktree copy:
 ```bash
 MAIN_ROOT=$(dirname "$(git rev-parse --git-common-dir)")   # == project root in main; equals cwd when not in a worktree
 grep -A 50 "## Touched Files (cache)" "$MAIN_ROOT/.planning/BOARD.md" 2>/dev/null
 ```
-No board / no other active features / no intersection → `none`. Intersection found → list `{file} ↔ {feature}` in the row; it does not block (integrate's merge-tree prediction and hotfix protection catch real collisions at merge time), but the user may prefer `abort` and sequencing the features instead — that's exactly what this one question is for.
-
-- **go** → all `Risk: high` tasks are pre-confirmed for BUILD (its Step 4 up-front confirmation and the Risk-Strategy per-task wait are both satisfied by this gate). Engage autopilot:
-  ```bash
-  printf 'feature=%s\nround=0\nreview=%s\nsession=%s\n' "{feature}" "{standard|strict}" "${CLAUDE_CODE_SESSION_ID:-}" > "$(git rev-parse --git-dir)/frame-autopilot"
-  rm -f "$(git rev-parse --git-dir)/frame-autopilot-nudges"
-  ```
-- **hold {ids}** → mark those tasks as excluded, re-show the briefing (they'll stay unbuilt; the plan keeps them for a manual pass).
-- **abort** → stop; plan.md remains for a manual `/frame:build`.
+No board / no other active features / no intersection → `none`. An intersection is reported in the row and **does not stop the flight** — `/frame:integrate`'s merge-tree prediction and hotfix protection catch real collisions at merge time; interrupt yourself if you would rather sequence the features.
 
 ### Step 3: BUILD
 
 Execute the `/frame:build {feature}` procedure with its AUTO overrides:
 
-- High-risk tasks: pre-confirmed at Step 2 — no re-ask.
+- High-risk tasks: pre-confirmed by the flight itself (Step 2 listed them) — no ask, no wait.
 - Another feature already in flight (build Step 0, Case C): build's AUTO override **prepares the worktree for `{feature}` itself** (overlap check → worktree + `feature/{feature}` branch → context copy → board row), then the flight halts with the exact hand-off:
   ```
   ⛔ AUTOPILOT HALT: {other} is mid-flight in this tree. Worktree for {feature} is ready.
   → cd ../{project}-{feature} && claude → /frame:auto {feature}
-  (plan.md is already done — the new flight picks it up and goes straight to its briefing gate)
+  (plan.md is already done — the new flight picks it up and goes straight to build)
   ```
   Autopilot cannot follow the work into another terminal — but it leaves everything one command away.
 - `Status: WAVE_FAILED` or `[BLOCKED]` tasks remaining → **HALT** with the failure report build produced.
@@ -143,36 +143,41 @@ Execute the `/frame:build {feature}` procedure with its AUTO overrides:
 
 On `Status: COMPLETE` → heartbeat `autopilot: build green ({done}/{total} tasks) → review round 1` → Step 4.
 
-### Step 4: REVIEW (round R of max 3)
+### Step 4: REVIEW (round R of max 5)
 
 Increment `round=` in the marker file. Execute the `/frame:review` procedure (or `/frame:review strict` if the strict flag was given) — unchanged; review has no interactive points on the happy path.
 
 - **approve** (`ready to ship`) → main flight: Step 6 (SHIP); **worktree flight: LAND here** — go to Step 7 with the worktree finish report (STATE.md stays `Phase: REVIEW / Status: ready to ship`, exactly what `/frame:integrate` requires — do **not** run ship).
-- **REVIEW_FAILED (automated)** — gates that were green at the end of build now fail → **HALT** (something outside the pipeline moved; a human should look).
+- **REVIEW_FAILED (automated)** — gates that were green at the end of build now fail. This is a technical failure with a technical answer, so **fix it once, don't halt on sight**: read the gate output, find the root cause (a merge, a dependency, a flaky-looking test that is actually a real race), fix it properly per the Decision Standard, re-run the gates, and continue the same round. Only if the gates are still red after that one pass → **HALT** with the gate output.
 - **request changes** → Step 5 (FIX), same round.
 - Review cannot determine a base / empty diff → **HALT**.
 - `strict` escalation after its 3 internal rounds → **HALT** with the agreement table.
 
 ### Step 5: FIX (same round)
 
-**Sensitive screen first — before any fixer is spawned.** Scan the confirmed FAIL findings exactly like `/frame:fix` Step 3 (CRITICAL or HIGH touching core/auth/money/migrations/routing). Any match → **HALT**:
+**Product screen first — before any fixer is spawned.** Scan the confirmed FAIL findings exactly like `/frame:fix` Step 3, on the finding's **`Class`** field, not on the file it lives in:
+
+- `Class: technical` — the fix is derivable from the code, the contracts and the conventions. **Fix it, unattended, whatever the severity and whatever the file** — a CRITICAL auth bypass, a leaked token, an N+1 on the billing query all have one right answer and the fixers must implement that answer, not a workaround.
+- `Class: product` — closing the finding requires a decision the repo cannot supply (which business rule applies, what the policy should be, whose money moves, what the copy says). Autopilot cannot invent it.
+
+**Order matters: technical first, then halt.** A product finding never holds the technical ones hostage — run `/frame:fix {feature} {technical REV ids}` and let it close and commit them; only then, with the round's real work banked, halt on what is left:
 
 ```
-AUTOPILOT HALT: {n} finding(s) touch sensitive areas: {ids + files}.
-Autopilot does not auto-fix auth/money/core/migrations/routing.
-→ Run /frame:fix {feature} yourself to confirm them interactively.
+⛔ AUTOPILOT HALT — product decision needed: {n} finding(s).
+{id} {file}:{line} — {claim}
+  Decision needed: {the exact question, with the options the code allows}
+Everything technical in this round is already fixed and committed.
+→ Answer here, or run /frame:fix {feature} to close them interactively.
 ```
 
-These findings were unknown at the Step 2 gate, so they were never confirmed — the conservative default is to stop, not to guess.
+A finding with no `Class` field (an older review.md) → classify it here using the Decision Standard before deciding; when it is genuinely ambiguous, treat it as `product` and halt.
 
-No sensitive findings → execute the `/frame:fix` procedure with its AUTO override (Step 3 confirmation is satisfied by this screen). Then route on its outcome:
+No product findings → execute the `/frame:fix` procedure for the whole set with its AUTO override (Step 3's confirmation is satisfied by this screen). Then route on its outcome:
 
 - **`ready to ship`** (all findings RESOLVED) →
   - plan SIZE is **large**, or the review diff was sharded (>800 lines), or `strict` → the fixes deserve fresh eyes: go to **Step 4, next round** (full review of the post-fix state).
   - otherwise → trust fix's scoped re-review (that is its contract) → main flight: Step 6 (SHIP); worktree flight: **LAND** (Step 7, worktree report) — but first restore STATE.md to `Phase: REVIEW / Status: Review complete, ready to ship` if fix left anything else, so `/frame:integrate` readiness holds.
 - **`REVIEW_FAILED` with `Remaining:`** (STILL_OPEN / FAILED / BLOCKED findings) → **HALT**: fix already retried and re-reviewed; what's left needs manual attention or `/frame:build` fix-mode — autopilot re-running the same fixers would loop.
-
-**Round cap:** entering Step 4 with `round=3` already spent → **HALT**: "3 review rounds without approve. Open findings: {ids}." Show the round history table (round → verdict → fixed ids).
 
 ### Step 6: SHIP (main flights only — local commit)
 
@@ -180,7 +185,7 @@ No sensitive findings → execute the `/frame:fix` procedure with its AUTO overr
 
 Execute the `/frame:ship` procedure with its AUTO overrides: readiness passport + commit as normal; **push (Step 5) and PR (Step 6) are skipped** — reported as manual follow-ups.
 
-- Passport verdict **NOT READY** → **HALT** with the failing rows.
+- Passport verdict **NOT READY** → the failing rows are technical by nature (a red gate, an uncommitted file, a stale review). Fix the cause once — properly, not by loosening the check — and re-run the passport. Still NOT READY → **HALT** with the failing rows.
 
 ### Step 7: Finish
 
@@ -227,11 +232,12 @@ A halt is not a failure of the run — it is the pipeline handing back a decisio
 
 ## Rules
 
-- **One question per flight** — everything interactive is front-loaded into the Step 2 briefing; after "go", the only outcomes are a landing (main: local commit; worktree: review approve) or a halt
+- **Zero questions per flight** — Step 2 briefs and engages without asking; the only outcomes are a landing (main: local commit; worktree: review approve) or a halt
 - **No phase logic here** — phases run by reading and executing the installed `frame:*.md` files; AUTO overrides live in those files, next to the steps they modify
 - **Marker discipline** — `$GIT_DIR/frame-autopilot` exists exactly while a flight is live; every exit path removes it
-- **Sensitive findings always halt** — auth/money/core/migrations/routing fixes are never applied unattended
-- **Max 3 review rounds** — then halt with the round history; no infinite fix↔review ping-pong
+- **Only product decisions halt** — a finding, task or deviation halts the flight when a human decision changes the outcome; anything technical is resolved in-flight to the correct architecture (Decision Standard), no matter which file or severity it lands on
+- **Architecture, not workarounds** — a fix that silences a symptom is not a fix; if the only unattended option would be a workaround, that is itself a halt reason, reported as such
+- **Max 5 review rounds, and every round must close something** — a zero-progress round halts immediately; the cap halts at 5. Both print the round history
 - **Never push, never PR, never integrate** — a main flight ends at a local commit; merging parallel features (`/frame:integrate`) and the batch's final ship stay manual
 - **Halts preserve state** — STATE.md keeps the phase command's status; manual pipeline commands pick up from there
 - **Worktree flights land at review approve** — never run ship in a worktree (`/frame:integrate` requires `Phase: REVIEW / ready to ship` there); Case C prepares the new feature's worktree and hands off `cd … && /frame:auto {feature}`
@@ -241,11 +247,11 @@ A halt is not a failure of the run — it is the pipeline handing back a decisio
 ## When to Use
 
 - research.md is done, Open Questions are closed, and the feature is small/standard — you want it built while you do something else
-- **Not for**: unresearched ideas (run `/frame:research`), trivial one-liners (`/frame:fast`), features you expect to steer mid-build (run the phases manually)
+- **Not for**: unresearched ideas (run `/frame:research`), open product questions still unanswered in research.md, trivial one-liners (`/frame:fast`), features you expect to steer mid-build (run the phases manually)
 
 ## Result
 
-- plan.md → built feature → passed review → fixed findings → landed, unattended after one confirmation
+- plan.md → built feature → passed review → fixed findings → landed, unattended end to end
 - Main flight: local commit + readiness passport; push/PR left for the user
 - Worktree flight: feature branch at `Phase: REVIEW / ready to ship` — integrate-ready; batch merge via `/frame:integrate` from main
 - On halt: exact phase, reason, and the manual command to continue with

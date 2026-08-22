@@ -349,12 +349,13 @@ Next step is **not** `/frame:review` (it requires a plan and will STOP at its co
 
 Applies **only** when the autopilot marker exists **and belongs to this session**: `M="$(git rev-parse --git-dir)/frame-autopilot"; [ -f "$M" ] && [ "$(grep -s '^session=' "$M" | cut -d= -f2-)" = "${CLAUDE_CODE_SESSION_ID:-}" ]`. Standalone runs — and other sessions sharing this tree with someone else's flight — ignore this section.
 
-- **High-risk tasks are pre-confirmed** — the `/frame:auto` briefing gate (its Step 2) already listed every `Risk: high` task and got one "go". Skip the Step 4 up-front ask **and** the Risk-Strategy per-task "wait for user confirmation"; still create the checkpoints. Tasks the user answered `hold` for are excluded — leave them un-built and unmarked.
+- **High-risk tasks are pre-confirmed** — running `/frame:auto` on a feature whose research is closed *is* the confirmation; the Step 2 briefing listed every `Risk: high` task for the record. Skip the Step 4 up-front ask **and** the Risk-Strategy per-task "wait for user confirmation"; still create the checkpoints. High risk means more care (checkpoint, smaller steps, tighter verification), never a pause.
 - **Step 0 Case C (another feature in flight)** → do **not** ask and do **not** build in main. Take the manual "Y" path unattended: run the `/frame:parallel start {feature}` procedure (file-overlap check against active features → worktree + `feature/{feature}` branch → context copy → board row), **then halt the flight** with the hand-off — autopilot cannot follow the work into another terminal, but it leaves the next flight one command away:
   > ⛔ AUTOPILOT HALT: {other} is mid-flight in this tree. Worktree for {feature} is ready at `../{project}-{feature}`.
-  > → `cd ../{project}-{feature} && claude` → `/frame:auto {feature}` (plan.md is done — it goes straight to the briefing gate).
+  > → `cd ../{project}-{feature} && claude` → `/frame:auto {feature}` (plan.md is done — it engages and goes straight to build).
 
   If the overlap check finds a file conflict with an active feature, halt without creating the worktree and report the conflict instead.
+- **Technical ambiguity is decided, not escalated.** Where a task leaves a choice the code can answer — which layer owns a concern, which contract to extend, how to handle an error path, which existing abstraction to reuse — pick the architecturally correct option per the Decision Standard, implement it, and log it in the Decision Log with the rejected alternatives. Never fall back to a workaround (a swallowed error, an `any`, a duplicated block) because the correct option is bigger; if the correct option contradicts the plan, that is the deviation protocol, below.
 - **`WAVE_FAILED` / remaining `[BLOCKED]` tasks / architectural deviation (deviation protocol STOP)** → these stop as usual, and the stop halts the flight — autopilot never improvises past them.
 
 ## Rules
@@ -368,7 +369,7 @@ Applies **only** when the autopilot marker exists **and belongs to this session*
 - **FAILED/BLOCKED tasks don't commit** — revert their files to the wave start, mark `[BLOCKED]`, and hold any wave that depends on them
 - **Retry informed, not blind** — a re-spawned failing task gets the gate/test error in its brief and a clean tree to start from
 - **Deviation protocol** — bug-in-passing: note it; small missing step: do it + Decision Log; architectural/contract mismatch: STOP and re-plan
-- **Risk: high requires confirmation** — wait for user response
+- **Risk: high requires confirmation** — wait for user response (standalone runs only; under `/frame:auto` it is pre-confirmed — see AUTO mode)
 - **Never use type `any`** — use `unknown` + type guard
 - **Never modify files outside the task scope** — stay within task boundaries
 - **trivial → `/frame:fast`** — build redirects one-file/one-liner work to fast (it has the side-quest bookkeeping); build handles small and up
