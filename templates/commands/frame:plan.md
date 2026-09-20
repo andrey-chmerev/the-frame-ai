@@ -1,5 +1,5 @@
 ---
-description: "Decompose a feature into atomic, code-grounded tasks with embedded bodies (Action/Done/Context), wave grouping, traceability, and Parallel labels; or create a plan from audit findings"
+description: "Decompose a feature into atomic, code-grounded tasks with embedded bodies (Action/Done/Context), wave grouping, traceability, Parallel labels, and a mandatory Evidence list in spec.md; or create a plan from audit findings"
 argument-hint: "<feature description> | audit [all]"
 allowed-tools: [Read, Write, Bash, Grep, Glob]
 ---
@@ -89,7 +89,7 @@ grep -c "\[DONE\]" docs/specs/{feature}/plan.md 2>/dev/null
 | `.planning/MAP.md` | full | Project architecture and constraints |
 | `.planning/memory/context.md` | full (first) | Current focus and blockers |
 | `.planning/memory/learnings.md` `## Patterns > ### Core` | Core section only | Established patterns (confidence high/medium; treat low as experimental) |
-| `.planning/memory/learnings.md` `## Anti-Patterns` | full | Don't bake in known mistakes |
+| `.planning/memory/learnings.md` `## Anti-Patterns` | full | Don't bake in known mistakes; `Weak evidence` entries tell you which Evidence items were too soft last time — write stronger ones |
 | `.planning/memory/conventions.md` | full | Code conventions |
 | `.planning/memory/dependencies.md` | full + Avoid list | Don't propose rejected tools |
 | research.md `## Memory Impact` | section | Researcher's decisions |
@@ -200,7 +200,7 @@ If any task has `Risk: high`, run the `devils-advocate` agent in **plan critic m
 > "Critique this plan. Flag **only** gaps that affect correctness or the stated requirements: missed dependencies, hidden same-wave file conflicts, tasks that assume something an earlier task doesn't produce, missing error-handling/rollback tasks, or an estimate wildly off the file count. No style, no over-engineering, no 'nice to have'. Return blockers and advisories separately."
 
 Classify every finding (from the deterministic checks **and** the agent):
-- **Blocker** — same-wave file conflict, cyclic/invalid dependency, uncovered requirement, task with no `Verification`, or a dependency assumption that doesn't hold. You **must** fix these in the plan and re-run the checks. Loop at most **2 times**.
+- **Blocker** — same-wave file conflict, cyclic/invalid dependency, uncovered requirement, task with no `Verification`, an **empty or missing `## Evidence` in spec.md** (Step A8), or a dependency assumption that doesn't hold. You **must** fix these in the plan and re-run the checks. Loop at most **2 times**.
   - Blockers are **technical by nature** — a conflict, a cycle, a missing verification all have one correct resolution in the plan. Resolve them; do not hand them back as questions.
   - If blockers survive both loops: a *technical* one means the plan's structure is wrong — re-decompose the affected waves once more and say so in one line. Only a blocker that turns out to need a **product** decision (the requirement itself is ambiguous) is surfaced to the user, with the exact question.
 - **Advisory** — risks, assumptions, suggestions. Record under `## Plan Risks`, do not block.
@@ -228,11 +228,28 @@ AC1. Given ..., when ..., then ...
 ## Interfaces
 {Key interfaces/endpoints/data structures — from research.md ## API Design}
 
+## Evidence
+<!-- MANDATORY — proof that the RESULT is right as a user sees it. /frame:review collects every item before the panel. -->
+- E1. Screenshot of {screen} with {input} → shows {exact text / element / state}
+- E2. Output of `{command}` on {input} → contains {exact lines / values}
+- E3. File `{out/path}` opens and contains {exact fields / fragment}
+- E4. manual: {what only a human can verify — video, audio, hardware — and how}
+
 ## Out of Scope
 {Copied from research.md — always present}
 ```
 
 > **Rule**: R/AC IDs in spec.md must match research.md exactly. Renumbering or rephrasing breaks `/frame:review` traceability.
+
+**`## Evidence` is mandatory and is yours to fill.** Tests and gates prove the code runs; Evidence proves the feature produced *what the spec describes* — the typical miss is a green build whose artifact carries the wrong content (a caption from another episode, a report with last month's numbers). Rules for the list:
+- **From the user's seat** — a screenshot with named data on a named screen, the output of a named command on a named input, a named generated file and the fragment it must contain. Never "tests pass", "build green", "endpoint responds".
+- **Checked by content, not by metric** — the item names the words/values that must be there. Size, duration, exit code or a score alone are not evidence.
+- **Reproducible** — anyone can obtain the same artifact from the item's wording alone (input data, command, URL/screen).
+- **Numbered E1, E2, …** and covering every AC at least once (an AC without an evidence item is a coverage gap — add one).
+- **`manual:` prefix** for what no tool can check (video/audio playback, hardware, a third-party inbox). `/frame:review` records these as pending, `/frame:test-plan` puts them on the human checklist, and `/frame:ship` requires them confirmed.
+- Read `learnings.md ## Anti-Patterns` for `Weak evidence` entries from past retrospectives and write the stronger item they ask for.
+
+**An empty `## Evidence` is a blocker (Step A7): the plan is not ready.** `/frame:review` fails the review at its artifact check on an empty list.
 
 Create `docs/specs/{feature}/plan.md`:
 
@@ -386,6 +403,7 @@ Feature name: `audit-{date}` (e.g., `audit-2026-06-12`).
 
 Create `docs/specs/audit-{date}/spec.md` (list of findings as "requirements"):
 - Each finding = one requirement with ID, severity, claim, file
+- `## Evidence` (mandatory here too): one item per finding — the original reproduction no longer occurs, stated as a concrete artifact (`E1. Output of \`{repro command}\` → no longer contains {the leaked value / the error}`; `E2. Screenshot of {screen} → {the broken state} is gone`)
 
 Create `docs/specs/audit-{date}/plan.md` (same format as Mode A, no Coverage table — instead `## Findings Addressed`).
 
@@ -431,10 +449,11 @@ Applies **only** when the autopilot marker exists **and belongs to this session*
 - **Test + Verification on every task** — all modes, including audit fixes
 - **Touched Files section always present** — /frame:parallel needs it for cross-feature overlap checks
 - **spec.md R/AC verbatim** — same IDs as research.md, or review traceability breaks
+- **Evidence on every spec** — `## Evidence` lists user-visible, content-checked, reproducible proofs (E1, E2, …) covering every AC; empty = blocker, `manual:` only for what no tool can check
 - **Never edit code** — only create spec.md and plan.md
 
 ## Result
 
-- `docs/specs/{feature}/spec.md` — specification with verbatim R/AC, Behavior, Interfaces, Out of Scope
+- `docs/specs/{feature}/spec.md` — specification with verbatim R/AC, Behavior, Interfaces, Evidence (E1, E2, …), Out of Scope
 - `docs/specs/{feature}/plan.md` — plan with body-carrying tasks, waves, Parallel labels, Coverage, Decision Log
 - `.planning/STATE.md` updated

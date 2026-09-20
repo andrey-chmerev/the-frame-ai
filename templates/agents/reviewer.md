@@ -283,6 +283,7 @@ Step 5: Return verdict as final text (PASS or FAIL + details)
 When called from the review panel, the orchestrating command passes:
 - The **path** to the diff file (`docs/specs/{feature}/review-diff.patch`) + `$BASE` — read it yourself with Read/Bash; it is not inlined
 - Path to spec.md
+- The **path** to `docs/specs/{feature}/evidence.md` — the artifact check's table (what the feature actually produced, per spec `## Evidence` item). Cite its rows in the coverage table where an AC is proven by an artifact rather than by code alone: `AC2 | DONE | src/export.ts:88, evidence.md E2`
 
 **Do NOT** run the automated gates (typecheck/test/lint/build) — the orchestrator already ran them green before launching the panel. **Do NOT** write any file or STATE.md. Analyze only the diff.
 

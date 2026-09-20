@@ -65,6 +65,12 @@ Run every gate and print **one** readiness table — a single "passport" the use
 git diff --stat               # Diff — size of what's shipping
 ```
 
+**Evidence row** — read `docs/specs/{feature}/evidence.md` (written by `/frame:review` Step 2.5):
+- No file (feature reviewed before Evidence existed) → `n/a`, informational.
+- Every row `yes` → `PASS ({N} items)`.
+- Any row `no` / `missing` → `FAIL` — review did not actually pass; NOT READY.
+- Rows still `manual` → look for the human's confirmation in `docs/specs/{feature}/test-plan.md` (a ticked `- [x]` line naming that `E{n}`). Found → set the row to `yes (manual, confirmed {date})` in evidence.md. Not found → ask **once**: "Manual evidence pending: {E-ids with their text}. Have you verified these by hand? (y/n)". `y` → mark them confirmed as above; `n` or no answer → `PENDING manual: {E-ids}` → NOT READY.
+
 Emit the passport:
 ```
 Readiness passport — {feature}
@@ -76,12 +82,13 @@ Readiness passport — {feature}
 | Tests    | PASS (128 passed, 87% cov)|
 | Security | PASS (0 vulns)            |
 | Diff     | 6 files, +240/-30         |
+| Evidence | PASS (4 items, 1 manual confirmed) |   ← from evidence.md; or PENDING manual: E3 / FAIL / n/a
 | Review   | approve ({N} warnings)    |   ← from STATE.md / review.md
 ──────────────────────────────────────
 Verdict: READY for PR
 ```
 
-The verdict is **READY** only if Build, Types, Lint, Tests all PASS and Review is `approve`. Any FAIL → verdict **NOT READY**: print the table with the failing row(s), **STOP**, and do not commit broken code. Security FAIL and Diff are informational unless a critical vuln is present (then NOT READY).
+The verdict is **READY** only if Build, Types, Lint, Tests all PASS, Evidence is `PASS` or `n/a`, and Review is `approve`. Any FAIL or `PENDING manual` → verdict **NOT READY**: print the table with the failing row(s), **STOP**, and do not commit broken code (pending manual evidence: point at `/frame:test-plan`). Security FAIL and Diff are informational unless a critical vuln is present (then NOT READY).
 
 ### Step 2: Check git status
 
@@ -100,6 +107,8 @@ Add only the relevant files:
 ```bash
 git add path/to/file1.ts path/to/file2.tsx
 ```
+
+If `docs/specs` is tracked in this repo, the feature's proof ships with it — add `docs/specs/{feature}/evidence.md` and `docs/specs/{feature}/evidence/` too (the artifacts are what makes the review reproducible later). Never add `review-diff.patch` or `review-gates.*` — those are working files.
 
 ### Step 4: Create commit
 
@@ -195,7 +204,7 @@ fi
 Applies **only** when the autopilot marker exists **and belongs to this session**: `M="$(git rev-parse --git-dir)/frame-autopilot"; [ -f "$M" ] && [ "$(grep -s '^session=' "$M" | cut -d= -f2-)" = "${CLAUDE_CODE_SESSION_ID:-}" ]`. Standalone runs — and other sessions sharing this tree with someone else's flight — ignore this section.
 
 - **Skip Step 5 (push) and Step 6 (PR) entirely** — no questions; the flight ends at the local commit. Report both as manual follow-ups: "push/PR — run /frame:ship or push manually when ready."
-- **Readiness passport NOT READY** → stops as usual, and the stop halts the flight.
+- **Readiness passport NOT READY** → stops as usual, and the stop halts the flight. The Evidence row never asks: `manual` rows without a ticked test-plan line stay `PENDING manual` and halt the flight with the pending items — a human check is the one thing autopilot cannot do for you.
 - Everything else (fail-fast checks, passport, commit, memory updates, STATE.md) runs unchanged.
 
 ## Rules
@@ -208,7 +217,7 @@ Applies **only** when the autopilot marker exists **and belongs to this session*
 
 ## Result
 
-- Readiness passport printed (Build/Types/Lint/Tests/Security/Diff/Review → READY / NOT READY)
+- Readiness passport printed (Build/Types/Lint/Tests/Security/Diff/Evidence/Review → READY / NOT READY)
 - Git commit created
 - Optionally: git push (with confirmation), PR created
 - `.planning/context.md` updated

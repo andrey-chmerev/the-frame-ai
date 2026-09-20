@@ -23,6 +23,8 @@ Determine feature from `.planning/STATE.md` (or the `{feature}` arg). Read `docs
 
 If not found → **STOP**: "review.md not found. Run /frame:review first."
 
+**Capture the status review left** before overwriting it: `PRIOR_STATUS` = STATE.md `Status:` — `REVIEW_FAILED` (panel findings) or `REVIEW_FAILED (evidence)` (the artifact check failed; review.md then reads `## Panel Verdicts: not run — evidence failed` and every finding carries `Source: evidence`). Both route here identically; the difference only matters at the end (Step 8) — the panel still has to run once the evidence findings are closed.
+
 Create a single checkpoint (orchestrator-owned, feature-scoped to avoid collisions):
 ```bash
 git tag "frame/checkpoint/fix-{feature}-$(date +%Y%m%dT%H%M%S)" -m "Auto checkpoint before fix phase"
@@ -36,7 +38,7 @@ git tag "frame/checkpoint/fix-{feature}-$(date +%Y%m%dT%H%M%S)" -m "Auto checkpo
 - Status: FIX_IN_PROGRESS
 - Started: {timestamp}
 ```
-> Every failure path below restores `Status: REVIEW_FAILED` (build fix-mode is detected by exactly that value — losing it would strand the feature). The success path sets the ship-ready status in Step 8.
+> Every failure path below restores `Status: {PRIOR_STATUS}` — `REVIEW_FAILED` or `REVIEW_FAILED (evidence)`, whichever review wrote (build fix-mode and `/frame:auto` key off these values — losing them would strand the feature). The success path sets the status in Step 8.
 
 ### Step 1: Select findings
 
@@ -111,7 +113,7 @@ After all fixers return, split them by `Status` before running gates:
 - **DONE** groups → carry forward to gates, commit, and re-review.
 - **FAILED / BLOCKED** groups → **excluded** from the commit and from `[FIXED]`. Their `REV-ids` go straight to the `Remaining` list (Step 8). Do not re-review them (nothing was resolved). Record the fixer's `Notes` so the user knows why (stuck, ambiguous fix, missing context).
 
-If **no group is DONE** → restore STATE.md `Status: REVIEW_FAILED`, report "All {M} fixer groups failed/blocked: {ids} — need manual attention or /frame:build." and stop.
+If **no group is DONE** → restore STATE.md `Status: {PRIOR_STATUS}`, report "All {M} fixer groups failed/blocked: {ids} — need manual attention or /frame:build." and stop.
 
 **Heartbeat**: "{X}/{M} groups fixed, {Y} failed/blocked. Running gates on the fixed set..."
 
@@ -135,7 +137,7 @@ If still failing after retries:
 ```bash
 git tag "frame/fix-failure-$(date +%Y%m%dT%H%M%S)"
 ```
-Restore STATE.md `Status: REVIEW_FAILED`, report to the user, do **not** roll back the passing fixes. Stop.
+Restore STATE.md `Status: {PRIOR_STATUS}`, report to the user, do **not** roll back the passing fixes. Stop.
 
 ### Step 6: Commit
 
@@ -177,6 +179,7 @@ If `BASE` is empty (older report without the header) → fall back to this featu
 | devils-advocate | devils-advocate |
 | tests-reviewer | tests-reviewer |
 | conventions-reviewer | conventions-reviewer |
+| evidence | **no panel agent** — re-collect the evidence item itself: repeat the `/frame:review` Step 2.5 procedure for that `E{n}` (fresh artifact into `docs/specs/{feature}/evidence/`, compare by content), then update its row in `evidence.md`. `RESOLVED` = the row now reads `yes`; anything else = `STILL_OPEN` with the artifact as the reason |
 
 If a finding lists **several** sources (post-dedup), launch **all** of them for it — the finding is RESOLVED only if every one agrees. If `Source` is missing (older report), fall back to `devils-advocate` (the broadest logic reviewer).
 
@@ -192,7 +195,9 @@ Any `STILL_OPEN` → keep it out of the `[FIXED]` set, carry its id to `Remainin
 ```
 Leave the mark off everything else. The `Remaining` set = STILL_OPEN findings (Step 7) **plus** the FAILED/BLOCKED groups' findings (Step 4.5).
 
-**If every selected finding is RESOLVED** (nothing remaining):
+**If every selected finding is RESOLVED** (nothing remaining) — two cases:
+
+*The review's panel ran* (`## Panel Verdicts` has verdicts):
 ```markdown
 ## Current Position
 - Phase: REVIEW
@@ -205,12 +210,19 @@ Leave the mark off everything else. The `Remaining` set = STILL_OPEN findings (S
    → /frame:ship
 ```
 
+*The review's panel never ran* (`## Panel Verdicts: not run — evidence failed`, `PRIOR_STATUS` was `REVIEW_FAILED (evidence)`): the result now matches the spec, but nobody has reviewed the code yet — **do not** set ready to ship. Announce one line and continue:
+```
+✅ Evidence findings closed ({N}); evidence.md all yes.
+   → continuing into /frame:review (panel has not run yet)
+```
+then execute the `/frame:review` procedure from its Step 0 in this session (it re-collects the evidence and runs the panel). Leave STATE.md to that run.
+
 **If anything remains** (STILL_OPEN or failed/blocked):
 ```markdown
 ## Current Position
 - Phase: BUILD
 - Feature: {feature}
-- Status: REVIEW_FAILED
+- Status: {PRIOR_STATUS}
 - Review: docs/specs/{feature}/review.md
 - Remaining: {STILL_OPEN ids + FAILED/BLOCKED ids}
 ```
@@ -226,6 +238,7 @@ Applies **only** when the autopilot marker exists **and belongs to this session*
 
 - **Step 3 never asks.** The product screen still runs and its outcome is binary: every `Class: technical` finding is fixed unattended (any severity, any file — auth/money/migrations included); any `Class: product` finding → **halt the flight** with the decision it needs ("run /frame:fix {feature} yourself, or answer here"). Technical findings in the same batch are fixed and committed before the halt, so the halt is only about the decision.
 - **`Remaining` non-empty after Step 8** (STILL_OPEN or FAILED/BLOCKED) → halts the flight — fix already retried and re-reviewed; re-spawning the same fixers unattended would loop.
+- **Evidence findings all RESOLVED** (`PRIOR_STATUS` was `REVIEW_FAILED (evidence)`) → do not run review from here; report `ready for review` and let `/frame:auto` open the next review round (it counts as a round that closed something).
 
 ## When to use
 
@@ -246,8 +259,9 @@ Applies **only** when the autopilot marker exists **and belongs to this session*
 - **Full gates incl. build** — Step 5 runs the same four gates as `/frame:review`
 - **Specific files only** — never `git add -A`; never commit a FAILED/BLOCKED group's files
 - **`[FIXED]` only after re-review** — a finding is marked closed only once Step 7 returns RESOLVED, not at commit time
-- **Re-review on the post-fix diff** — regenerate `review-diff.patch` from `Base:` before Step 7; route by the finding's `Source`
-- **IN_PROGRESS marker** — Step 0 sets `FIX_IN_PROGRESS`; every failure path restores `REVIEW_FAILED`
+- **Re-review on the post-fix diff** — regenerate `review-diff.patch` from `Base:` before Step 7; route by the finding's `Source`; `Source: evidence` is re-collected as an artifact, not re-read as a diff
+- **IN_PROGRESS marker** — Step 0 captures `PRIOR_STATUS` and sets `FIX_IN_PROGRESS`; every failure path restores `PRIOR_STATUS` (`REVIEW_FAILED` or `REVIEW_FAILED (evidence)`)
+- **Evidence-only fixes are not ship-ready** — when the panel never ran, closing the evidence findings continues into `/frame:review`, never straight to ship
 
 ## Result
 

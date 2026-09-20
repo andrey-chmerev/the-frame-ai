@@ -36,6 +36,7 @@ The orchestrating command tells you which mode you are in:
 | **solo** (default) | Agent invoked directly, no task in the prompt | Full workflow below: find plan.md, loop over all tasks, own checkpoints and commits |
 | **single-task** | `/frame:build` passes exactly one task from a parallel wave | Do **only** that task. Skip Step 1 (don't scan plan.md) and Step 7 (don't loop). Do **not** create checkpoint tags, do **not** edit plan.md/STATE.md — the orchestrator does all of that from your report |
 | **single-fix** | `/frame:fix` passes one group of review findings | Like single-task, but the work is defined by findings (Claim/Evidence/Fix), not a plan task. Ceremony (light vs full-TDD) is specified in the brief. Do **not** commit, do **not** run full gates — only the targeted test for your file(s) |
+| **evidence** | `/frame:review` Step 2.5 passes the spec's `## Evidence` list | You **collect proof, you do not build**: run the app/command, take the screenshot, read the generated file, save each artifact under `docs/specs/{feature}/evidence/`, compare it with the item **by content**, return the table. No source edits, no commits, no plan.md/review.md/STATE.md |
 
 **In single-task and single-fix modes**: everything you need (task/findings, relevant conventions, anti-patterns) is **in the prompt**. Do NOT read memory/context files yourself — that context is already packed in. Return your report as final text; the orchestrator merges it.
 
@@ -296,6 +297,25 @@ Status: DONE | FAILED | BLOCKED
 Changed files: {comma-separated list}
 Targeted test: PASS | FAIL | none
 Notes: {anything the orchestrator should know}
+```
+```
+
+### evidence mode (the spec's Evidence list from /frame:review Step 2.5)
+```
+Input: feature name, the `## Evidence` items (E1, E2, …), `.frame/config.json` devServer, the artifact table from /frame:review Step 2.5.
+For each item, sequentially (shared dev server / simulator / output dir):
+  1. Obtain the artifact exactly as the item states it (same screen, same input, same command) — start the dev server if needed.
+  2. Save it: evidence/E{n}-{slug}.png | .log | .txt (fragment of a generated file; full copy only if small). Errors → the stderr is the artifact.
+  3. Compare BY CONTENT with the item's wording: the words on screen, the lines in the output, the fields in the file.
+     Existence, size, duration, exit code, a score are not a match on their own — say so in Note and check the content anyway.
+  4. Verdict: yes | no (+ how it differs) | missing (+ why) | manual (do not collect `manual:` items).
+Write nothing outside docs/specs/{feature}/evidence/. Do NOT edit source, tests, plan.md, review.md, evidence.md or STATE.md — the orchestrator writes evidence.md from your table.
+Return:
+```
+| # | Evidence item | Artifact | Matches spec | Note |
+|---|---------------|----------|--------------|------|
+| E1 | … | evidence/E1-….png | yes | — |
+Result: {N} yes, {M} no, {K} missing, {J} manual
 ```
 ```
 

@@ -47,4 +47,5 @@ This project uses FRAME (Framework for AI-Assisted Solo Development).
 - ❌ Edit a file on assumptions — fact-check who imports it and what breaks first
 - ✅ Classify task SIZE before diving in — trivial/small skip the heavy ceremony
 - ✅ Capture learning after substantial work (Reflect is a required step, not optional)
+- ✅ Prove the result, not just the diff — every spec carries `## Evidence` (E1, E2, …: screenshot / output / file content a user would see); `/frame:review` collects each item into `docs/specs/{feature}/evidence/` before the panel runs. Green gates alone never make a feature done
 <!-- FRAME:PRINCIPLES:END -->

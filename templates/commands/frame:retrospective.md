@@ -68,6 +68,14 @@ Use the real duration in the retrospective report instead of an estimate.
 - What took longer than expected?
 - What mistakes were made?
 
+### Step 3.4: Evidence audit — did a bug reach the user while evidence was green?
+
+Review proves the result with `docs/specs/{feature}/evidence.md` (every `## Evidence` item collected as an artifact and content-checked). Ask explicitly: **was there a bug that reached the user although evidence.md read all `yes`** (and the manual items were confirmed)? Sources: bug reports and `/frame:debug` / `/frame:fast` runs since ship, the review's `## Deferred` list, the user's own account.
+
+- **No** → note "Evidence held" in the report and move on.
+- **Yes** → the evidence was too weak: an item asked for a metric where it should have asked for content ("file exists", "duration 42s", "exit 0") or it looked at the wrong place, the wrong input or too little of the output. Name the item (`E{n}`, its wording), what the bug was, and **how the item should have read** so it would have caught it — concrete, the way `/frame:plan` Step A8 wants it. This lesson always passes the Step 3.5 gate (it is a real miss with a general fix) and lands in `learnings.md ## Anti-Patterns` as a `Weak evidence` entry (Step 4), which `/frame:plan` reads when writing the next spec's Evidence.
+- Also flag it if a `manual:` item was ticked without the check being done — that is a process lesson for the same entry.
+
 ### Step 3.5: Verdict gate — decide what is worth saving (learn-eval)
 
 Do NOT dump every observation into memory — that is how memory rots. For each candidate lesson, pick one verdict:
@@ -137,6 +145,16 @@ If the same pattern was **contradicted** this task (it did not hold), step confi
 - **Occurrences**: {count}
 ```
 
+**If Step 3.4 found a bug behind green evidence**, record it in the same section as a `Weak evidence` entry — `/frame:plan` reads these before writing the next spec's `## Evidence`, so the wording of *Correct approach* is the deliverable:
+```markdown
+### Anti-pattern: Weak evidence — {what the item checked, e.g. "caption file exists and duration matches"}
+- **Why it is bad**: {the bug that got through: "captions belonged to another episode; size and duration were right"}
+- **Weak item**: {feature} E{n} — "{the original wording}"
+- **Correct approach**: the evidence item must read: "{stronger wording — names the content: 'first cue of out/12.srt is the episode-12 opening line «…»'}"
+- **Occurrences**: {count}
+```
+If a `Weak evidence` entry for the same kind of artifact already exists, absorb: bump `Occurrences`, sharpen *Correct approach*.
+
 **If an architectural decision was made**, add under `## Decisions`:
 ```markdown
 ### [DEC-{XXX}] {Decision Title}
@@ -183,6 +201,9 @@ Create `docs/specs/{feature}/retrospective.md`:
 
 ## Lessons Learned
 {what to remember}
+
+## Evidence
+{"Evidence held — no user-facing bug behind green evidence.md" | "Weak evidence: E{n} «…» let {bug} through → stronger item recorded in learnings.md"}
 
 ## Action Items
 {what to do differently next time}

@@ -466,3 +466,85 @@ test('templates: architecture-first decision standard reaches agents and princip
     assert.match(content, /Decision Standard \(architecture-first\)/, `${name} must carry the decision standard`);
   }
 });
+
+// ── 12. Evidence / Artifact check — review proves the result, not only the diff ──
+// A spec carries a mandatory `## Evidence` list; /frame:review collects every item as a
+// real artifact before the panel and fails with `REVIEW_FAILED (evidence)` on a mismatch;
+// fix/auto/build route that status like `REVIEW_FAILED`; manual items gate ship.
+
+test('templates: spec template and /frame:plan carry a mandatory Evidence section', () => {
+  const TEMPLATES_DIR = new URL('../templates', import.meta.url).pathname;
+  const specTemplate = readFileSync(join(TEMPLATES_DIR, 'project/specs/_template/spec.md'), 'utf-8');
+  assert.match(specTemplate, /^## Evidence$/m, 'spec template must have an ## Evidence section');
+  assert.match(specTemplate, /manual:/, 'spec template must document the manual: prefix');
+
+  const plan = readFileSync(join(INSTALL_DIR, '.claude', 'commands', 'frame:plan.md'), 'utf-8');
+  assert.match(plan, /^## Evidence$/m, 'plan.md spec shape must include ## Evidence');
+  assert.match(plan, /empty or missing `## Evidence`/, 'an empty Evidence list must be a plan blocker');
+  assert.match(plan, /Weak evidence/, 'plan must read Weak evidence anti-patterns from memory');
+});
+
+test('templates: /frame:review runs the artifact check between gates and panel', () => {
+  const review = readFileSync(join(INSTALL_DIR, '.claude', 'commands', 'frame:review.md'), 'utf-8');
+
+  const gates = review.indexOf('### Step 2: Collect automated gate results');
+  const artifact = review.indexOf('### Step 2.5: Artifact check');
+  const panel = review.indexOf('### Step 3: Parallel reviewer panel');
+  assert.ok(gates > -1 && artifact > -1 && panel > -1, 'Steps 2, 2.5 and 3 must all exist');
+  assert.ok(gates < artifact && artifact < panel, 'the artifact check must sit between the gates and the panel');
+
+  assert.match(review, /REVIEW_FAILED \(evidence\)/, 'a failed artifact check must set REVIEW_FAILED (evidence)');
+  assert.match(review, /docs\/specs\/\{feature\}\/evidence\.md/, 'review must write evidence.md');
+  assert.match(review, /docs\/specs\/\{feature\}\/evidence\//, 'artifacts must be stored under evidence/');
+  assert.match(review, /Matches spec/, 'evidence.md must carry the "matches spec" column');
+  assert.match(review, /Source: evidence/, 'failed items must become Source: evidence findings for /frame:fix');
+  assert.match(review, /not run — evidence failed/, 'the panel must be recorded as not run on evidence failure');
+  assert.match(review, /`manual:`/, 'review must handle manual: items');
+  assert.match(review, /Runs Steps 0–2\.5 exactly as standard/, 'strict mode must include the artifact check');
+});
+
+test('templates: REVIEW_FAILED (evidence) is routed into the fix cycle by fix, auto and build', () => {
+  const dir = join(INSTALL_DIR, '.claude', 'commands');
+  const fix = readFileSync(join(dir, 'frame:fix.md'), 'utf-8');
+  const auto = readFileSync(join(dir, 'frame:auto.md'), 'utf-8');
+  const build = readFileSync(join(dir, 'frame:build.md'), 'utf-8');
+
+  assert.match(fix, /PRIOR_STATUS/, 'fix must capture the status review left before overwriting it');
+  assert.match(fix, /REVIEW_FAILED \(evidence\)/, 'fix must recognise the evidence status');
+  assert.match(fix, /\| evidence \|/, 'fix Step 7 must route Source: evidence to artifact re-collection');
+  assert.doesNotMatch(fix, /restore STATE\.md `Status: REVIEW_FAILED`,/, 'fix must restore PRIOR_STATUS, not a hard-coded REVIEW_FAILED');
+  assert.match(fix, /continuing into \/frame:review/, 'evidence-only fixes must re-enter review, not ship');
+
+  assert.match(auto, /\*\*REVIEW_FAILED \(evidence\)\*\*/, 'auto Step 4 must route the evidence status');
+  assert.match(auto, /`ready for review`/, 'auto Step 5 must open the next round after evidence-only fixes');
+  assert.match(auto, /manual evidence item\(s\) need your confirmation/, 'auto must halt at ship on pending manual evidence');
+
+  assert.match(build, /`Status: REVIEW_FAILED \(evidence\)` → \*\*Mode: fix\*\*/, 'build fix-mode must accept the evidence variant');
+});
+
+test('templates: manual evidence reaches test-plan and gates ship', () => {
+  const dir = join(INSTALL_DIR, '.claude', 'commands');
+  const testPlan = readFileSync(join(dir, 'frame:test-plan.md'), 'utf-8');
+  const ship = readFileSync(join(dir, 'frame:ship.md'), 'utf-8');
+
+  assert.match(testPlan, /### Evidence \(manual\)/, 'test-plan must list manual evidence items');
+  assert.match(testPlan, /evidence\.md/, 'test-plan must read evidence.md');
+
+  assert.match(ship, /\| Evidence \|/, 'the readiness passport must have an Evidence row');
+  assert.match(ship, /PENDING manual/, 'pending manual evidence must be a passport state');
+  assert.match(ship, /Evidence is `PASS` or `n\/a`/, 'READY must require Evidence PASS or n/a');
+});
+
+test('templates: retrospective asks about bugs behind green evidence and records weak items', () => {
+  const retro = readFileSync(join(INSTALL_DIR, '.claude', 'commands', 'frame:retrospective.md'), 'utf-8');
+  assert.match(retro, /Step 3\.4: Evidence audit/, 'retrospective must have the evidence audit step');
+  assert.match(retro, /Anti-pattern: Weak evidence/, 'weak evidence must be recorded as an anti-pattern in learnings.md');
+  assert.match(retro, /\*\*Correct approach\*\*: the evidence item must read/, 'the entry must carry the stronger item wording');
+});
+
+test('templates: builder agent has an evidence mode that collects proof without editing code', () => {
+  const builder = readFileSync(join(INSTALL_DIR, '.claude', 'agents', 'builder.md'), 'utf-8');
+  assert.match(builder, /\| \*\*evidence\*\* \|/, 'builder must list the evidence mode');
+  assert.match(builder, /### evidence mode/, 'builder must have the evidence-mode execution flow');
+  assert.match(builder, /Do NOT edit source, tests, plan\.md, review\.md, evidence\.md or STATE\.md/, 'evidence mode must be collect-only');
+});

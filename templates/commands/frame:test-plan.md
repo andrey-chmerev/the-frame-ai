@@ -30,6 +30,7 @@ Read context in order (skip what doesn't exist):
 - `docs/specs/{feature}/spec.md` — what the feature is supposed to do (user-facing behavior)
 - `docs/specs/{feature}/plan.md` — which tasks were done, their Risk levels
 - `docs/specs/{feature}/review.md` — issues found in review (verify they were actually fixed)
+- `docs/specs/{feature}/evidence.md` — what review already proved by artifact (rows `yes` need no human re-check) and which `manual` rows are waiting for you
 
 Then look at the real diff to ground the plan in what actually changed:
 ```bash
@@ -55,7 +56,9 @@ Each scenario must be written for a human to follow without reading code:
 - **What to do** — concrete steps ("Open X → click Y → enter Z")
 - **Expected** — what should happen ("see message «...», item appears in list")
 
-Skip anything already fully covered by automated tests that can't be observed in the UI — this plan is about what a user *sees and does*.
+Skip anything already fully covered by automated tests that can't be observed in the UI — this plan is about what a user *sees and does*. Also skip scenarios that `evidence.md` already proves with an artifact (`yes` rows) — link the artifact instead of asking the human to look again.
+
+**Manual evidence is mandatory content.** Every `manual` row in `evidence.md` (the spec's `manual:` items — video, audio, hardware, third-party inboxes) becomes a checklist item under `### Evidence (manual)`, carrying its `E{n}` id verbatim. `/frame:ship` reads the tick on that line as the human confirmation the review requires; without it the readiness passport shows `PENDING manual` and blocks.
 
 ### Step 3: Write the test plan file
 
@@ -71,6 +74,12 @@ Create `docs/specs/{feature}/test-plan.md`:
 {2–4 bullets in plain language — what's new/different from a user's point of view}
 
 ## How to verify (go do this as a user)
+
+### Evidence (manual) — required before ship
+<!-- one item per `manual` row in evidence.md; keep the E-id — /frame:ship reads the tick on this line -->
+- [ ] **E3** — {the spec's manual item, verbatim}
+  - Do: {how to obtain it — open the rendered file, play the clip, check the inbox}
+  - Expect: {exact content the spec promises}
 
 ### Happy path
 - [ ] **{Scenario}**
@@ -111,7 +120,7 @@ Keep it tight: 5–12 scenarios total, prioritized by Risk from plan.md (high-ri
 Output the checklist location and a short summary:
 ```
 📋 Test plan ready: docs/specs/{feature}/test-plan.md
-   {N} scenarios to check by hand.
+   {N} scenarios to check by hand ({J} of them are manual evidence items — ship is blocked until they are ticked).
 
 Top things to verify first:
 1. {highest-risk scenario}
@@ -144,6 +153,7 @@ For visual scenarios you can also run /frame:verify-ui to screenshot-check in a 
 - **Grounded in the diff** — scenarios come from what actually changed, not generic boilerplate.
 - **Prioritize by Risk** — high-risk tasks from plan.md get the most attention.
 - **Don't run the tests** — this command produces the checklist; the user (or /frame:verify-ui) executes it.
+- **Manual evidence first** — every `manual` row of evidence.md is on the list with its `E{n}` id; ticking it is the confirmation `/frame:ship` requires.
 - **Short and finishable** — 5–12 scenarios, not 40.
 
 ## When to Use

@@ -53,7 +53,7 @@ The marker's `session=` line binds the flight to the session that engaged it (`$
 
 3. **Busy-tree routing** — a new feature never squats on another feature's tree; when the tree is busy, the answer is *parallel*, not *stale-or-live*. Check two signals: the autopilot marker (`[ -f "$(git rev-parse --git-dir)/frame-autopilot" ]`) and STATE.md's `## Current Position` (`Status:` ending `IN_PROGRESS`/`FIX_IN_PROGRESS`). Route:
 
-   - **STATE shows the *same* feature mid-pipeline** → this is a **resume**, not a new flight: skip the phases STATE.md already passed and continue from where it stands (a plan with `[DONE]` tasks re-enters build; `REVIEW_FAILED` re-enters fix). Announce what's being resumed.
+   - **STATE shows the *same* feature mid-pipeline** → this is a **resume**, not a new flight: skip the phases STATE.md already passed and continue from where it stands (a plan with `[DONE]` tasks re-enters build; `REVIEW_FAILED` and `REVIEW_FAILED (evidence)` re-enter fix). Announce what's being resumed.
    - **Marker exists** (a flight is live in this tree *right now*) → **no question**: prepare a worktree for the new feature (procedure below) and hand off. Announce: "flight {other} is live here — {feature} goes to its own worktree."
    - **No marker, but STATE shows a *different* feature mid-pipeline** (an interrupted flight or manual session — its done tasks are committed, so it is *resumable*, not garbage) → ask once, recommended option first:
      ```
@@ -148,6 +148,7 @@ On `Status: COMPLETE` → heartbeat `autopilot: build green ({done}/{total} task
 Increment `round=` in the marker file. Execute the `/frame:review` procedure (or `/frame:review strict` if the strict flag was given) — unchanged; review has no interactive points on the happy path.
 
 - **approve** (`ready to ship`) → main flight: Step 6 (SHIP); **worktree flight: LAND here** — go to Step 7 with the worktree finish report (STATE.md stays `Phase: REVIEW / Status: ready to ship`, exactly what `/frame:integrate` requires — do **not** run ship).
+- **REVIEW_FAILED (evidence)** — the gates are green but the artifact check found that the result does not match the spec (or the spec's `## Evidence` was empty). With findings: `review.md` carries one `Source: evidence` finding per failed item → **Step 5 (FIX), same round**, exactly like request changes — a wrong caption, a missing field in the output, a screen without the promised data are technical defects with technical fixes; do not halt on sight. Empty `## Evidence` (no findings): fill it once yourself per `/frame:plan` Step A8 — one content-checked item per AC — and re-run the review in the same round; that is a planning omission with a derivable answer, not a product decision.
 - **REVIEW_FAILED (automated)** — gates that were green at the end of build now fail. This is a technical failure with a technical answer, so **fix it once, don't halt on sight**: read the gate output, find the root cause (a merge, a dependency, a flaky-looking test that is actually a real race), fix it properly per the Decision Standard, re-run the gates, and continue the same round. Only if the gates are still red after that one pass → **HALT** with the gate output.
 - **request changes** → Step 5 (FIX), same round.
 - Review cannot determine a base / empty diff → **HALT**.
@@ -174,6 +175,7 @@ A finding with no `Class` field (an older review.md) → classify it here using 
 
 No product findings → execute the `/frame:fix` procedure for the whole set with its AUTO override (Step 3's confirmation is satisfied by this screen). Then route on its outcome:
 
+- **`ready for review`** — fix closed `Source: evidence` findings and the review's panel never ran (`## Panel Verdicts: not run — evidence failed`) → **Step 4, next round**: the result now matches the spec, the code still has to be reviewed. The round counts as progress (it closed the evidence findings).
 - **`ready to ship`** (all findings RESOLVED) →
   - plan SIZE is **large**, or the review diff was sharded (>800 lines), or `strict` → the fixes deserve fresh eyes: go to **Step 4, next round** (full review of the post-fix state).
   - otherwise → trust fix's scoped re-review (that is its contract) → main flight: Step 6 (SHIP); worktree flight: **LAND** (Step 7, worktree report) — but first restore STATE.md to `Phase: REVIEW / Status: Review complete, ready to ship` if fix left anything else, so `/frame:integrate` readiness holds.
@@ -186,6 +188,7 @@ No product findings → execute the `/frame:fix` procedure for the whole set wit
 Execute the `/frame:ship` procedure with its AUTO overrides: readiness passport + commit as normal; **push (Step 5) and PR (Step 6) are skipped** — reported as manual follow-ups.
 
 - Passport verdict **NOT READY** → the failing rows are technical by nature (a red gate, an uncommitted file, a stale review). Fix the cause once — properly, not by loosening the check — and re-run the passport. Still NOT READY → **HALT** with the failing rows.
+- **Exception — `Evidence: PENDING manual`** (the spec has `manual:` evidence items nobody has confirmed): this is not a defect and autopilot cannot confirm it. **HALT** with the pending items and the test-plan pointer: `⛔ AUTOPILOT HALT at SHIP: {n} manual evidence item(s) need your confirmation — {E-ids}. → /frame:test-plan, then /frame:ship`. Everything technical is already committed.
 
 ### Step 7: Finish
 
@@ -235,7 +238,8 @@ A halt is not a failure of the run — it is the pipeline handing back a decisio
 - **Zero questions per flight** — Step 2 briefs and engages without asking; the only outcomes are a landing (main: local commit; worktree: review approve) or a halt
 - **No phase logic here** — phases run by reading and executing the installed `frame:*.md` files; AUTO overrides live in those files, next to the steps they modify
 - **Marker discipline** — `$GIT_DIR/frame-autopilot` exists exactly while a flight is live; every exit path removes it
-- **Only product decisions halt** — a finding, task or deviation halts the flight when a human decision changes the outcome; anything technical is resolved in-flight to the correct architecture (Decision Standard), no matter which file or severity it lands on
+- **Only product decisions halt** — a finding, task or deviation halts the flight when a human decision changes the outcome; anything technical is resolved in-flight to the correct architecture (Decision Standard), no matter which file or severity it lands on. The one non-product halt at ship is a `manual:` evidence item — a human check by definition
+- **`REVIEW_FAILED (evidence)` is a fix round, not a halt** — the artifact check's `Source: evidence` findings go through `/frame:fix` like any other; after they close, the next round runs the full review (the panel has not run yet)
 - **Architecture, not workarounds** — a fix that silences a symptom is not a fix; if the only unattended option would be a workaround, that is itself a halt reason, reported as such
 - **Max 5 review rounds, and every round must close something** — a zero-progress round halts immediately; the cap halts at 5. Both print the round history
 - **Never push, never PR, never integrate** — a main flight ends at a local commit; merging parallel features (`/frame:integrate`) and the batch's final ship stay manual

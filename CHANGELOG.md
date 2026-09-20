@@ -2,6 +2,30 @@
 
 All notable changes to FRAME are documented here.
 
+## [Unreleased]
+
+### Added
+
+**Evidence / Artifact check — review verifies the result, not only the diff**
+
+- spec.md gains a mandatory `## Evidence` section (E1, E2, …): concrete, reproducible, user-visible proofs — "screenshot of screen X with data Y shows …", "output of `cmd` on input W contains …", "file `out/…` contains …". Checked by content, never by size/duration/exit code alone. `manual:` prefix for what no tool can verify (video, audio, hardware). Added to `templates/project/specs/_template/spec.md` and to the spec shape `/frame:plan` writes (Step A8, incl. audit-plan specs)
+- `/frame:plan` — empty or missing `## Evidence` is a plan **blocker** (Step A7); the planner reads `Weak evidence` anti-patterns from memory and writes stronger items
+- `/frame:review` — new **Step 2.5: Artifact check** between the gates and the panel: every Evidence item is actually obtained (dev server + Playwright screenshot, command output, generated-file fragment), saved under `docs/specs/{feature}/evidence/`, compared with the spec by content, and tabulated in `docs/specs/{feature}/evidence.md` (item → artifact → matches spec yes/no/missing/manual). Any `no`/`missing` → `STATE.md: Status: REVIEW_FAILED (evidence)`, panel not launched (same rule as red gates), one `Source: evidence` finding per failed item so `/frame:fix` can pick them up. Panel agents receive `evidence.md` alongside the diff; `review.md` gets an `## Evidence` section. Specs written before this version get their Evidence derived from AC/Behavior once, with a marker comment
+- `builder` agent — new **evidence mode**: collects proof only, writes nothing outside `evidence/`
+- `reviewer` agent (panel) — cites `evidence.md` rows in the R/AC coverage table
+- `/frame:fix` — captures the status review left (`REVIEW_FAILED` or `REVIEW_FAILED (evidence)`) and restores it on every failure path; `Source: evidence` findings are re-verified by re-collecting the artifact, not by re-reading the diff; when the panel never ran, closing the evidence findings continues into `/frame:review` instead of "ready to ship"
+- `/frame:auto` — routes `REVIEW_FAILED (evidence)` into the fix round like `request changes`; fills an empty Evidence list itself once; after evidence-only fixes opens the next review round; halts at ship only when `manual:` items are unconfirmed (a human check by definition)
+- `/frame:build` — fix-mode detection accepts `REVIEW_FAILED (evidence)`
+- `/frame:test-plan` — `### Evidence (manual)` section, one checklist line per `manual` row with its `E{n}` id; ticking it is the confirmation ship needs
+- `/frame:ship` — readiness passport gains an **Evidence** row (`PASS` / `FAIL` / `PENDING manual: E3` / `n/a`); pending manual evidence blocks the verdict; `evidence.md` + `evidence/` are added to the ship commit when `docs/specs` is tracked
+- `/frame:retrospective` — new **Step 3.4: Evidence audit** ("did a bug reach the user while evidence was green?") → `Weak evidence` anti-pattern in `learnings.md` with the stronger item wording; report gains an `## Evidence` section
+- `frame-principles.md` — universal principle: prove the result, not just the diff
+- Tests: `test/templates.test.js` asserts the Evidence contract across spec template, plan, review, fix, auto, build, ship, test-plan, retrospective and the builder agent
+
+### Changed
+
+- STATE.md contract unchanged; one new status value `REVIEW_FAILED (evidence)`, modelled on `REVIEW_FAILED (automated)`
+
 ## [0.14.0] — 2026-06-12
 
 ### ⚠️ Breaking Changes

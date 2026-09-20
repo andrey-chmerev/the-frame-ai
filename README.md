@@ -42,14 +42,14 @@ Run `/frame:research <topic>` — Claude explores the codebase and external sour
 `/frame:build` handles two kinds of parallelism automatically, no flags. **Between features**: if another feature is already being built, build offers to set it up in its own git worktree — you never call `/frame:parallel` by hand. **Within a feature**: it reads the `Parallel:` labels from plan.md and runs independent wave tasks concurrently. Stuck — `/frame:unstuck`. Found a bug — `/frame:debug`.
 
 **Review** — check before deploying
-`/frame:review` runs automated checks and a 6-panel review (spec compliance, security, performance, business logic, tests, conventions) on the diff. FAIL findings are verified adversarially in parallel.
-If review requests changes, `/frame:fix` closes the findings in parallel — one fixer subagent per file, light findings skip the TDD ceremony, one quality-gate run at the end.
+`/frame:review` answers two questions, not one. *Is the code correct?* — automated gates and a 6-panel review (spec compliance, security, performance, business logic, tests, conventions) on the diff, with FAIL findings verified adversarially in parallel. *Did it produce the result the spec describes?* — the **artifact check**: every spec carries a mandatory `## Evidence` list (E1, E2, …: "screenshot of screen X with data Y shows …", "output of command Z on input W contains …", "file `out/…` contains …"), and before the panel runs, review actually obtains each artifact — starts the app, takes the screenshot, runs the command, opens the generated file — saves it under `docs/specs/{feature}/evidence/` and compares it with the spec **by content**, not by size, duration or exit code. The table lands in `evidence.md`; any mismatch is `REVIEW_FAILED (evidence)` with one finding per failed item, and the panel does not run — the same rule as red gates. Items no tool can check (video, audio, hardware) are marked `manual:`, go onto the `/frame:test-plan` checklist and block `/frame:ship` until you tick them.
+If review requests changes, `/frame:fix` closes the findings in parallel — one fixer subagent per file, light findings skip the TDD ceremony, one quality-gate run at the end. Evidence findings are re-collected as artifacts, and once they match, the review re-runs so the panel still sees the code.
 
 **Ship** — deploy and record
 `/frame:ship` commits, optional push/PR, and updates project memory.
 
 **Reflect** — learn and improve
-`/frame:retrospective` after deploy updates metrics and captures patterns for future sessions.
+`/frame:retrospective` after deploy updates metrics and captures patterns for future sessions. It also asks whether a bug reached the user while `evidence.md` was green — if so, the weak evidence item and its stronger wording go into memory, so the next spec asks for better proof.
 
 **Autopilot** — everything after research, unattended
 `/frame:auto <feature>` chains plan → build → review → fix → ship in one run and **asks nothing**. Research is where you decided what to build; from there the pipeline prints a briefing (tasks, waves, high-risk list) and flies until it lands a local commit. Review findings do not bounce back to you for a manual `/frame:fix` — a technical finding is fixed in-flight, to the right architectural solution rather than a workaround, whatever its severity and whichever file it sits in. It halts only on a **product decision** (a business rule, a policy, scope — something the repo cannot answer), a wave failure, an architectural deviation from the plan, a review round that closes nothing, or 5 rounds without approve. It never pushes and never opens a PR. Add `strict` for the adversarial two-verdict review each round.
@@ -238,6 +238,7 @@ FRAME provides:
 - **Pipeline autopilot**: `/frame:auto` drives plan → build → review → fix → ship unattended, with a Stop hook that keeps the flight moving; it halts only for a product decision, never for a technical one
 - **Parallel feature work**: `/frame:parallel` runs each feature in its own git worktree with a task board; `/frame:integrate` merges them back with per-merge quality gates and cross-feature review
 - **Parallel review fixes**: `/frame:fix` closes findings file-by-file in one pass — no worktrees, no per-fix ceremony
+- **Evidence, not just green checks**: every spec lists user-visible proofs (`## Evidence`); `/frame:review` collects them as real artifacts (screenshots, output, files) into `docs/specs/{feature}/evidence/` and fails the review when the content does not match the spec
 - **10 AI agents**: Researcher, Planner, Builder, Reviewer, Auditor, Devil's Advocate, Security, Performance Auditor, Tests Reviewer, Conventions Reviewer
 - **Safety Hooks**: block destructive operations, enforce quality gates
 - **Git Safety**: checkpoints, rollback, worktrees, pause/resume
@@ -275,7 +276,7 @@ These commands cover 90% of solo dev work:
 | `/frame:plan <feature>` | Turn research into an actionable task list with waves |
 | `/frame:plan audit` | Create fix tasks from the latest audit report |
 | `/frame:build` | Implement tasks — reads Parallel: labels, runs sequentially or in parallel automatically |
-| `/frame:review` | Before deploying — 6-panel review + automated checks |
+| `/frame:review` | Before deploying — gates + artifact check against the spec's Evidence + 6-panel review |
 | `/frame:ship` | Commit, optional push/PR, update memory |
 
 ### All Commands by Phase
@@ -320,7 +321,7 @@ These commands cover 90% of solo dev work:
 
 | Command | When to use |
 |---------|-------------|
-| `/frame:review` | Before deploying — automated checks + 6-panel review |
+| `/frame:review` | Before deploying — automated checks + artifact check (spec `## Evidence` → `evidence.md`) + 6-panel review |
 | `/frame:audit` | Full project audit: 12 categories, adversarial verification |
 | `/frame:audit security` | Security-only audit: secrets, OWASP, auth, CORS |
 | `/frame:audit performance` | Performance-only audit: N+1, cache, memory leaks, bundle |
@@ -335,8 +336,8 @@ These commands cover 90% of solo dev work:
 
 | Command | When to use |
 |---------|-------------|
-| `/frame:test-plan` | After review, before ship — generates a manual "go check this as a user" checklist |
-| `/frame:ship` | Commit, optional push/PR, update memory |
+| `/frame:test-plan` | After review, before ship — generates a manual "go check this as a user" checklist, including the spec's `manual:` evidence items |
+| `/frame:ship` | Commit, optional push/PR, update memory — readiness passport includes the Evidence row |
 | `/frame:checkpoint` | Save/list/rollback git checkpoints |
 </details>
 

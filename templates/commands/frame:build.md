@@ -52,7 +52,7 @@ git worktree list
 ```
 
 **Read STATE.md once, now — and pin the build mode before any write.** Step 0.1 will overwrite `Status:` with `IN_PROGRESS`; if you read the mode *after* that, you can never see `REVIEW_FAILED` and fix-mode (Step 2) becomes unreachable. So capture it here:
-- STATE.md `Status: REVIEW_FAILED` → **Mode: fix** (Step 2 fix-mode path).
+- STATE.md `Status: REVIEW_FAILED` or `Status: REVIEW_FAILED (evidence)` → **Mode: fix** (Step 2 fix-mode path). Both leave a `review.md` with findings; the `(evidence)` variant's findings carry `Source: evidence` — their `Fix:` says what the artifact must show. (`REVIEW_FAILED (automated)` is different: the gates are red and there are no findings — fix the gate failure in normal mode, then re-run `/frame:review`.)
 - anything else → **Mode: normal**.
 
 State it: `Mode: {normal|fix}` — Step 2 uses this pinned value, not a fresh read.

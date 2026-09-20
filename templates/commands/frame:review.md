@@ -1,11 +1,11 @@
 ---
-description: "Code review: completion check, automated gates, parallel reviewer panel with verification pass"
+description: "Code review: completion check, automated gates, artifact check against the spec's Evidence list, parallel reviewer panel with verification pass"
 argument-hint: "[audit | strict]"
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Task]
 ---
 # /frame:review -- Code Review
 
-Full review of the current feature. Validates completion against spec/plan, runs quality gates, runs a parallel panel of reviewers across 6 dimensions, adversarially verifies FAIL findings, then produces a review report.
+Full review of the current feature. Validates completion against spec/plan, runs quality gates, **collects the spec's `## Evidence` items as real artifacts** (screenshots, command output, generated files) and checks their content against the spec, runs a parallel panel of reviewers across 6 dimensions, adversarially verifies FAIL findings, then produces a review report. The review answers two questions, not one: *is the code correct?* (gates + panel) and *did it produce the result the spec describes?* (artifact check).
 
 ### Routing
 
@@ -115,7 +115,77 @@ GATE_STATUS=$(cat docs/specs/{feature}/review-gates.status 2>/dev/null)
 
 **D-step**: `GATE_STATUS` must be `0`. If not — update STATE.md `Status: REVIEW_FAILED (automated)`, show the failing output from `review-gates.log`, stop. Do **not** launch the panel on code that fails the gates.
 
-**Heartbeat**: "Automated checks passed, launching reviewer panel..."
+**Heartbeat**: "Automated checks passed — collecting evidence..."
+
+### Step 2.5: Artifact check — prove the result, not the diff
+
+Green gates prove the code runs; they do not prove the feature produced what the spec describes. Size, duration, score and tests can all be right while the caption belongs to the wrong episode. This step opens the result the way a user would — runs the app, looks at the screen, reads the generated file — **before** the panel spends tokens on the diff.
+
+**Read `## Evidence` from `docs/specs/{feature}/spec.md`.**
+- Section present with items (`E1.`, `E2.`, …) → collect them (below).
+- Section **missing** (a spec written before Evidence existed) → derive the items now from `## Acceptance Criteria` + `## Behavior`: one observable, content-checked proof per AC, in the same `E{n}.` format. Append them to spec.md under `## Evidence` with the comment `<!-- derived by /frame:review {date} — spec predates Evidence -->`, announce it in one line, and continue. This is a compatibility path, not the norm — `/frame:plan` owns Evidence.
+- Section present but **empty** → the plan was not ready. Update STATE.md `Status: REVIEW_FAILED (evidence)` (block below, `Critical Issues: 0`), report "spec.md `## Evidence` is empty — fill it (E1, E2, …; see /frame:plan Step A8) before review can verify the result", stop.
+
+**Collect every item.** Items are collected **sequentially** — they usually share one dev server, simulator or output directory. ≤3 items → the orchestrator collects them inline. More → delegate the whole list to **one `builder` subagent in evidence mode** (it may start the app, run commands, take screenshots and read files; it writes **only** under `docs/specs/{feature}/evidence/`, never touches source, plan.md, review.md or STATE.md, and returns its table as text). Either way, per item:
+
+| Item kind | How to obtain the artifact | Saved as |
+|-----------|----------------------------|----------|
+| screenshot (UI) | start the dev server from `.frame/config.json` `devServer` if it is not running; `browser_navigate` + `browser_take_screenshot` (Playwright MCP, as in `/frame:verify-ui`); native apps: `xcrun simctl io booted screenshot`, or the platform's screenshot tool | `evidence/E{n}-{slug}.png` |
+| command output | run the exact command on the exact input the item names: `{cmd} > docs/specs/{feature}/evidence/E{n}-{slug}.log 2>&1` | `evidence/E{n}-{slug}.log` |
+| generated file | open the file the item names; store the relevant fragment (`sed -n`, `head`, `jq`, `ffprobe -show_format`, …) — copy the whole file only when it is small | `evidence/E{n}-{slug}.txt` (or a copy) |
+| `manual:` | do not collect. Record `manual` — `/frame:test-plan` puts it on the human checklist and `/frame:ship` requires it confirmed | — |
+
+Then **compare by content**. The artifact must contain what the item says it contains — the words on the screen, the lines in the output, the fields in the file. Existence, size, duration, exit code or a score are **not** a match on their own; if an item only names such a metric, say so in the `Note` column and check the visible content anyway. Verdict per item:
+- `yes` — the artifact shows exactly what the spec says
+- `no` — artifact obtained, content differs (say how: "first cue is episode 11's opening line")
+- `missing` — could not obtain it (app failed to start, command errored, file absent) — the stderr goes into the artifact log
+- `manual` — pending human confirmation
+
+```bash
+mkdir -p docs/specs/{feature}/evidence
+```
+
+Write `docs/specs/{feature}/evidence.md`:
+```markdown
+# Evidence: {Feature}
+Date: {date}
+Commit: {git rev-parse --short HEAD}
+
+| # | Evidence item (from spec) | Artifact | Matches spec | Note |
+|---|---------------------------|----------|--------------|------|
+| E1 | Screenshot of /settings after saving name "Ann" → header shows "Ann" | evidence/E1-settings.png | yes | — |
+| E2 | `cli export --episode 12` writes out/12.srt whose first cue is "Welcome back to…" | evidence/E2-export.log, evidence/E2-12.srt.txt | no | first cue is episode 11's opening line |
+| E3 | manual: rendered video plays with captions in sync | — | manual | pending — /frame:test-plan |
+
+Result: {N} yes, {M} no, {K} missing, {J} manual
+```
+
+**D-step**: no row may read `no` or `missing`. If any does — the same rule as red gates: the panel does **not** run.
+
+STATE.md:
+```markdown
+## Current Position
+- Phase: BUILD
+- Feature: {feature}
+- Status: REVIEW_FAILED (evidence)
+- Review: docs/specs/{feature}/review.md
+- Evidence: docs/specs/{feature}/evidence.md
+- Critical Issues: {count of no + missing}
+```
+
+Write `docs/specs/{feature}/review.md` in the Step 5 shape with **one finding per failed row**, so `/frame:fix` picks them up unchanged:
+- `Severity: HIGH` (CRITICAL if the wrong content reaches an end user or persists data)
+- `Class: technical` — a result the spec describes did not appear; `product` only when the evidence item itself turns out to be ambiguous (then write the question in `Decision needed`)
+- `Source: evidence`
+- `File:` the module that produces the artifact — locate it through the diff (`review-diff.patch`) and the code path behind the command/screen
+- `Evidence:` the artifact path + what it shows vs. what the spec says
+- `Verified: yes` — direct observation, no refute pass needed
+- `Fix:` the approach
+- `## Automated Checks`: as collected in Step 2. `## Panel Verdicts`: `not run — evidence failed`. `## Recommendation`: request changes.
+
+Report `❌ Review failed at artifact check: {M+K} evidence item(s) do not match the spec — docs/specs/{feature}/evidence.md`, then continue into the fixes exactly as Step 6's "request changes" branch says: `/frame:fix` closes the `Source: evidence` findings, re-collects those items, and — because the panel never ran — re-enters this review from Step 0.
+
+**Heartbeat**: "Evidence: {N}/{total} match, {J} manual — launching reviewer panel..."
 
 ### Step 3: Parallel reviewer panel
 
@@ -126,6 +196,7 @@ GATE_STATUS=$(cat docs/specs/{feature}/review-gates.status 2>/dev/null)
 Launch all panel agents in one message (parallel). Each receives:
 - The **path** to the diff file: `docs/specs/{feature}/review-diff.patch` (+ `$BASE`) — the agent reads it with Read/Bash; the diff is **not** inlined into the prompt
 - Path to spec.md
+- The **path** to `docs/specs/{feature}/evidence.md` (Step 2.5) — what the feature actually produced; the `reviewer` cites its rows (`evidence.md E2`) in the R/AC coverage table, `devils-advocate` uses the artifacts to ground edge-case claims in observed behaviour
 - Their specific brief (see below)
 - Instruction: run in **Panel Mode** (diff-scoped, read-only); return verdict `PASS | WARN | FAIL` + findings in the universal schema as final text (including `Class: technical | product` — see Step 3.6); do NOT run the gates again (already green); do NOT write files; do NOT write STATE.md
 
@@ -206,6 +277,10 @@ Base: {BASE commit or tag}
 - lint: PASS | FAIL
 - build: PASS | FAIL
 
+## Evidence
+{N}/{total} items match the spec — docs/specs/{feature}/evidence.md
+{J} manual item(s) pending human confirmation: E3 … → /frame:test-plan, confirm before ship (or "none")
+
 ## Panel Verdicts
 | Reviewer | Verdict | Findings |
 |----------|---------|----------|
@@ -223,7 +298,7 @@ Base: {BASE commit or tag}
 - **Class**: technical | product
 - **Confidence**: 1–10
 - **File**: path/to/file.ts:{line}
-- **Source**: {panel agent(s) that raised it — reviewer | security | performance-auditor | devils-advocate | tests-reviewer | conventions-reviewer; after dedup this may list several}
+- **Source**: {who raised it — reviewer | security | performance-auditor | devils-advocate | tests-reviewer | conventions-reviewer | evidence (Step 2.5 artifact check); after dedup this may list several}
 - **Claim**: {what is wrong}
 - **Evidence**: {code quote}
 - **Impact**: {what happens}
@@ -268,8 +343,9 @@ approve | request changes
 ```
 
 ```
-✅ Review passed. {N} warnings (non-blocking).
+✅ Review passed. {N} warnings (non-blocking). Evidence: {yes}/{total} match, {J} manual pending.
    → /frame:ship (or /frame:test-plan first for a manual checklist)
+   {if J > 0: "→ /frame:test-plan — {J} manual evidence item(s) must be confirmed before ship"}
 ```
 
 **If request changes** (any confirmed FAIL):
@@ -301,6 +377,7 @@ Triggered by: `/frame:review audit` (or auto-detected when feature name starts w
 
 Difference from standard review:
 - **Step 1c**: instead of R/AC traceability, trace each `Findings:` ID from plan.md tasks → verify the fix is in the diff (read the file at the patched location). The panel `reviewer` does not build an R/AC table in audit mode.
+- **Step 2.5**: the audit spec's `## Evidence` is one item per finding ("the reproduction no longer occurs"). If the audit spec has none, derive exactly that: re-run each finding's reproduction (command / screen from AUDIT.md `Evidence`) and record it as `E{n}`.
 - **Step 3**: launch only the panel categories whose findings were being fixed (e.g., if only SEC and LOGIC findings were fixed, run only security + devils-advocate + reviewer)
 - **Report**: "Closed {N} of {M} findings. Remaining: {list}" — if all closed, ship is open
 
@@ -308,7 +385,7 @@ Difference from standard review:
 
 ## Mode: review strict
 
-Triggered by: `/frame:review strict`. For high-stakes changes where a single review pass isn't enough. Runs Steps 0–2 exactly as standard, then replaces Steps 3–6 with an adversarial **two-verdict loop**.
+Triggered by: `/frame:review strict`. For high-stakes changes where a single review pass isn't enough. Runs Steps 0–2.5 exactly as standard (gates **and** the artifact check must pass first), then replaces Steps 3–6 with an adversarial **two-verdict loop**.
 
 ### Step S3: Two independent verdicts (round {N})
 
@@ -363,6 +440,8 @@ STATE.md: both-PASS → `Status: Review complete, ready to ship`; escalated → 
 - **Workarounds are defects** — a silenced symptom in the diff is a finding, with the architectural fix written in `Fix`
 - **Completion before review** — if build is not done, stop at Step 1a
 - **Gates run in the background** — launched in Step 0, collected in Step 2; the panel never runs the gates again
+- **Result before panel** — Step 2.5 collects every `## Evidence` item as a real artifact into `docs/specs/{feature}/evidence/` and compares it **by content** with the spec; any `no`/`missing` → `REVIEW_FAILED (evidence)`, no panel, one `Source: evidence` finding per failed item for `/frame:fix`
+- **Evidence lives in the repo** — `evidence.md` and `evidence/` stay in `docs/specs/{feature}/` and ship with the feature; `manual:` items are pending until a human confirms them (`/frame:test-plan` → `/frame:ship`)
 - **Diff on disk** — written once to `review-diff.patch`; panel and verifier agents read the path, never receive the diff inlined
 - **Evidence required** — every panel finding must have a code quote
 - **Deduplicate before verifying** — Step 3.5 collapses overlapping findings by file:line before Step 4
@@ -376,7 +455,8 @@ STATE.md: both-PASS → `Status: Review complete, ready to ship`; escalated → 
 
 - Completion verified (all tasks done, all requirements traced)
 - Automated checks passed
-- Parallel reviewer panel run
+- Every `## Evidence` item collected as an artifact and content-checked — `docs/specs/{feature}/evidence.md` + `evidence/`
+- Parallel reviewer panel run (with evidence.md in context)
 - FAIL findings adversarially verified
 - Review report at `docs/specs/{feature}/review.md`
-- `.planning/STATE.md` updated with approve or REVIEW_FAILED
+- `.planning/STATE.md` updated with approve, `REVIEW_FAILED`, `REVIEW_FAILED (automated)` or `REVIEW_FAILED (evidence)`
