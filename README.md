@@ -400,12 +400,12 @@ These commands cover 90% of solo dev work:
 | `/frame:note` | Save a quick memory note (pattern, decision, or anti-pattern) to memory files | `<note text>` |
 | `/frame:parallel` | Orchestrate parallel feature work across git worktrees — start tasks, view the board, stop tasks | `start <feature> | status | stop <feature>` |
 | `/frame:pause` | Save session state to pause-state.json and create a checkpoint | — |
-| `/frame:plan` | Decompose a feature into atomic, code-grounded tasks with embedded bodies (Action/Done/Context), wave grouping, traceability, and Parallel labels; or create a plan from audit findings | `<feature description> | audit [all]` |
+| `/frame:plan` | Decompose a feature into atomic, code-grounded tasks with embedded bodies (Action/Done/Context), wave grouping, traceability, Parallel labels, and a mandatory Evidence list in spec.md; or create a plan from audit findings | `<feature description> | audit [all]` |
 | `/frame:refactor` | Refactor code with test coverage verification and checkpoint safety | `<refactor scope>` |
 | `/frame:research` | Domain research: clarification gate, size scaling, parallel codebase + web scouting with source-quality protocol, dependency passports, devil's-advocate stress-test, new research.md with Decision Log cycle | `<topic or question>` |
 | `/frame:resume` | Resume work from pause-state.json — restore context and continue | — |
 | `/frame:retrospective` | Write retrospective, update memory files with learnings and patterns | — |
-| `/frame:review` | Code review: completion check, automated gates, parallel reviewer panel with verification pass | `[audit | strict]` |
+| `/frame:review` | Code review: completion check, automated gates, artifact check against the spec's Evidence list, parallel reviewer panel with verification pass | `[audit | strict]` |
 | `/frame:ship` | Prepare and create a git commit and pull request after review passes | — |
 | `/frame:test-plan` | Generate a manual user acceptance checklist for the current feature | `<feature or scope>` |
 | `/frame:unstuck` | Get unblocked: diagnose blockers, suggest next actions, reset mental model | — |
